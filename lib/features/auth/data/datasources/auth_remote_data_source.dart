@@ -1,4 +1,4 @@
-import 'package:expense_tracker/app_config.dart';
+import 'package:expense_tracker/features/auth/data/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:expense_tracker/core/error/failure.dart';
@@ -23,6 +23,16 @@ abstract interface class AuthRemoteDataSource {
 
   Future<void> logout();
 
+  Future<UserModel?> getCurrentUserData();
+
+  Future<UserModel> updateUserProfile({
+    required String name,
+    required String? username,
+    required String? avatarUrl,
+  });
+
+  Future<void> updatePassword(String newPassword);
+
   Future<String> getSecurityQuestion(String email);
 
   Future<bool> resetPassword({
@@ -30,12 +40,20 @@ abstract interface class AuthRemoteDataSource {
     required String answer,
     required String newPassword,
   });
+
+  Future<void> deleteAccount();
+
+  Future<UserModel> updateSecurityQuestionAnswer({
+    required String securityQuestion,
+    required String securityAnswer,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final SupabaseClient supabaseClient;
+  final GoogleSignIn googleSignIn;
 
-  AuthRemoteDataSourceImpl(this.supabaseClient);
+  AuthRemoteDataSourceImpl(this.supabaseClient, this.googleSignIn);
 
   @override
   Session? get currentUserSession => supabaseClient.auth.currentSession;
@@ -93,12 +111,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<String> signInWithGoogle() async {
     try {
-      final webClientId = AppConfig.googleWebClientId;
-
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: webClientId,
-      );
-
+      await googleSignIn.signOut();
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         throw Failure('Google Sign-In cancelled.');
@@ -133,7 +146,74 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     try {
+      await googleSignIn.signOut();
       await supabaseClient.auth.signOut();
+    } on AuthException catch (e) {
+      throw Failure(e.message);
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel?> getCurrentUserData() async {
+    try {
+      if (currentUserSession == null) return null;
+
+      final userData = await supabaseClient
+          .from('profiles')
+          .select()
+          .eq('id', currentUserSession!.user.id)
+          .single();
+
+      return UserModel.fromJson(userData).copyWith(
+        email: currentUserSession!.user.email,
+      );
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> updateUserProfile({
+    required String name,
+    required String? username,
+    required String? avatarUrl,
+  }) async {
+    try {
+      if (currentUserSession == null) throw Failure('User not logged in!');
+
+      final response = await supabaseClient
+          .from('profiles')
+          .update({
+        'full_name': name,
+        'username': username,
+        'avatar_url': avatarUrl,
+        'updated_at': DateTime.now().toIso8601String(),
+      })
+          .eq('id', currentUserSession!.user.id)
+          .select()
+          .single();
+
+      return UserModel.fromJson(response).copyWith(
+        email: currentUserSession!.user.email,
+      );
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Failure('Username is already taken!');
+      }
+      throw Failure(e.message);
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await supabaseClient.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
     } on AuthException catch (e) {
       throw Failure(e.message);
     } catch (e) {
@@ -151,7 +231,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .single();
 
       final question = response['security_question'];
-      if (question == null || (question as String).trim().isEmpty) {
+      if (question == null || (question as String)
+          .trim()
+          .isEmpty) {
         throw Failure('Security question is not set for this account.');
       }
       return question;
@@ -177,6 +259,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       return result as bool;
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    try {
+      await supabaseClient.rpc('delete_user_account');
+    } on PostgrestException catch (e) {
+      throw Failure(e.message);
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> updateSecurityQuestionAnswer({
+    required String securityQuestion,
+    required String securityAnswer,
+  }) async {
+    try {
+      if (currentUserSession == null) throw Failure('User not logged in!');
+
+      final response = await supabaseClient
+          .from('profiles')
+          .update({
+        'security_question': securityQuestion,
+        'security_answer': securityAnswer,
+        'updated_at': DateTime.now().toIso8601String(),
+      })
+          .eq('id', currentUserSession!.user.id)
+          .select()
+          .single();
+
+      return UserModel.fromJson(response).copyWith(
+        email: currentUserSession!.user.email,
+      );
+    } on PostgrestException catch (e) {
+      throw Failure(e.message);
     } catch (e) {
       throw Failure(e.toString());
     }

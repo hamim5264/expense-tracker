@@ -1,34 +1,29 @@
-# 🚀 Expense Tracker - Clean Architecture Flutter Project
+# 🚀 Onyx - Clean Architecture Flutter Project
 
-A premium, scalable Expense Tracker application built with Flutter, following **Clean Architecture** principles and powered by **Supabase**.
+A premium, scalable personal finance and Expense Tracker application built with Flutter, following **Clean Architecture** principles and powered by **Supabase**.
 
 ---
 
-## 🌟 Current Progress (Auth Phase Completed)
+## 🌟 Features & Current Progress
 
-We have successfully completed the foundation and the entire Authentication module. The app is production-ready in terms of security, state management, and user onboarding.
+We have successfully completed the core foundation, security configurations, and advanced user profiles modules. The application follows strict clean architecture separation (Data, Domain, and Presentation).
 
-### 🎨 Premium UI/UX
-- **Animated Splash Screen**: Custom scale and fade animations with theme-aware logos.
+### 🎨 Premium UI/UX & Native Polish
+- **Natively Renamed to "Onyx"**: Configured Android Label and iOS Bundle Names natively to "Onyx".
+- **Custom Brand Identity**: Integrated native app launcher icons (`app_final_native_logo.png` with background) and removed-background assets (`app_final_splash_logo.png`) for splash frames.
+- **Animated Splash Screen**: Custom entrance controller with a spring scale curve (`Curves.easeOutBack`) and looping custom-painted wave ripple effects.
+- **Glass-morphism Sheets**: Frosted glass dialogs (`BackdropFilter`) used for profile photo picker and invite friends actions.
 - **Dynamic Theming**: Full **Light and Dark mode** support using a centralized `AppTheme`.
-- **Glass-morphism Blur Loader**: A modern, premium blur overlay during network calls (Login/Register/Logout).
-- **Shimmer Effects**: Premium skeleton loading for a smooth user experience.
-- **Custom Toasts**: Brand-aligned notification messages (Purple for success, Red for failure).
-- **Inter Font**: Integrated Google Fonts for a clean, modern look.
 
 ### 🔒 Core Features & Security
-- **Clean Architecture**: Strictly separated into **Data, Domain, and Presentation** layers for maximum scalability and testability.
-- **Supabase Integration**: 
-    - Real-time authentication.
-    - Automatic **Profile creation** via PostgreSQL Triggers.
-    - **Row Level Security (RLS)** to protect user data.
-- **Manual Authentication**: 
-    - Secure registration with **Unique Usernames**.
-    - Real-time form validation.
-- **Google Sign-In**: Fully integrated with Google Identity Services.
-- **In-App Password Recovery**: A custom, secure **Security Question** system allowing users to reset passwords without ever leaving the app or checking email.
+- **In-App Password Recovery**: A custom, secure **Security Question** system allowing users to reset passwords within the app.
+- **Login and Security Screen**: Separate extracted forms for updating account passwords and configuring/saving security questions.
+- **Data and Privacy Screen**:
+    - **Export Statements**: Directly maps transaction states and exports full statements to the system clipboard in **CSV** or **JSON** formats.
+    - **Danger Zone (Delete Account)**: Confirms with a typing verification trigger, then calls a PostgreSQL RPC function (`delete_user_account`) to securely delete the user and clear all database rows.
+- **Invite Friends**: Displays a glass-morphic sheet triggering native URIs (`url_launcher`) to share Onyx download templates via **WhatsApp**, **Messenger**, **SMS**, or **Email**.
 - **Session Persistence**: App remembers user login state across restarts.
-- **Environment Safety**: Sensitive keys (Supabase URL, API Keys, Client IDs) are secured in a `.env` file and hidden from version control.
+- **Google Sign-In**: Fully integrated with Google Identity Services.
 
 ---
 
@@ -42,11 +37,11 @@ lib/
  │    ├── routing/      # App route management
  │    └── usecase/      # Base UseCase interface
  ├── features/          # Feature-based modules
- │    ├── auth/         # Authentication Module
+ │    ├── auth/         # Authentication and Profile Modules
  │    │    ├── data/    # Repositories and DataSources (Supabase)
- │    │    ├── domain/  # Entities and UseCases (SignUp, Login, Reset)
+ │    │    ├── domain/  # Entities and UseCases (SignUp, Login, Security, Delete)
  │    │    └── presentation/ # BLoC and UI Pages/Widgets
- │    └── expense/      # Expense Module (Phase 2)
+ │    └── expense/      # Expense Module
  └── init_dependencies.dart # Dependency Injection (GetIt)
 ```
 
@@ -55,8 +50,8 @@ lib/
 ## 🛠️ Tech Stack
 - **State Management**: Flutter BLoC
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **Networking**: Dio
 - **DI**: GetIt
+- **External Launcher**: url_launcher
 - **Local Caching**: Hive
 - **Functional Programming**: fpdart (Either for error handling)
 
@@ -74,7 +69,7 @@ lib/
    GOOGLE_ANDROID_CLIENT_ID=your_id
    ```
 3. **Supabase Setup**:
-   Run the SQL scripts provided in the documentation to set up the `profiles` table, PostgreSQL Triggers, and the `reset_password_with_answer` RPC function.
+   Run the SQL scripts provided in `supabase_setup.sql` to set up profiles, triggers, and the delete account RPC functions.
 4. **Run the App**:
    ```bash
    flutter pub get
@@ -83,11 +78,4 @@ lib/
 
 ---
 
-## 📅 Next Phase (Starting Tomorrow)
-- **Profile Management**: Viewing and updating user details.
-- **Expense Tracking**: Add, edit, and delete transactions.
-- **Dashboard**: Visualizing expenses with charts.
-- **Bank & Card Management**: Tracking multiple accounts.
-
----
 **Developed with ❤️ by Hamim Leon**

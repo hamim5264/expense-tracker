@@ -28,7 +28,23 @@ final class AuthLogin extends AuthEvent {
 
 final class AuthGoogleSignIn extends AuthEvent {}
 
+final class AuthIsUserLoggedIn extends AuthEvent {}
+
 final class AuthLogout extends AuthEvent {}
+
+final class AuthUpdateUserProfile extends AuthEvent {
+  final String name;
+  final String? username;
+  final String? avatarUrl;
+
+  AuthUpdateUserProfile({required this.name, this.username, this.avatarUrl});
+}
+
+final class AuthUpdatePassword extends AuthEvent {
+  final String password;
+
+  AuthUpdatePassword(this.password);
+}
 
 final class AuthForgotPasswordFetchQuestion extends AuthEvent {
   final String email;
@@ -45,5 +61,17 @@ final class AuthResetPassword extends AuthEvent {
     required this.email,
     required this.answer,
     required this.newPassword,
+  });
+}
+
+final class AuthDeleteAccount extends AuthEvent {}
+
+final class AuthUpdateSecurityQuestionAnswer extends AuthEvent {
+  final String securityQuestion;
+  final String securityAnswer;
+
+  AuthUpdateSecurityQuestionAnswer({
+    required this.securityQuestion,
+    required this.securityAnswer,
   });
 }

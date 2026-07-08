@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/common/entities/user.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -8,9 +9,9 @@ final class AuthInitial extends AuthState {}
 final class AuthLoading extends AuthState {}
 
 final class AuthSuccess extends AuthState {
-  final String uid;
+  final User user;
 
-  AuthSuccess(this.uid);
+  AuthSuccess(this.user);
 }
 
 final class AuthFailure extends AuthState {

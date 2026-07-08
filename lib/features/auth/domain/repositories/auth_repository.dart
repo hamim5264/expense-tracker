@@ -1,8 +1,11 @@
+import 'package:expense_tracker/core/common/entities/user.dart';
 import 'package:expense_tracker/core/error/failure.dart';
 import 'package:fpdart/fpdart.dart';
 
 abstract interface class AuthRepository {
-  Future<Either<Failure, String>> signUpWithEmailPassword({
+  Future<Either<Failure, User>> currentUser();
+
+  Future<Either<Failure, User>> signUpWithEmailPassword({
     required String name,
     required String email,
     required String password,
@@ -10,12 +13,20 @@ abstract interface class AuthRepository {
     required String securityAnswer,
   });
 
-  Future<Either<Failure, String>> loginWithEmailPassword({
+  Future<Either<Failure, User>> loginWithEmailPassword({
     required String email,
     required String password,
   });
 
-  Future<Either<Failure, String>> signInWithGoogle();
+  Future<Either<Failure, User>> signInWithGoogle();
+
+  Future<Either<Failure, User>> updateUserProfile({
+    required String name,
+    required String? username,
+    required String? avatarUrl,
+  });
+
+  Future<Either<Failure, void>> updatePassword(String newPassword);
 
   Future<Either<Failure, void>> logout();
 
@@ -25,5 +36,12 @@ abstract interface class AuthRepository {
     required String email,
     required String answer,
     required String newPassword,
+  });
+
+  Future<Either<Failure, void>> deleteAccount();
+
+  Future<Either<Failure, User>> updateSecurityQuestionAnswer({
+    required String securityQuestion,
+    required String securityAnswer,
   });
 }
