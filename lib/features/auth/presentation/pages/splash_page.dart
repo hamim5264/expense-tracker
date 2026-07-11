@@ -3,6 +3,9 @@ import 'package:expense_tracker/features/auth/presentation/bloc/auth_event.dart'
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/auth/presentation/pages/login_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/home_page.dart';
+import 'package:expense_tracker/core/network/network_info.dart';
+import 'package:expense_tracker/init_dependencies.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -49,7 +52,14 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     _checkAuth();
   }
 
+  bool _isOnline = true;
+
   Future<void> _checkAuth() async {
+    final networkInfo = serviceLocator<NetworkInfo>();
+    final connected = await networkInfo.isConnected;
+    if (mounted) {
+      setState(() => _isOnline = connected);
+    }
     await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
@@ -118,14 +128,29 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   const SizedBox(height: 24),
                   FadeTransition(
                     opacity: _logoOpacity,
-                    child: const Text(
-                      'ONYX',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2.0,
-                      ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'ONYX',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _isOnline
+                              ? 'Connecting securely...'
+                              : 'Offline mode enabled',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -147,26 +172,45 @@ class SplashPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
 
-    for (int i = 0; i < 3; i++) {
-      double t = (animationValue + i / 3.0) % 1.0;
-      double radius = 80 + t * 280;
-      double opacity = (1.0 - t) * 0.25;
-
-      paint.color = const Color(0xFF9E82F0).withValues(alpha: opacity);
-      canvas.drawCircle(center, radius, paint);
-    }
-
-    final glowPaint = Paint()
+    final breathingGlow = Paint()
       ..style = PaintingStyle.fill
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 50)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80)
       ..color = const Color(
-        0xFF4F378A,
-      ).withValues(alpha: 0.4 * (1.0 - (animationValue - 0.5).abs()));
-    canvas.drawCircle(center, 90, glowPaint);
+        0xFF9E82F0,
+      ).withAlpha((30 + 20 * math.sin(animationValue * 2 * math.pi)).toInt());
+    canvas.drawCircle(center, 120, breathingGlow);
+
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.white.withAlpha(isDark ? 15 : 30);
+
+    canvas.drawCircle(center, 140, ringPaint);
+    canvas.drawCircle(center, 180, ringPaint);
+
+    final particlePaint = Paint()..style = PaintingStyle.fill;
+
+    const particleCount = 4;
+    for (int i = 0; i < particleCount; i++) {
+      final double angle = (animationValue * 2 * math.pi) + (i * math.pi / 2);
+      final double radius = (i % 2 == 0) ? 140 : 180;
+      final double size = (i % 2 == 0) ? 4.0 : 3.0;
+
+      final particleCenter = Offset(
+        center.dx + radius * math.cos(angle),
+        center.dy + radius * math.sin(angle),
+      );
+
+      final particleGlow = Paint()
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+        ..color = const Color(0xFF9E82F0).withAlpha(150);
+      canvas.drawCircle(particleCenter, size * 2.5, particleGlow);
+
+      particlePaint.color = Colors.white.withAlpha(200);
+      canvas.drawCircle(particleCenter, size, particlePaint);
+    }
   }
 
   @override

@@ -5,6 +5,8 @@ class Expense {
   final double amount;
   final DateTime date;
   final String type;
+  final String category;
+  final String? walletId;
 
   Expense({
     required this.id,
@@ -13,5 +15,7 @@ class Expense {
     required this.amount,
     required this.date,
     required this.type,
+    this.category = 'Others',
+    this.walletId,
   });
 }

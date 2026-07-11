@@ -15,6 +15,8 @@ class UpdateUserProfile implements UseCase<User, UpdateUserProfileParams> {
       name: params.name,
       username: params.username,
       avatarUrl: params.avatarUrl,
+      currency: params.currency,
+      smsSyncEnabled: params.smsSyncEnabled,
     );
   }
 }
@@ -23,6 +25,14 @@ class UpdateUserProfileParams {
   final String name;
   final String? username;
   final String? avatarUrl;
+  final String? currency;
+  final bool? smsSyncEnabled;
 
-  UpdateUserProfileParams({required this.name, this.username, this.avatarUrl});
+  UpdateUserProfileParams({
+    required this.name,
+    this.username,
+    this.avatarUrl,
+    this.currency,
+    this.smsSyncEnabled,
+  });
 }

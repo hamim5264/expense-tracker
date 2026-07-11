@@ -17,18 +17,28 @@ import 'package:expense_tracker/features/expense/data/datasources/expense_remote
 import 'package:expense_tracker/features/expense/data/repositories/expense_repository_impl.dart';
 import 'package:expense_tracker/features/expense/domain/repositories/expense_repository.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/get_all_expenses.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/add_expense.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/get_wallets.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/add_wallet.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/delete_wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/app_config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:expense_tracker/core/network/network_info.dart';
+import 'package:expense_tracker/core/common/utils/hive_cache_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:expense_tracker/core/common/utils/sound_service.dart';
+
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
   await Hive.initFlutter();
+  await SoundService.init();
 
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
@@ -42,6 +52,14 @@ Future<void> initDependencies() async {
   );
 
   serviceLocator.registerLazySingleton(() => Dio());
+
+  serviceLocator.registerLazySingleton(() => Connectivity());
+
+  serviceLocator.registerLazySingleton<NetworkInfo>(
+    () => NetworkInfoImpl(serviceLocator()),
+  );
+
+  serviceLocator.registerLazySingleton(() => HiveCacheService());
 
   _initAuth();
   _initExpense();
@@ -89,10 +107,24 @@ void _initExpense() {
       () => ExpenseRemoteDataSourceImpl(serviceLocator()),
     )
     ..registerFactory<ExpenseRepository>(
-      () => ExpenseRepositoryImpl(serviceLocator()),
+      () => ExpenseRepositoryImpl(
+        remoteDataSource: serviceLocator(),
+        networkInfo: serviceLocator(),
+        cacheService: serviceLocator(),
+      ),
     )
     ..registerFactory(() => GetAllExpenses(serviceLocator()))
+    ..registerFactory(() => AddExpense(serviceLocator()))
+    ..registerFactory(() => GetWallets(serviceLocator()))
+    ..registerFactory(() => AddWallet(serviceLocator()))
+    ..registerFactory(() => DeleteWallet(serviceLocator()))
     ..registerLazySingleton(
-      () => ExpenseBloc(getAllExpenses: serviceLocator()),
+      () => ExpenseBloc(
+        getAllExpenses: serviceLocator(),
+        addExpense: serviceLocator(),
+        getWallets: serviceLocator(),
+        addWallet: serviceLocator(),
+        deleteWallet: serviceLocator(),
+      ),
     );
 }

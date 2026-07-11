@@ -59,24 +59,33 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? darkInputColor : lightInputColor,
+        fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F8F9),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: 16,
+          vertical: 14,
         ),
-        border: _border(),
-        enabledBorder: _border(),
-        focusedBorder: _border(primaryColor, 2),
-        errorBorder: _border(Colors.red),
+        hintStyle: TextStyle(
+          color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+        border: _border(isDark),
+        enabledBorder: _border(isDark),
+        focusedBorder: _border(isDark, primaryColor, 1.5),
+        errorBorder: _border(isDark, Colors.red),
       ),
     );
   }
 
-  static OutlineInputBorder _border([
-    Color color = const Color(0xFFE8ECF4),
+  static OutlineInputBorder _border(
+    bool isDark, [
+    Color? color,
     double width = 1,
   ]) => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(8),
-    borderSide: BorderSide(color: color, width: width),
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(
+      color: color ?? (isDark ? Colors.grey.shade800 : const Color(0xFFE8ECF4)),
+      width: width,
+    ),
   );
 }

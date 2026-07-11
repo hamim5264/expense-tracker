@@ -10,16 +10,29 @@ import 'package:expense_tracker/features/auth/presentation/widgets/profile_optio
 import 'package:expense_tracker/features/auth/presentation/widgets/avatar_picker_sheet.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/invite_friends_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:expense_tracker/features/auth/presentation/widgets/glass_currency_selector.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/sms_import_sheet.dart';
+import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
+import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ProfilePage extends StatelessWidget {
+import 'package:expense_tracker/core/common/utils/sound_service.dart';
+
+class ProfilePage extends StatefulWidget {
   final VoidCallback? onBackTap;
+
+  const ProfilePage({super.key, this.onBackTap});
 
   static Route route() =>
       MaterialPageRoute(builder: (context) => const ProfilePage());
 
-  const ProfilePage({super.key, this.onBackTap});
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
 
   void _showAvatarPicker(
     BuildContext context,
@@ -104,8 +117,8 @@ class ProfilePage extends StatelessWidget {
                           children: [
                             IconButton(
                               onPressed: () {
-                                if (onBackTap != null) {
-                                  onBackTap!();
+                                if (widget.onBackTap != null) {
+                                  widget.onBackTap!();
                                 } else {
                                   Navigator.pop(context);
                                 }
@@ -290,6 +303,169 @@ class ProfilePage extends StatelessWidget {
                                   context,
                                   DataPrivacyPage.route(),
                                 );
+                              },
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Divider(height: 1, color: dividerColor),
+                            ),
+                            ProfileOptionTile(
+                              icon: Icons.monetization_on_outlined,
+                              title: 'Preferred Currency (${user.currency})',
+                              iconColor: Colors.amber.shade700,
+                              showBackgroundBox: false,
+                              showTrailingArrow: true,
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  backgroundColor: Colors.transparent,
+                                  barrierColor: Colors.black.withAlpha(80),
+                                  builder: (sheetContext) {
+                                    return GlassCurrencySelector(
+                                      selectedCurrency: user.currency,
+                                      onCurrencySelected: (cur) {
+                                        context.read<AuthBloc>().add(
+                                          AuthUpdateUserProfile(
+                                            name: user.name,
+                                            username: user.username,
+                                            avatarUrl: user.avatarUrl,
+                                            currency: cur,
+                                            smsSyncEnabled: user.smsSyncEnabled,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            SwitchListTile(
+                              secondary: Icon(
+                                Icons.sms_outlined,
+                                color: iconColor,
+                              ),
+                              title: const Text('SMS Expense Sync'),
+                              subtitle: const Text(
+                                'Scan inbox to auto-detect expenses',
+                              ),
+                              value: user.smsSyncEnabled,
+                              activeThumbColor: iconColor,
+                              onChanged: (bool value) async {
+                                if (value) {
+                                  final status = await Permission.sms.request();
+                                  if (status.isGranted) {
+                                    if (context.mounted) {
+                                      context.read<AuthBloc>().add(
+                                        AuthUpdateUserProfile(
+                                          name: user.name,
+                                          username: user.username,
+                                          avatarUrl: user.avatarUrl,
+                                          currency: user.currency,
+                                          smsSyncEnabled: true,
+                                        ),
+                                      );
+
+                                      final expenseState = context
+                                          .read<ExpenseBloc>()
+                                          .state;
+                                      List<Wallet> wallets = [];
+                                      if (expenseState is ExpenseSuccess) {
+                                        wallets = expenseState.wallets;
+                                      }
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        isScrollControlled: true,
+                                        barrierColor: Colors.black.withAlpha(
+                                          80,
+                                        ),
+                                        builder: (sheetContext) =>
+                                            SmsImportSheet(
+                                              userId: user.id,
+                                              wallets: wallets,
+                                            ),
+                                      );
+                                    }
+                                  } else {
+                                    showToast(
+                                      'SMS Permission denied!',
+                                      isError: true,
+                                    );
+                                  }
+                                } else {
+                                  context.read<AuthBloc>().add(
+                                    AuthUpdateUserProfile(
+                                      name: user.name,
+                                      username: user.username,
+                                      avatarUrl: user.avatarUrl,
+                                      currency: user.currency,
+                                      smsSyncEnabled: false,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            if (user.smsSyncEnabled)
+                              ProfileOptionTile(
+                                icon: Icons.download_rounded,
+                                title: 'Import SMS Transactions',
+                                iconColor: const Color(0xFF4F378A),
+                                showBackgroundBox: false,
+                                showTrailingArrow: true,
+                                onTap: () {
+                                  final expenseState = context
+                                      .read<ExpenseBloc>()
+                                      .state;
+                                  List<Wallet> wallets = [];
+                                  if (expenseState is ExpenseSuccess) {
+                                    wallets = expenseState.wallets;
+                                  }
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    isScrollControlled: true,
+                                    barrierColor: Colors.black.withAlpha(80),
+                                    builder: (sheetContext) => SmsImportSheet(
+                                      userId: user.id,
+                                      wallets: wallets,
+                                    ),
+                                  );
+                                },
+                              ),
+                             SwitchListTile(
+                              secondary: Icon(
+                                Icons.volume_up_outlined,
+                                color: iconColor,
+                              ),
+                              title: const Text('Sound Effects'),
+                              subtitle: const Text(
+                                'Play sounds on success or failure operations',
+                              ),
+                              value: SoundService.soundEnabled,
+                              activeThumbColor: iconColor,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  SoundService.setSoundEnabled(value);
+                                });
+                              },
+                            ),
+                            SwitchListTile(
+                              secondary: Icon(
+                                Icons.vibration_outlined,
+                                color: iconColor,
+                              ),
+                              title: const Text('Haptic Vibration'),
+                              subtitle: const Text(
+                                'Vibrate device on actions',
+                              ),
+                              value: SoundService.vibrateEnabled,
+                              activeThumbColor: iconColor,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  SoundService.setVibrateEnabled(value);
+                                });
                               },
                             ),
                             const SizedBox(height: 20),

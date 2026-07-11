@@ -24,6 +24,8 @@ abstract interface class AuthRepository {
     required String name,
     required String? username,
     required String? avatarUrl,
+    String? currency,
+    bool? smsSyncEnabled,
   });
 
   Future<Either<Failure, void>> updatePassword(String newPassword);

@@ -60,10 +60,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     final res = await currentUser(NoParams());
 
-    res.fold(
-      (l) => emit(AuthInitial()),
-      (r) => emit(AuthSuccess(r)),
-    );
+    res.fold((l) => emit(AuthInitial()), (r) => emit(AuthSuccess(r)));
   }
 
   void _onAuthSignUp(AuthSignUp event, Emitter<AuthState> emit) async {
@@ -149,6 +146,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         username: event.username,
         avatarUrl: event.avatarUrl,
+        currency: event.currency,
+        smsSyncEnabled: event.smsSyncEnabled,
       ),
     );
 

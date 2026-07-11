@@ -76,12 +76,16 @@ class AuthRepositoryImpl implements AuthRepository {
     required String name,
     required String? username,
     required String? avatarUrl,
+    String? currency,
+    bool? smsSyncEnabled,
   }) async {
     try {
       final user = await remoteDataSource.updateUserProfile(
         name: name,
         username: username,
         avatarUrl: avatarUrl,
+        currency: currency,
+        smsSyncEnabled: smsSyncEnabled,
       );
       return right(user);
     } on Failure catch (e) {

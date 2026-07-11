@@ -29,6 +29,8 @@ abstract interface class AuthRemoteDataSource {
     required String name,
     required String? username,
     required String? avatarUrl,
+    String? currency,
+    bool? smsSyncEnabled,
   });
 
   Future<void> updatePassword(String newPassword);
@@ -166,9 +168,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .eq('id', currentUserSession!.user.id)
           .single();
 
-      return UserModel.fromJson(userData).copyWith(
-        email: currentUserSession!.user.email,
-      );
+      return UserModel.fromJson(
+        userData,
+      ).copyWith(email: currentUserSession!.user.email);
     } catch (e) {
       throw Failure(e.toString());
     }
@@ -179,25 +181,36 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String name,
     required String? username,
     required String? avatarUrl,
+    String? currency,
+    bool? smsSyncEnabled,
   }) async {
     try {
       if (currentUserSession == null) throw Failure('User not logged in!');
 
-      final response = await supabaseClient
-          .from('profiles')
-          .update({
+      final updateMap = <String, dynamic>{
         'full_name': name,
         'username': username,
         'avatar_url': avatarUrl,
         'updated_at': DateTime.now().toIso8601String(),
-      })
+      };
+
+      if (currency != null) {
+        updateMap['currency'] = currency;
+      }
+      if (smsSyncEnabled != null) {
+        updateMap['sms_sync_enabled'] = smsSyncEnabled;
+      }
+
+      final response = await supabaseClient
+          .from('profiles')
+          .update(updateMap)
           .eq('id', currentUserSession!.user.id)
           .select()
           .single();
 
-      return UserModel.fromJson(response).copyWith(
-        email: currentUserSession!.user.email,
-      );
+      return UserModel.fromJson(
+        response,
+      ).copyWith(email: currentUserSession!.user.email);
     } on PostgrestException catch (e) {
       if (e.code == '23505') {
         throw Failure('Username is already taken!');
@@ -231,9 +244,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .single();
 
       final question = response['security_question'];
-      if (question == null || (question as String)
-          .trim()
-          .isEmpty) {
+      if (question == null || (question as String).trim().isEmpty) {
         throw Failure('Security question is not set for this account.');
       }
       return question;
@@ -286,17 +297,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await supabaseClient
           .from('profiles')
           .update({
-        'security_question': securityQuestion,
-        'security_answer': securityAnswer,
-        'updated_at': DateTime.now().toIso8601String(),
-      })
+            'security_question': securityQuestion,
+            'security_answer': securityAnswer,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', currentUserSession!.user.id)
           .select()
           .single();
 
-      return UserModel.fromJson(response).copyWith(
-        email: currentUserSession!.user.email,
-      );
+      return UserModel.fromJson(
+        response,
+      ).copyWith(email: currentUserSession!.user.email);
     } on PostgrestException catch (e) {
       throw Failure(e.message);
     } catch (e) {

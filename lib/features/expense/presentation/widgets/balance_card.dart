@@ -1,15 +1,18 @@
+import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:flutter/material.dart';
 
 class BalanceCard extends StatelessWidget {
   final double totalBalance;
   final double income;
   final double expenses;
+  final String currencyCode;
 
   const BalanceCard({
     super.key,
     required this.totalBalance,
     required this.income,
     required this.expenses,
+    required this.currencyCode,
   });
 
   @override
@@ -60,10 +63,10 @@ class BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '\$ ${totalBalance.toStringAsFixed(2).padLeft(5, '0')}',
+            CurrencyService.format(totalBalance, currencyCode),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 36,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -115,10 +118,10 @@ class BalanceCard extends StatelessWidget {
               ),
             ),
             Text(
-              '\$ ${amount.toStringAsFixed(2).padLeft(5, '0')}',
+              CurrencyService.format(amount, currencyCode),
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),

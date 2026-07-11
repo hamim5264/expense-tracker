@@ -36,8 +36,16 @@ final class AuthUpdateUserProfile extends AuthEvent {
   final String name;
   final String? username;
   final String? avatarUrl;
+  final String? currency;
+  final bool? smsSyncEnabled;
 
-  AuthUpdateUserProfile({required this.name, this.username, this.avatarUrl});
+  AuthUpdateUserProfile({
+    required this.name,
+    this.username,
+    this.avatarUrl,
+    this.currency,
+    this.smsSyncEnabled,
+  });
 }
 
 final class AuthUpdatePassword extends AuthEvent {

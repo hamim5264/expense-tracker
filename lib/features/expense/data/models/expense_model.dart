@@ -8,6 +8,8 @@ class ExpenseModel extends Expense {
     required super.amount,
     required super.date,
     required super.type,
+    super.category = 'Others',
+    super.walletId,
   });
 
   Map<String, dynamic> toJson() {
@@ -18,6 +20,8 @@ class ExpenseModel extends Expense {
       'amount': amount,
       'date': date.toIso8601String(),
       'type': type,
+      'category': category,
+      'wallet_id': walletId,
     };
   }
 
@@ -29,6 +33,8 @@ class ExpenseModel extends Expense {
       amount: (map['amount'] as num).toDouble(),
       date: DateTime.parse(map['date'] as String),
       type: map['type'] as String,
+      category: map['category'] as String? ?? 'Others',
+      walletId: map['wallet_id'] as String?,
     );
   }
 
@@ -39,6 +45,8 @@ class ExpenseModel extends Expense {
     double? amount,
     DateTime? date,
     String? type,
+    String? category,
+    String? walletId,
   }) {
     return ExpenseModel(
       id: id ?? this.id,
@@ -47,6 +55,8 @@ class ExpenseModel extends Expense {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       type: type ?? this.type,
+      category: category ?? this.category,
+      walletId: walletId ?? this.walletId,
     );
   }
 }

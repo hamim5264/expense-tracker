@@ -9,8 +9,9 @@ final class ExpenseLoading extends ExpenseState {}
 
 final class ExpenseSuccess extends ExpenseState {
   final List<Expense> expenses;
+  final List<Wallet> wallets;
 
-  ExpenseSuccess(this.expenses);
+  ExpenseSuccess(this.expenses, {this.wallets = const []});
 }
 
 final class ExpenseFailure extends ExpenseState {

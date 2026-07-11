@@ -89,40 +89,12 @@ class _SignUpPageState extends State<SignUpPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF4F378A),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'Expense',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Tracker',
-                                style: GoogleFonts.inter(
-                                  color: onSurface,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          child: Image.asset(
+                            'assets/images/logos/app_final_splash_logo.png',
+                            height: 120,
                           ),
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 10),
                         Center(
                           child: Column(
                             children: [

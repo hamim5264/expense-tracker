@@ -1,19 +1,29 @@
-# 🚀 Onyx - Clean Architecture Flutter Project
+# 🚀 Onyx - Clean Architecture Personal Finance App
 
-A premium, scalable personal finance and Expense Tracker application built with Flutter, following **Clean Architecture** principles and powered by **Supabase**.
+Onyx is a premium, state-of-the-art personal finance and Expense Tracker application built with Flutter following strict **Clean Architecture** principles and powered by **Supabase**.
 
 ---
 
-## 🌟 Features & Current Progress
+## 🌟 Key Features & Advanced Polish
 
-We have successfully completed the core foundation, security configurations, and advanced user profiles modules. The application follows strict clean architecture separation (Data, Domain, and Presentation).
+Onyx divides its features cleanly across data layers, business logic use-cases, and premium presentation layers.
 
-### 🎨 Premium UI/UX & Native Polish
-- **Natively Renamed to "Onyx"**: Configured Android Label and iOS Bundle Names natively to "Onyx".
+### 🎨 Premium UI/UX & Native Aesthetics
+- **Natively Branded as "Onyx"**: Configured Android Label and iOS Bundle Names natively to "Onyx".
 - **Custom Brand Identity**: Integrated native app launcher icons (`app_final_native_logo.png` with background) and removed-background assets (`app_final_splash_logo.png`) for splash frames.
 - **Animated Splash Screen**: Custom entrance controller with a spring scale curve (`Curves.easeOutBack`) and looping custom-painted wave ripple effects.
 - **Glass-morphism Sheets**: Frosted glass dialogs (`BackdropFilter`) used for profile photo picker and invite friends actions.
 - **Dynamic Theming**: Full **Light and Dark mode** support using a centralized `AppTheme`.
+- **Shimmer Effects & Shimmer Loading**: Integrated shimmer animations (`StatisticsShimmerLoading`, `HomeShimmerLoading`) to make the interface feel responsive and alive during asynchronous API loading.
+
+### 📊 Beautiful Premium Statistics & Financial Ledger Sheet
+- **Beautiful Graph Design**: Uses a custom-styled line chart widget (`fl_chart`) with double vertical grid lines hidden, dynamic y-axis ceiling, interactive tap tooltips, and dynamic intervals preventing label overlapping.
+- **Current Week & Month Filtering**: Built-in boundary logic in `_filterByPeriod` to correctly filter transactions by:
+  - **Day**: Grouped by 4-hour intervals.
+  - **Week**: Aggregated specifically for the current calendar week (Sunday to Saturday).
+  - **Month**: Aggregated for the current calendar month.
+  - **Year**: Grouped by month labels (Jan, Mar, May, etc.).
+- **Branded PDF Statements**: Clicking the export button in the header opens a confirmation dialog (red-styled Cancel option) allowing the user to select their desired path in their phone's native file manager (`file_picker`). The PDF statement is cleanly structured with the Onyx brand logo, total income/expense cards, transaction ledger tables, and ISO currency representation (e.g. BDT/USD) preventing glyph block formatting errors.
 
 ### 🔒 Core Features & Security
 - **In-App Password Recovery**: A custom, secure **Security Question** system allowing users to reset passwords within the app.
@@ -24,6 +34,7 @@ We have successfully completed the core foundation, security configurations, and
 - **Invite Friends**: Displays a glass-morphic sheet triggering native URIs (`url_launcher`) to share Onyx download templates via **WhatsApp**, **Messenger**, **SMS**, or **Email**.
 - **Session Persistence**: App remembers user login state across restarts.
 - **Google Sign-In**: Fully integrated with Google Identity Services.
+- **Sound & Vibration Feedback**: Dynamically triggers native sound effects (`success_sound.mp3`, `failed_sound.mp3`) and custom haptic vibration feedback for wallets/transactions operations, controllable by toggles in the Profile settings.
 
 ---
 
@@ -52,8 +63,12 @@ lib/
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
 - **DI**: GetIt
 - **External Launcher**: url_launcher
-- **Local Caching**: Hive
+- **Local Caching**: Hive / Shared Preferences
 - **Functional Programming**: fpdart (Either for error handling)
+- **Interactive Graphs**: fl_chart
+- **Document Export**: pdf
+- **File Manager Integration**: file_picker
+- **Vibration & Audio**: audioplayers / HapticFeedback
 
 ---
 
