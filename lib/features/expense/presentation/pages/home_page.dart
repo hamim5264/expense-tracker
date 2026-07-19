@@ -41,6 +41,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   List<Expense> _detectedSmsExpenses = [];
+  // ignore: unused_field
   bool _isScanningSms = false;
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription? _smsSubscription;
