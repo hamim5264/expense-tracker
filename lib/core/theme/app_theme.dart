@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF4F378A);
   static const Color secondaryColor = Color(0xFFFFFFFF);
-  static const Color buttonPrimaryColor = Color(0xFF65558F);
 
   static const Color lightBackgroundColor = Color(0xFFFFFFFF);
   static const Color lightInputColor = Color(0xFFF7F8F9);
@@ -12,19 +10,22 @@ class AppTheme {
   static const Color darkBackgroundColor = Color(0xFF121212);
   static const Color darkInputColor = Color(0xFF1E1E1E);
 
-  static final lightThemeMode = _themeData(
+  static ThemeData lightThemeMode(Color primaryColor) => themeData(
     brightness: Brightness.light,
     backgroundColor: lightBackgroundColor,
+    primaryColor: primaryColor,
   );
 
-  static final darkThemeMode = _themeData(
+  static ThemeData darkThemeMode(Color primaryColor) => themeData(
     brightness: Brightness.dark,
     backgroundColor: darkBackgroundColor,
+    primaryColor: primaryColor,
   );
 
-  static ThemeData _themeData({
+  static ThemeData themeData({
     required Brightness brightness,
     required Color backgroundColor,
+    required Color primaryColor,
   }) {
     final isDark = brightness == Brightness.dark;
 
@@ -32,6 +33,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       scaffoldBackgroundColor: backgroundColor,
+      primaryColor: primaryColor,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: brightness,
@@ -44,7 +46,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: buttonPrimaryColor,
+          backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
           textStyle: GoogleFonts.inter(

@@ -1,6 +1,8 @@
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/auth/presentation/pages/profile_page.dart';
+import 'package:expense_tracker/core/routing/app_router.dart';
+import 'package:lottie/lottie.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/balance_card.dart';
@@ -23,6 +25,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/statistics_page.dart';
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
   static Route route() =>
@@ -46,9 +50,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<ExpenseBloc>().add(ExpenseFetchAll());
-    _checkForSmsExpenses();
+    _requestSmsPermissionAndScan();
     _setupConnectivityListener();
     _setupIncomingSmsSubscription();
+  }
+
+  Future<void> _requestSmsPermissionAndScan() async {
+    try {
+      await Permission.sms.request();
+    } catch (_) {}
+    _checkForSmsExpenses();
   }
 
   void _setupConnectivityListener() {
@@ -91,70 +102,62 @@ class _HomePageState extends State<HomePage> {
   void _setupIncomingSmsSubscription() {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess && authState.user.smsSyncEnabled) {
-      const EventChannel smsChannel = EventChannel(
-        'com.example.expense_tracker/sms',
-      );
-      _smsSubscription = smsChannel.receiveBroadcastStream().listen(
-        (event) {
-          final data = Map<String, dynamic>.from(event);
-          final body = data['body'] as String? ?? '';
-          final sender = data['sender'] as String? ?? 'SMS Alert';
-          final timestamp =
-              data['timestamp'] as int? ??
-              DateTime.now().millisecondsSinceEpoch;
+      const EventChannel smsChannel = EventChannel('com.thedevhamim.onyx/sms');
+      _smsSubscription = smsChannel.receiveBroadcastStream().listen((event) {
+        final data = Map<String, dynamic>.from(event);
+        final body = data['body'] as String? ?? '';
+        final sender = data['sender'] as String? ?? 'SMS Alert';
+        final timestamp =
+            data['timestamp'] as int? ?? DateTime.now().millisecondsSinceEpoch;
 
-          final lowerBody = body.toLowerCase();
-          if (lowerBody.contains('debited') ||
-              lowerBody.contains('spent') ||
-              lowerBody.contains('payment') ||
-              lowerBody.contains('charged') ||
-              lowerBody.contains('purchase') ||
-              lowerBody.contains('transaction')) {
-            final amountRegex = RegExp(
-              r'(?:bdt|tk|\$|usd|debited|charged|spent)\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:bdt|tk|\$|usd|taka)',
-              caseSensitive: false,
-            );
-            final match = amountRegex.firstMatch(body);
-            if (match != null) {
-              final amountStr = match.group(1) ?? match.group(2);
-              if (amountStr != null) {
-                final cleanedVal = amountStr.replaceAll(',', '');
-                final amount = double.tryParse(cleanedVal) ?? 0.0;
-                if (amount > 0) {
-                  String category = 'Others';
-                  if (lowerBody.contains('food') ||
-                      lowerBody.contains('restaurant')) {
-                    category = 'Food';
-                  } else if (lowerBody.contains('shop') ||
-                      lowerBody.contains('grocer')) {
-                    category = 'Shopping';
-                  }
+        final lowerBody = body.toLowerCase();
+        if (lowerBody.contains('debited') ||
+            lowerBody.contains('spent') ||
+            lowerBody.contains('payment') ||
+            lowerBody.contains('charged') ||
+            lowerBody.contains('purchase') ||
+            lowerBody.contains('transaction')) {
+          final amountRegex = RegExp(
+            r'(?:bdt|tk|\$|usd|debited|charged|spent)\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:bdt|tk|\$|usd|taka)',
+            caseSensitive: false,
+          );
+          final match = amountRegex.firstMatch(body);
+          if (match != null) {
+            final amountStr = match.group(1) ?? match.group(2);
+            if (amountStr != null) {
+              final cleanedVal = amountStr.replaceAll(',', '');
+              final amount = double.tryParse(cleanedVal) ?? 0.0;
+              if (amount > 0) {
+                String category = 'Others';
+                if (lowerBody.contains('food') ||
+                    lowerBody.contains('restaurant')) {
+                  category = 'Food';
+                } else if (lowerBody.contains('shop') ||
+                    lowerBody.contains('grocer')) {
+                  category = 'Shopping';
+                }
 
-                  final tx = Expense(
-                    id: timestamp.toString(),
-                    userId: authState.user.id,
-                    title: 'Auto: $sender',
-                    amount: amount,
-                    date: DateTime.fromMillisecondsSinceEpoch(timestamp),
-                    type: 'expense',
-                    category: category,
-                  );
+                final tx = Expense(
+                  id: timestamp.toString(),
+                  userId: authState.user.id,
+                  title: 'Auto: $sender',
+                  amount: amount,
+                  date: DateTime.fromMillisecondsSinceEpoch(timestamp),
+                  type: 'expense',
+                  category: category,
+                );
 
-                  if (mounted) {
-                    setState(() {
-                      _detectedSmsExpenses.insert(0, tx);
-                    });
-                    showSnackBar(context, 'New transactional SMS detected!');
-                  }
+                if (mounted) {
+                  setState(() {
+                    _detectedSmsExpenses.insert(0, tx);
+                  });
+                  showSnackBar(context, 'New transactional SMS detected!');
                 }
               }
             }
           }
-        },
-        onError: (err) {
-          // Ignored
-        },
-      );
+        }
+      }, onError: (err) {});
     }
   }
 
@@ -163,6 +166,11 @@ class _HomePageState extends State<HomePage> {
     final expenseState = context.read<ExpenseBloc>().state;
     if (authState is AuthSuccess && authState.user.smsSyncEnabled) {
       setState(() => _isScanningSms = true);
+      final status = await Permission.sms.status;
+      if (!status.isGranted) {
+        setState(() => _isScanningSms = false);
+        return;
+      }
       final detected = await SmsParser.scanSmsForExpenses(authState.user.id);
 
       List<Expense> existing = [];
@@ -232,33 +240,32 @@ class _HomePageState extends State<HomePage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: BlocBuilder<AuthBloc, AuthState>(
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthInitial) {
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
+          } else if (state is AuthFailure) {
+            showSnackBar(context, state.message, isError: true);
+          }
+        },
         builder: (context, authState) {
           if (authState is! AuthSuccess) {
             return const Center(child: CircularProgressIndicator());
           }
           final user = authState.user;
 
-          if (user.smsSyncEnabled &&
-              _detectedSmsExpenses.isEmpty &&
-              !_isScanningSms) {
-            _checkForSmsExpenses();
-          }
-
           if (_selectedIndex == 2) {
-            return WalletPage(
-              onBackTap: () => setState(() => _selectedIndex = 0),
-            );
+            return WalletPage(onBackTap: () => _onTabSelected(0));
           }
 
           if (_selectedIndex == 3) {
-            return ProfilePage(
-              onBackTap: () => setState(() => _selectedIndex = 0),
-            );
+            return ProfilePage(onBackTap: () => _onTabSelected(0));
           }
 
           if (_selectedIndex == 1) {
-            return const StatisticsPage();
+            return StatisticsPage(onBackTap: () => _onTabSelected(0));
           }
 
           return BlocListener<ExpenseBloc, ExpenseState>(
@@ -287,14 +294,18 @@ class _HomePageState extends State<HomePage> {
                       expenses += item.amount;
                     }
                   }
-                  totalBalance = income - expenses;
+                  for (var wallet in expenseState.wallets) {
+                    totalBalance += wallet.balance;
+                  }
                 }
 
                 return Stack(
                   children: [
                     CustomPaint(
                       size: Size(MediaQuery.of(context).size.width, 300),
-                      painter: HeaderPainter(),
+                      painter: HeaderPainter(
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                     Positioned(
                       top: -20,
@@ -359,7 +370,6 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ),
                                     const SizedBox(height: 16),
-                                    // Top Header Row
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -387,39 +397,132 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                           ],
                                         ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withAlpha(38),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Stack(
-                                            children: [
-                                              IconButton(
-                                                onPressed: () {},
-                                                icon: const Icon(
-                                                  Icons
-                                                      .notifications_none_rounded,
-                                                  color: Colors.white,
-                                                  size: 28,
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  AppRouter.onyxAi,
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 48,
+                                                height: 48,
+                                                padding: const EdgeInsets.all(
+                                                  6,
                                                 ),
-                                              ),
-                                              Positioned(
-                                                right: 12,
-                                                top: 12,
-                                                child: Container(
-                                                  width: 8,
-                                                  height: 8,
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                        color: Colors.orange,
-                                                        shape: BoxShape.circle,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withAlpha(
+                                                    38,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Lottie.asset(
+                                                  'assets/animations/ai-animation.json',
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => const Icon(
+                                                        Icons
+                                                            .auto_awesome_rounded,
+                                                        color: Colors.white,
+                                                        size: 26,
                                                       ),
                                                 ),
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            AnimatedBuilder(
+                                              animation: NotificationService(),
+                                              builder: (context, _) {
+                                                final unread =
+                                                    NotificationService()
+                                                        .unreadCount;
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white
+                                                        .withAlpha(38),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: Stack(
+                                                    alignment: Alignment.center,
+                                                    children: [
+                                                      IconButton(
+                                                        onPressed: () {
+                                                          Navigator.pushNamed(
+                                                            context,
+                                                            AppRouter
+                                                                .notifications,
+                                                          );
+                                                        },
+                                                        icon: const Icon(
+                                                          Icons
+                                                              .notifications_none_rounded,
+                                                          color: Colors.white,
+                                                          size: 28,
+                                                        ),
+                                                      ),
+                                                      if (unread > 0)
+                                                        Positioned(
+                                                          right: 8,
+                                                          top: 8,
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets.all(
+                                                                  2,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color:
+                                                                  const Color(
+                                                                    0xFFEF4444,
+                                                                  ),
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                              border: Border.all(
+                                                                color: Theme.of(
+                                                                  context,
+                                                                ).primaryColor,
+                                                                width: 1.5,
+                                                              ),
+                                                            ),
+                                                            constraints:
+                                                                const BoxConstraints(
+                                                                  minWidth: 16,
+                                                                  minHeight: 16,
+                                                                ),
+                                                            child: Text(
+                                                              unread > 9
+                                                                  ? '9+'
+                                                                  : '$unread',
+                                                              style: const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 9,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -591,6 +694,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _onTabSelected(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 0) {
+      _checkForSmsExpenses();
+    }
+  }
+
   Widget _buildNavItem(IconData icon, int index, bool isDark) {
     bool isSelected = _selectedIndex == index;
     return IconButton(
@@ -601,9 +711,7 @@ class _HomePageState extends State<HomePage> {
             : (isDark ? Colors.white38 : Colors.grey.shade400),
         size: 28,
       ),
-      onPressed: () {
-        setState(() => _selectedIndex = index);
-      },
+      onPressed: () => _onTabSelected(index),
     );
   }
 }

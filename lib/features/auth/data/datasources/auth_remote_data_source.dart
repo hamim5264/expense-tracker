@@ -2,6 +2,8 @@ import 'package:expense_tracker/features/auth/data/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:expense_tracker/core/error/failure.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 abstract interface class AuthRemoteDataSource {
   Session? get currentUserSession;
@@ -20,6 +22,8 @@ abstract interface class AuthRemoteDataSource {
   });
 
   Future<String> signInWithGoogle();
+
+  Future<String> signInWithFacebook();
 
   Future<void> logout();
 
@@ -146,9 +150,37 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<String> signInWithFacebook() async {
+    try {
+      debugPrint('Facebook Sign-In: Starting Supabase Web OAuth flow...');
+      await supabaseClient.auth.signInWithOAuth(
+        OAuthProvider.facebook,
+        redirectTo: 'com.thedevhamim.onyx://login-callback',
+      );
+      debugPrint('Facebook Sign-In: OAuth initiated. Redirecting user...');
+      return '';
+    } on AuthException catch (e) {
+      debugPrint('Facebook Sign-In AuthException: ${e.message}');
+      throw Failure(e.message);
+    } catch (e) {
+      debugPrint('Facebook Sign-In System Exception: ${e.toString()}');
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
   Future<void> logout() async {
     try {
-      await googleSignIn.signOut();
+      try {
+        await googleSignIn.signOut();
+      } catch (e) {
+        //
+      }
+      try {
+        await FacebookAuth.instance.logOut();
+      } catch (e) {
+        //
+      }
       await supabaseClient.auth.signOut();
     } on AuthException catch (e) {
       throw Failure(e.message);
@@ -157,20 +189,112 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  String _upgradeAvatarQuality(String url) {
+    if (url.isEmpty) return url;
+
+    if (url.contains('facebook.com') ||
+        url.contains('platform-lookaside.fbsbx.com')) {
+      var upgradedUrl = url;
+      if (upgradedUrl.contains('height=100') &&
+          upgradedUrl.contains('width=100')) {
+        upgradedUrl = upgradedUrl
+            .replaceAll('height=100', 'height=500')
+            .replaceAll('width=100', 'width=500');
+      } else if (upgradedUrl.contains('type=small')) {
+        upgradedUrl = upgradedUrl.replaceAll('type=small', 'type=large');
+      } else if (upgradedUrl.contains('type=normal')) {
+        upgradedUrl = upgradedUrl.replaceAll('type=normal', 'type=large');
+      } else if (!upgradedUrl.contains('height=') &&
+          !upgradedUrl.contains('width=') &&
+          !upgradedUrl.contains('type=')) {
+        final separator = upgradedUrl.contains('?') ? '&' : '?';
+        upgradedUrl = '$upgradedUrl${separator}width=500&height=500';
+      }
+      return upgradedUrl;
+    }
+
+    if (url.contains('googleusercontent.com')) {
+      final regex = RegExp(r'=s\d+(-[a-z])?');
+      if (regex.hasMatch(url)) {
+        return url.replaceAll(regex, '=s400-c');
+      }
+    }
+
+    return url;
+  }
+
   @override
   Future<UserModel?> getCurrentUserData() async {
     try {
       if (currentUserSession == null) return null;
 
-      final userData = await supabaseClient
-          .from('profiles')
-          .select()
-          .eq('id', currentUserSession!.user.id)
-          .single();
+      final userId = currentUserSession!.user.id;
+      final email = currentUserSession!.user.email;
 
-      return UserModel.fromJson(
-        userData,
-      ).copyWith(email: currentUserSession!.user.email);
+      Map<String, dynamic>? userData;
+      try {
+        userData = await supabaseClient
+            .from('profiles')
+            .select()
+            .eq('id', userId)
+            .maybeSingle();
+      } catch (_) {}
+
+      final meta = currentUserSession!.user.userMetadata;
+      final providerName = meta?['full_name'] ?? meta?['name'] ?? '';
+      final rawAvatar = meta?['avatar_url'] ?? meta?['picture'] ?? '';
+      final providerAvatar = _upgradeAvatarQuality(rawAvatar);
+
+      if (userData == null) {
+        final newProfile = {
+          'id': userId,
+          'email': email,
+          'full_name': providerName,
+          'avatar_url': providerAvatar,
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+
+        debugPrint(
+          'Onyx Profile Sync: Creating new profile for user $userId using social provider metadata...',
+        );
+        final inserted = await supabaseClient
+            .from('profiles')
+            .upsert(newProfile)
+            .select()
+            .single();
+
+        return UserModel.fromJson(inserted).copyWith(email: email);
+      } else {
+        final dbName = userData['full_name'] as String?;
+        final dbAvatar = userData['avatar_url'] as String?;
+
+        final needUpdateName =
+            providerName.isNotEmpty && providerName != dbName;
+        final needUpdateAvatar =
+            providerAvatar.isNotEmpty && providerAvatar != dbAvatar;
+
+        if (needUpdateName || needUpdateAvatar) {
+          final updates = <String, dynamic>{
+            'updated_at': DateTime.now().toIso8601String(),
+          };
+          if (needUpdateName) updates['full_name'] = providerName;
+          if (needUpdateAvatar) updates['avatar_url'] = providerAvatar;
+
+          debugPrint(
+            'Onyx Profile Sync: Updating profile for user $userId to match active provider metadata...',
+          );
+          final updated = await supabaseClient
+              .from('profiles')
+              .update(updates)
+              .eq('id', userId)
+              .select()
+              .single();
+
+          return UserModel.fromJson(updated).copyWith(email: email);
+        }
+
+        return UserModel.fromJson(userData).copyWith(email: email);
+      }
     } catch (e) {
       throw Failure(e.toString());
     }

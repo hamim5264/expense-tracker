@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
 class HeaderPainter extends CustomPainter {
+  final Color color;
+
+  HeaderPainter({this.color = const Color(0xFF4F378A)});
+
   @override
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
-      ..color = const Color(0xFF4F378A)
+      ..color = color
       ..style = PaintingStyle.fill;
 
     Path path = Path();
@@ -22,5 +26,6 @@ class HeaderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant HeaderPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

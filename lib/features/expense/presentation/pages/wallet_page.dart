@@ -1,8 +1,12 @@
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
+import 'package:expense_tracker/core/routing/app_router.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
+import 'package:expense_tracker/core/common/utils/animation_helper.dart';
+import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/connect_wallet_page.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/wallet_shimmer_loading.dart';
@@ -10,6 +14,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/quick_acti
 import 'package:expense_tracker/features/expense/presentation/widgets/wallet_item_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class WalletPage extends StatefulWidget {
   final VoidCallback? onBackTap;
@@ -98,8 +103,10 @@ class _WalletPageState extends State<WalletPage> {
               }
 
               List<Wallet> wallets = [];
+              List<Expense> expenses = [];
               if (expenseState is ExpenseSuccess) {
                 wallets = expenseState.wallets;
+                expenses = expenseState.expenses;
               }
 
               double totalWalletBalance = 0;
@@ -111,7 +118,9 @@ class _WalletPageState extends State<WalletPage> {
                 children: [
                   CustomPaint(
                     size: Size(MediaQuery.of(context).size.width, 330),
-                    painter: HeaderPainter(),
+                    painter: HeaderPainter(
+                      color: Theme.of(context).primaryColor,
+                    ),
                   ),
                   Positioned(
                     top: -20,
@@ -158,7 +167,12 @@ class _WalletPageState extends State<WalletPage> {
                                   Icons.notifications_none_rounded,
                                   color: Colors.white,
                                 ),
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRouter.notifications,
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -196,14 +210,25 @@ class _WalletPageState extends State<WalletPage> {
                               },
                             ),
                             QuickActionButton(
-                              icon: Icons.qr_code_scanner_rounded,
-                              label: 'Pay',
-                              onTap: () {},
+                              icon: Icons.swap_horiz_rounded,
+                              label: 'Transfer',
+                              onTap: () => _showTransferDialog(
+                                context,
+                                wallets,
+                                user.id,
+                              ),
                             ),
                             QuickActionButton(
-                              icon: Icons.send_rounded,
-                              label: 'Send',
-                              onTap: () {},
+                              icon: Icons.download_rounded,
+                              label: 'Export',
+                              onTap: () => _exportTransactions(
+                                expenses,
+                                wallets,
+                                user.name.isEmpty
+                                    ? user.email.split('@').first
+                                    : user.name,
+                                user.currency,
+                              ),
                             ),
                           ],
                         ),
@@ -273,6 +298,197 @@ class _WalletPageState extends State<WalletPage> {
           );
         },
       ),
+    );
+  }
+
+  void _showTransferDialog(
+    BuildContext context,
+    List<Wallet> wallets,
+    String userId,
+  ) {
+    if (wallets.length < 2) {
+      Fluttertoast.showToast(
+        msg: 'You need at least 2 wallets to transfer funds.',
+      );
+      return;
+    }
+
+    Wallet fromWallet = wallets.first;
+    Wallet toWallet = wallets[1];
+    final amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final primaryColor = const Color(0xFF4F378A);
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1B24) : Colors.white,
+              title: const Text(
+                'Transfer Funds',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'From Wallet',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<Wallet>(
+                      initialValue: fromWallet,
+                      dropdownColor: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : Colors.white,
+                      items: wallets.map((w) {
+                        return DropdownMenuItem(value: w, child: Text(w.name));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            fromWallet = val;
+                            if (fromWallet == toWallet) {
+                              toWallet = wallets.firstWhere(
+                                (w) => w != fromWallet,
+                              );
+                            }
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'To Wallet',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<Wallet>(
+                      initialValue: toWallet,
+                      dropdownColor: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : Colors.white,
+                      items: wallets.where((w) => w != fromWallet).map((w) {
+                        return DropdownMenuItem(value: w, child: Text(w.name));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => toWallet = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Amount',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(hintText: '0.00'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final amount =
+                        double.tryParse(amountController.text.trim()) ?? 0.0;
+                    if (amount <= 0) {
+                      Fluttertoast.showToast(msg: 'Enter a valid amount');
+                      return;
+                    }
+
+                    final expenseBloc = context.read<ExpenseBloc>();
+
+                    final debitTx = Expense(
+                      id: '',
+                      userId: userId,
+                      title: 'Transfer to ${toWallet.name}',
+                      amount: amount,
+                      date: DateTime.now(),
+                      type: 'expense',
+                      category: 'Transfer',
+                      walletId: fromWallet.id,
+                    );
+
+                    final creditTx = Expense(
+                      id: '',
+                      userId: userId,
+                      title: 'Transfer from ${fromWallet.name}',
+                      amount: amount,
+                      date: DateTime.now(),
+                      type: 'income',
+                      category: 'Transfer',
+                      walletId: toWallet.id,
+                    );
+
+                    expenseBloc.add(ExpenseAddTransaction(debitTx));
+                    expenseBloc.add(ExpenseAddTransaction(creditTx));
+
+                    Navigator.pop(dialogContext);
+                    AnimationHelper.showSuccess(
+                      context,
+                      'Transfer completed successfully!',
+                    );
+                    expenseBloc.add(ExpenseFetchAll());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Transfer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _exportTransactions(
+    List<Expense> expenses,
+    List<Wallet> wallets,
+    String userName,
+    String currency,
+  ) async {
+    if (expenses.isEmpty) {
+      if (!mounted) return;
+      AnimationHelper.showFailed(context, 'No transactions to export.');
+      return;
+    }
+
+    final totalBalance = wallets.fold(0.0, (sum, w) => sum + w.balance);
+
+    await PdfReportService.generateAndSaveReport(
+      transactions: expenses,
+      userName: userName,
+      currency: currency,
+      period: 'all',
+      type: 'all',
+      totalAmount: totalBalance,
+      onSuccess: (_) {
+        if (!mounted) return;
+        AnimationHelper.showSuccess(context, 'onyx Report saved to Downloads!');
+      },
+      onFailed: (err) {
+        if (!mounted) return;
+        AnimationHelper.showFailed(context, 'Export failed: $err');
+      },
     );
   }
 }

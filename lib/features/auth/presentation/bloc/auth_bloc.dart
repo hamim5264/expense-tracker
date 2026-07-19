@@ -8,16 +8,20 @@ import 'package:expense_tracker/features/auth/domain/usecases/update_user_profil
 import 'package:expense_tracker/features/auth/domain/usecases/user_login.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_logout.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_sign_in_google.dart';
+import 'package:expense_tracker/features/auth/domain/usecases/user_sign_in_facebook.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_sign_up.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_event.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart' as sf;
 import 'package:expense_tracker/core/usecase/usecase.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UserSignUp userSignUp;
   final UserLogin userLogin;
   final UserSignInGoogle userSignInGoogle;
+  final UserSignInFacebook userSignInFacebook;
   final UserLogout userLogout;
   final GetSecurityQuestion getSecurityQuestion;
   final ResetPassword resetPassword;
@@ -26,11 +30,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UpdatePassword updatePassword;
   final DeleteAccount deleteAccount;
   final UpdateSecurityQuestion updateSecurityQuestion;
+  StreamSubscription<sf.AuthState>? _authStateSubscription;
 
   AuthBloc({
     required this.userSignUp,
     required this.userLogin,
     required this.userSignInGoogle,
+    required this.userSignInFacebook,
     required this.userLogout,
     required this.getSecurityQuestion,
     required this.resetPassword,
@@ -43,6 +49,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignUp>(_onAuthSignUp);
     on<AuthLogin>(_onAuthLogin);
     on<AuthGoogleSignIn>(_onAuthGoogleSignIn);
+    on<AuthFacebookSignIn>(_onAuthFacebookSignIn);
     on<AuthIsUserLoggedIn>(_isUserLoggedIn);
     on<AuthLogout>(_onAuthLogout);
     on<AuthForgotPasswordFetchQuestion>(_onFetchQuestion);
@@ -51,6 +58,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthUpdatePassword>(_onUpdatePassword);
     on<AuthDeleteAccount>(_onAuthDeleteAccount);
     on<AuthUpdateSecurityQuestionAnswer>(_onAuthUpdateSecurityQuestionAnswer);
+    on<AuthSessionChanged>((event, emit) => emit(AuthSuccess(event.user)));
+    on<AuthSessionFailure>((event, emit) => emit(AuthFailure(event.message)));
+
+    _authStateSubscription = sf.Supabase.instance.client.auth.onAuthStateChange
+        .listen((data) async {
+          if (data.event == sf.AuthChangeEvent.signedIn &&
+              data.session != null) {
+            final res = await currentUser(NoParams());
+            res.fold(
+              (l) => add(AuthSessionFailure(l.message)),
+              (r) => add(AuthSessionChanged(r)),
+            );
+          }
+        });
+  }
+
+  @override
+  Future<void> close() {
+    _authStateSubscription?.cancel();
+    return super.close();
   }
 
   void _isUserLoggedIn(
@@ -95,6 +122,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final res = await userSignInGoogle(NoParams());
 
     res.fold((l) => emit(AuthFailure(l.message)), (r) => emit(AuthSuccess(r)));
+  }
+
+  void _onAuthFacebookSignIn(
+    AuthFacebookSignIn event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final res = await userSignInFacebook(NoParams());
+
+    res.fold(
+      (l) => emit(AuthFailure(l.message)),
+      (
+        _,
+      ) {}, // Do nothing on success; wait for the onAuthStateChange stream to handle redirection
+    );
   }
 
   void _onAuthLogout(AuthLogout event, Emitter<AuthState> emit) async {
@@ -161,7 +203,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     final res = await updatePassword(event.password);
 
-    res.fold((l) => emit(AuthFailure(l.message)), (r) => emit(AuthInitial()));
+    if (res.isLeft()) {
+      res.fold((l) => emit(AuthFailure(l.message)), (_) {});
+      return;
+    }
+
+    if (event.stayLoggedIn) {
+      final userRes = await currentUser(NoParams());
+      userRes.fold(
+        (l) => emit(AuthFailure(l.message)),
+        (r) => emit(AuthSuccess(r)),
+      );
+    } else {
+      await userLogout(NoParams());
+      emit(AuthInitial());
+    }
   }
 
   void _onAuthDeleteAccount(

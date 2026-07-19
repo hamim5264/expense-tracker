@@ -1,96 +1,75 @@
-# 🚀 Onyx - Clean Architecture Personal Finance App
+# 💎 Onyx - Premium Clean Architecture Personal Finance App
 
-Onyx is a premium, state-of-the-art personal finance and Expense Tracker application built with Flutter following strict **Clean Architecture** principles and powered by **Supabase**.
+Onyx is a premium, state-of-the-art personal finance and expense tracker built with Flutter following strict **Clean Architecture** principles and powered by **Supabase**. It provides offline-first performance, local AI financial diagnostics, automatic transaction parsing, and custom visual themes.
 
 ---
 
 ## 🌟 Key Features & Advanced Polish
 
-Onyx divides its features cleanly across data layers, business logic use-cases, and premium presentation layers.
+Onyx delivers a premium, fluid user experience matching modern mobile design standards:
 
-### 🎨 Premium UI/UX & Native Aesthetics
-- **Natively Branded as "Onyx"**: Configured Android Label and iOS Bundle Names natively to "Onyx".
-- **Custom Brand Identity**: Integrated native app launcher icons (`app_final_native_logo.png` with background) and removed-background assets (`app_final_splash_logo.png`) for splash frames.
-- **Animated Splash Screen**: Custom entrance controller with a spring scale curve (`Curves.easeOutBack`) and looping custom-painted wave ripple effects.
-- **Glass-morphism Sheets**: Frosted glass dialogs (`BackdropFilter`) used for profile photo picker and invite friends actions.
-- **Dynamic Theming**: Full **Light and Dark mode** support using a centralized `AppTheme`.
-- **Shimmer Effects & Shimmer Loading**: Integrated shimmer animations (`StatisticsShimmerLoading`, `HomeShimmerLoading`) to make the interface feel responsive and alive during asynchronous API loading.
+### 🎨 Visual Identity & Custom Headers
+- **Visual Theme Selection**: Select from 6 custom curated brand templates (Amethyst Purple, Emerald Green, Ocean Blue, Sunset Crimson, Obsidian Dark, Golden Amber). Themes cache locally across app restarts.
+- **Glassmorphic Custom UI Sheets**: Glassmorphic theme selectors, currency selectors, and transaction sheet configurations.
+- **Header Decoration Canvas**: Custom header canvas painters (`HeaderPainter`) rendering matching brand vectors dynamically across all pages.
+- **Swipe-to-Reveal Balance Bar**: A secure, gamified sliding handle containing a cash-flow icon. Drag the handle to the right to reveal balance; snaps back to hidden state after 6 seconds to safeguard financial privacy.
 
-### 📊 Beautiful Premium Statistics & Financial Ledger Sheet
-- **Beautiful Graph Design**: Uses a custom-styled line chart widget (`fl_chart`) with double vertical grid lines hidden, dynamic y-axis ceiling, interactive tap tooltips, and dynamic intervals preventing label overlapping.
-- **Current Week & Month Filtering**: Built-in boundary logic in `_filterByPeriod` to correctly filter transactions by:
-  - **Day**: Grouped by 4-hour intervals.
-  - **Week**: Aggregated specifically for the current calendar week (Sunday to Saturday).
-  - **Month**: Aggregated for the current calendar month.
-  - **Year**: Grouped by month labels (Jan, Mar, May, etc.).
-- **Branded PDF Statements**: Clicking the export button in the header opens a confirmation dialog (red-styled Cancel option) allowing the user to select their desired path in their phone's native file manager (`file_picker`). The PDF statement is cleanly structured with the Onyx brand logo, total income/expense cards, transaction ledger tables, and ISO currency representation (e.g. BDT/USD) preventing glyph block formatting errors.
+### 🧠 Onyx AI Budget Diagnostics (Beta)
+- **Local AI Analysis Engine**: Fully offline diagnostics processing transaction flows, savings ratios, category allocations, and wallet reserves.
+- **Staggered Suggestions List**: Fluid fade-in and slide-up list transitions with calculated delays to provide a highly tactical feedback display.
+- **Smart Warnings**: Automatically triggers in-app alerts when category budgets are breached or savings drop below threshold metrics.
 
-### 🔒 Core Features & Security
-- **In-App Password Recovery**: A custom, secure **Security Question** system allowing users to reset passwords within the app.
-- **Login and Security Screen**: Separate extracted forms for updating account passwords and configuring/saving security questions.
-- **Data and Privacy Screen**:
-    - **Export Statements**: Directly maps transaction states and exports full statements to the system clipboard in **CSV** or **JSON** formats.
-    - **Danger Zone (Delete Account)**: Confirms with a typing verification trigger, then calls a PostgreSQL RPC function (`delete_user_account`) to securely delete the user and clear all database rows.
-- **Invite Friends**: Displays a glass-morphic sheet triggering native URIs (`url_launcher`) to share Onyx download templates via **WhatsApp**, **Messenger**, **SMS**, or **Email**.
-- **Session Persistence**: App remembers user login state across restarts.
-- **Google Sign-In**: Fully integrated with Google Identity Services.
-- **Sound & Vibration Feedback**: Dynamically triggers native sound effects (`success_sound.mp3`, `failed_sound.mp3`) and custom haptic vibration feedback for wallets/transactions operations, controllable by toggles in the Profile settings.
+### 📊 Offline-First Ledger & Statements
+- **Dynamic Shimmer Loaders**: Premium skeletal shimmering loaders for Home and Wallet layouts, optimized via BLoC state to prevent flickering during silent background fetches.
+- **SMS Auto-Detection**: Scans transaction alert notifications locally to auto-populate ledgers. Raw messages never leave the device.
+- **PDF Report Generator**: Generates elegant, printable monthly transaction ledgers and financial statement spreadsheets.
 
 ---
 
-## 🏗️ Project Structure
+## 🛠️ Technology Stack & Architecture
 
-```text
-lib/
- ├── core/              # Shared utilities, themes, routing, and errors
- │    ├── common/       # Reusable widgets (BlurLoader, Shimmer) and entities
- │    ├── theme/        # Light/Dark theme configurations
- │    ├── routing/      # App route management
- │    └── usecase/      # Base UseCase interface
- ├── features/          # Feature-based modules
- │    ├── auth/         # Authentication and Profile Modules
- │    │    ├── data/    # Repositories and DataSources (Supabase)
- │    │    ├── domain/  # Entities and UseCases (SignUp, Login, Security, Delete)
- │    │    └── presentation/ # BLoC and UI Pages/Widgets
- │    └── expense/      # Expense Module
- └── init_dependencies.dart # Dependency Injection (GetIt)
+Onyx is built using a strict modular **Clean Architecture** to maintain clean boundaries between UI, domain rules, and data providers.
+
+### Architecture Map
+```mermaid
+graph TD
+    UI[Presentation Layer: Widgets, BLoC] --> Domain[Domain Layer: Entities, UseCases]
+    Data[Data Layer: Repositories, DataSources] --> Domain
 ```
 
----
-
-## 🛠️ Tech Stack
-- **State Management**: Flutter BLoC
-- **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **DI**: GetIt
-- **External Launcher**: url_launcher
-- **Local Caching**: Hive / Shared Preferences
-- **Functional Programming**: fpdart (Either for error handling)
-- **Interactive Graphs**: fl_chart
-- **Document Export**: pdf
-- **File Manager Integration**: file_picker
-- **Vibration & Audio**: audioplayers / HapticFeedback
+- **Presentation Layer**: Custom widgets, state management using Flutter BLoC, and page layouts.
+- **Domain Layer**: Clean interfaces and core model definitions (`Expense`, `Wallet`), independent of external dependencies.
+- **Data Layer**: Supabase DB synchronization, offline SQLite/Hive local storage cache repositories, and local system sensors (SMS parsing, PDF output).
 
 ---
 
-## 🚀 Getting Started
+## ⚠️ Limitations & Technical Constraints
 
-1. **Clone the project**
-2. **Environment Variables**:
-   Create a `.env` file in the root directory:
-   ```env
-   SUPABASE_URL=your_url
-   SUPABASE_PUBLISHABLE_KEY=your_key
-   GOOGLE_WEB_CLIENT_ID=your_id
-   GOOGLE_ANDROID_CLIENT_ID=your_id
-   ```
-3. **Supabase Setup**:
-   Run the SQL scripts provided in `supabase_setup.sql` to set up profiles, triggers, and the delete account RPC functions.
-4. **Run the App**:
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+- **SMS Auto-Parse Range**: The local parsing parser is calibrated for transactional formats and bank alerts. Standard personal texts are ignored. Requires explicit runtime permission.
+- **Client-Side AI Model**: The Onyx AI Engine executes entirely offline on your phone's processor. It behaves as a diagnostic system rather than a cloud-hosted LLM to protect data privacy.
+- **Background Synchronization**: Background syncing depends on Supabase database connectivity. If offline, the SQLite database queues operations and updates once connectivity is restored.
 
 ---
 
-**Developed with ❤️ by Hamim Leon**
+## 📄 Privacy & Compliance Policies
+
+For compliance with Google Play Console and social authorization requirements:
+- **Project Landing Page**: [Onyx Home](https://hamim5264.github.io/onyx-policy/index.html)
+- **Privacy Policy**: [Onyx Privacy Policy](https://hamim5264.github.io/onyx-policy/privacy.html)
+- **Data Deletion Instructions**: [Data Deletion Steps](https://hamim5264.github.io/onyx-policy/data-deletion.html)
+- **Terms of Service**: [Onyx Terms](https://hamim5264.github.io/onyx-policy/terms.html)
+
+---
+
+## 👤 Developer Profile
+
+**Abdul Hamim Leon**  
+*Lead Software Developer*  
+
+- **Portfolio**: [thedevhamim.vercel.app](https://thedevhamim.vercel.app/)
+- **GitHub**: [github.com/hamim5264](https://github.com/hamim5264)
+- **LinkedIn**: [linkedin.com/in/abdul-hamim-a35b02253](https://www.linkedin.com/in/abdul-hamim-a35b02253/)
+- **Business site**: [devengine-three.vercel.app](https://devengine-three.vercel.app/)
+
+---
+&copy; 2026 Onyx App. All rights reserved. Built with pride by DevEngine.

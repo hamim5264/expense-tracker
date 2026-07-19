@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class ProfileOptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final Color? iconColor;
   final Color? textColor;
   final VoidCallback onTap;
@@ -10,11 +11,13 @@ class ProfileOptionTile extends StatelessWidget {
   final bool showBackgroundBox;
   final bool isCircle;
   final bool showTrailingArrow;
+  final Widget? trailing;
 
   const ProfileOptionTile({
     super.key,
     required this.icon,
     required this.title,
+    this.subtitle,
     this.iconColor,
     this.textColor,
     required this.onTap,
@@ -22,6 +25,7 @@ class ProfileOptionTile extends StatelessWidget {
     this.showBackgroundBox = true,
     this.isCircle = false,
     this.showTrailingArrow = true,
+    this.trailing,
   });
 
   @override
@@ -39,17 +43,18 @@ class ProfileOptionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: ListTile(
-        leading: showBackgroundBox
-            ? Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(30),
-                  shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-                  borderRadius: isCircle ? null : BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color),
-              )
-            : Icon(icon, color: color, size: 28),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: showBackgroundBox ? color.withAlpha(20) : Colors.transparent,
+            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: isCircle ? null : BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: showBackgroundBox ? 20 : 24),
+        ),
         title: Text(
           title,
           style: TextStyle(
@@ -58,15 +63,26 @@ class ProfileOptionTile extends StatelessWidget {
             color: actualTextColor,
           ),
         ),
-        trailing: showTrailingArrow
-            ? (isDestructive
-                  ? null
-                  : const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.grey,
-                    ))
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              )
             : null,
+        trailing:
+            trailing ??
+            (showTrailingArrow
+                ? (isDestructive
+                      ? null
+                      : const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey,
+                        ))
+                : null),
         onTap: onTap,
       ),
     );

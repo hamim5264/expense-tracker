@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 
 class CategorySelector extends StatelessWidget {
   final String selectedCategory;
+  final String transactionType;
   final ValueChanged<String> onCategorySelected;
 
   const CategorySelector({
     super.key,
     required this.selectedCategory,
+    required this.transactionType,
     required this.onCategorySelected,
   });
 
@@ -36,6 +38,7 @@ class CategorySelector extends StatelessWidget {
           barrierColor: Colors.black.withAlpha(80),
           builder: (sheetContext) => GlassCategorySheet(
             selectedCategory: selectedCategory,
+            transactionType: transactionType,
             onCategorySelected: onCategorySelected,
           ),
         );

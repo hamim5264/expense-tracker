@@ -89,9 +89,27 @@ class _SignUpPageState extends State<SignUpPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Center(
-                          child: Image.asset(
-                            'assets/images/logos/app_final_splash_logo.png',
-                            height: 120,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.white.withAlpha(8)
+                                  : const Color(0xFF4F378A).withAlpha(15),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.white.withAlpha(20)
+                                    : const Color(0xFF4F378A).withAlpha(35),
+                              ),
+                              child: Image.asset(
+                                'assets/images/logos/app_final_splash_logo.png',
+                                height: 80,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -208,7 +226,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           hintText: 'Your Answer',
                           controller: securityAnswerController,
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
@@ -235,7 +253,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           },
                           child: const Text('Register'),
                         ),
-                        const SizedBox(height: 35),
+                        const SizedBox(height: 24),
                         Center(
                           child: Text(
                             'Or Register with',
@@ -246,7 +264,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 15),
                         Row(
                           children: [
                             SocialButton(
@@ -255,7 +273,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                 height: 26,
                               ),
                               onPressed: () {
-                                showToast('Facebook login is coming soon!');
+                                context.read<AuthBloc>().add(
+                                  AuthFacebookSignIn(),
+                                );
                               },
                             ),
                             const SizedBox(width: 8),
@@ -270,22 +290,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                 );
                               },
                             ),
-                            const SizedBox(width: 8),
-                            SocialButton(
-                              icon: Image.asset(
-                                'assets/images/components/apple.png',
-                                height: 26,
-                                color: theme.brightness == Brightness.dark
-                                    ? Colors.white
-                                    : null,
-                              ),
-                              onPressed: () {
-                                showToast('Apple login is coming soon!');
-                              },
-                            ),
                           ],
                         ),
-                        const SizedBox(height: 60),
+                        const SizedBox(height: 25),
                         Center(
                           child: GestureDetector(
                             onTap: () {

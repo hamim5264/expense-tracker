@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
+import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SmsImportSheet extends StatefulWidget {
   final String userId;
@@ -44,6 +46,24 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
   Future<void> _loadAndParseSms() async {
     setState(() => _isLoading = true);
     try {
+      var status = await Permission.sms.status;
+      if (!status.isGranted) {
+        status = await Permission.sms.request();
+      }
+
+      if (!status.isGranted) {
+        setState(() {
+          _parsedExpenses = [];
+          _selectedExpenses.clear();
+          _isLoading = false;
+        });
+        Fluttertoast.showToast(
+          msg: 'SMS permission is required to import messages.',
+          gravity: ToastGravity.BOTTOM,
+        );
+        return;
+      }
+
       final messages = await _query.querySms(kinds: [SmsQueryKind.inbox]);
 
       final List<Expense> allList = [];
@@ -204,8 +224,12 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
       count++;
     }
 
-    Fluttertoast.showToast(msg: 'Successfully imported $count transactions!');
     Navigator.pop(context);
+    if (count > 0) {
+      AnimationHelper.showSuccess(context, 'Imported $count SMS Transactions!');
+    } else {
+      Fluttertoast.showToast(msg: 'No transactions imported.');
+    }
   }
 
   @override
@@ -319,11 +343,16 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: _selectedWalletId,
                         items: widget.wallets.map((wallet) {
                           return DropdownMenuItem<String>(
                             value: wallet.id,
-                            child: Text(wallet.name),
+                            child: Text(
+                              wallet.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           );
                         }).toList(),
                         onChanged: (val) =>

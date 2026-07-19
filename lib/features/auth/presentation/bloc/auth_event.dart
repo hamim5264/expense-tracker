@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/common/entities/user.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -28,6 +29,20 @@ final class AuthLogin extends AuthEvent {
 
 final class AuthGoogleSignIn extends AuthEvent {}
 
+final class AuthFacebookSignIn extends AuthEvent {}
+
+final class AuthSessionChanged extends AuthEvent {
+  final User user;
+
+  AuthSessionChanged(this.user);
+}
+
+final class AuthSessionFailure extends AuthEvent {
+  final String message;
+
+  AuthSessionFailure(this.message);
+}
+
 final class AuthIsUserLoggedIn extends AuthEvent {}
 
 final class AuthLogout extends AuthEvent {}
@@ -50,8 +65,9 @@ final class AuthUpdateUserProfile extends AuthEvent {
 
 final class AuthUpdatePassword extends AuthEvent {
   final String password;
+  final bool stayLoggedIn;
 
-  AuthUpdatePassword(this.password);
+  AuthUpdatePassword(this.password, {this.stayLoggedIn = false});
 }
 
 final class AuthForgotPasswordFetchQuestion extends AuthEvent {

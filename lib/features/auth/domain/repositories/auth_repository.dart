@@ -20,6 +20,8 @@ abstract interface class AuthRepository {
 
   Future<Either<Failure, User>> signInWithGoogle();
 
+  Future<Either<Failure, void>> signInWithFacebook();
+
   Future<Either<Failure, User>> updateUserProfile({
     required String name,
     required String? username,

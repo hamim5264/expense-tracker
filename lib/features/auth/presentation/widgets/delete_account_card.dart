@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:expense_tracker/features/auth/presentation/bloc/auth_event.dart';
+import 'package:expense_tracker/features/auth/presentation/widgets/delete_feedback_dialog.dart';
 
 class DeleteAccountCard extends StatefulWidget {
   const DeleteAccountCard({super.key});
@@ -88,7 +86,11 @@ class _DeleteAccountCardState extends State<DeleteAccountCard> {
                   onPressed: _canDelete
                       ? () {
                           Navigator.pop(dialogContext);
-                          context.read<AuthBloc>().add(AuthDeleteAccount());
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const DeleteFeedbackDialog(),
+                          );
                         }
                       : null,
                   style: ElevatedButton.styleFrom(

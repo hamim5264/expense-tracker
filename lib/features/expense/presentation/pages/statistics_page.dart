@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
@@ -10,10 +9,14 @@ import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 
 import 'package:expense_tracker/features/expense/presentation/widgets/statistics_shimmer_loading.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/statistics_chart.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
+import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 
 class StatisticsPage extends StatefulWidget {
-  const StatisticsPage({super.key});
+  final VoidCallback? onBackTap;
+
+  const StatisticsPage({super.key, this.onBackTap});
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
@@ -59,26 +62,33 @@ class _StatisticsPageState extends State<StatisticsPage> {
               allTransactions = expenseState.expenses;
             }
 
-            final typedTransactions = allTransactions
+            final allPeriodTransactions = _filterByPeriod(
+              allTransactions,
+              _selectedPeriod,
+            );
+
+            final totalIncome = allPeriodTransactions
+                .where((tx) => tx.type == 'income')
+                .fold<double>(0.0, (sum, tx) => sum + tx.amount);
+
+            final totalExpenses = allPeriodTransactions
+                .where((tx) => tx.type == 'expense')
+                .fold<double>(0.0, (sum, tx) => sum + tx.amount);
+
+            final typedTransactions = allPeriodTransactions
                 .where((tx) => tx.type == _selectedType)
                 .toList();
 
-            final periodTransactions = _filterByPeriod(
+            final chartData = _generateChartData(
               typedTransactions,
               _selectedPeriod,
             );
 
-            final chartData = _generateChartData(
-              periodTransactions,
-              _selectedPeriod,
-            );
+            final totalAmount = _selectedType == 'income'
+                ? totalIncome
+                : totalExpenses;
 
-            final totalAmount = periodTransactions.fold<double>(
-              0.0,
-              (sum, tx) => sum + tx.amount,
-            );
-
-            final sortedTransactions = List<Expense>.from(periodTransactions)
+            final sortedTransactions = List<Expense>.from(typedTransactions)
               ..sort((a, b) => b.amount.compareTo(a.amount));
 
             return Scaffold(
@@ -102,7 +112,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               color: isDark ? Colors.white : Colors.black87,
                             ),
                             onPressed: () {
-                              if (Navigator.canPop(context)) {
+                              if (widget.onBackTap != null) {
+                                widget.onBackTap!();
+                              } else if (Navigator.canPop(context)) {
                                 Navigator.pop(context);
                               }
                             },
@@ -140,7 +152,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                       onPressed: () {
                                         Navigator.pop(ctx);
                                         PdfReportService.generateAndSaveReport(
-                                          transactions: periodTransactions,
+                                          transactions: allPeriodTransactions,
                                           userName:
                                               user.username?.isNotEmpty == true
                                               ? user.username!
@@ -149,6 +161,16 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                           period: _selectedPeriod,
                                           type: _selectedType,
                                           totalAmount: totalAmount,
+                                          onSuccess: (_) =>
+                                              AnimationHelper.showSuccess(
+                                                context,
+                                                'onyx Report saved successfully!',
+                                              ),
+                                          onFailed: (err) =>
+                                              AnimationHelper.showFailed(
+                                                context,
+                                                'Export failed: $err',
+                                              ),
                                         );
                                       },
                                       child: const Text('Download'),
@@ -215,65 +237,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       ),
                     ),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white24
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedType,
-                                dropdownColor: isDark
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.white,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'expense',
-                                    child: Text(
-                                      'Expense',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'income',
-                                    child: Text(
-                                      'Income',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() {
-                                      _selectedType = val;
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
                     Expanded(
                       child: ListView(
                         physics: const BouncingScrollPhysics(),
@@ -311,30 +274,341 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Total ${_selectedType == 'expense' ? 'Spendings' : 'Earnings'}',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white70
-                                            : Colors.black54,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedType = 'income';
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: _selectedType == 'income'
+                                                    ? const Color(
+                                                        0xFF22C55E,
+                                                      ).withOpacity(0.1)
+                                                    : Colors.transparent,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color:
+                                                      _selectedType == 'income'
+                                                      ? const Color(
+                                                          0xFF22C55E,
+                                                        ).withOpacity(0.3)
+                                                      : Colors.transparent,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 10,
+                                                        height: 10,
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              color: Color(
+                                                                0xFF4ADE80,
+                                                              ),
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        'Income',
+                                                        style: TextStyle(
+                                                          color: isDark
+                                                              ? Colors.white70
+                                                              : Colors.black54,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              _selectedType ==
+                                                                  'income'
+                                                              ? FontWeight.bold
+                                                              : FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    child: Text(
+                                                      CurrencyService.format(
+                                                        totalIncome,
+                                                        user.currency,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        color: Color(
+                                                          0xFF22C55E,
+                                                        ),
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 44,
+                                          color: isDark
+                                              ? Colors.white24
+                                              : Colors.grey.shade300,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedType = 'expense';
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    _selectedType == 'expense'
+                                                    ? const Color(
+                                                        0xFFEF4444,
+                                                      ).withOpacity(0.1)
+                                                    : Colors.transparent,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color:
+                                                      _selectedType == 'expense'
+                                                      ? const Color(
+                                                          0xFFEF4444,
+                                                        ).withOpacity(0.3)
+                                                      : Colors.transparent,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 10,
+                                                        height: 10,
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              color: Color(
+                                                                0xFFFF6B6B,
+                                                              ),
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        'Expenses',
+                                                        style: TextStyle(
+                                                          color: isDark
+                                                              ? Colors.white70
+                                                              : Colors.black54,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              _selectedType ==
+                                                                  'expense'
+                                                              ? FontWeight.bold
+                                                              : FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    child: Text(
+                                                      CurrencyService.format(
+                                                        totalExpenses,
+                                                        user.currency,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        color: Color(
+                                                          0xFFEF4444,
+                                                        ),
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      CurrencyService.format(
-                                        totalAmount,
-                                        user.currency,
-                                      ),
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
+                                    const SizedBox(height: 16),
+                                    Divider(
+                                      color: isDark
+                                          ? Colors.white24
+                                          : Colors.grey.shade200,
+                                      height: 1,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Total ${_selectedType == 'expense' ? 'Spendings' : 'Earnings'}',
+                                                style: TextStyle(
+                                                  color: isDark
+                                                      ? Colors.white70
+                                                      : Colors.black54,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  CurrencyService.format(
+                                                    totalAmount,
+                                                    user.currency,
+                                                  ),
+                                                  style: TextStyle(
+                                                    color:
+                                                        _selectedType ==
+                                                            'income'
+                                                        ? const Color(
+                                                            0xFF22C55E,
+                                                          )
+                                                        : const Color(
+                                                            0xFFEF4444,
+                                                          ),
+                                                    fontSize: 28,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Builder(
+                                          builder: (context) {
+                                            final net =
+                                                totalIncome - totalExpenses;
+                                            final isPositive = net >= 0;
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 150,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    (isPositive
+                                                            ? const Color(
+                                                                0xFF22C55E,
+                                                              )
+                                                            : const Color(
+                                                                0xFFEF4444,
+                                                              ))
+                                                        .withOpacity(0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color:
+                                                      (isPositive
+                                                              ? const Color(
+                                                                  0xFF22C55E,
+                                                                )
+                                                              : const Color(
+                                                                  0xFFEF4444,
+                                                                ))
+                                                          .withOpacity(0.3),
+                                                  width: 1.2,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    'Net Balance',
+                                                    style: TextStyle(
+                                                      color: isDark
+                                                          ? Colors.white60
+                                                          : Colors.black54,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: Text(
+                                                      CurrencyService.format(
+                                                        net,
+                                                        user.currency,
+                                                      ),
+                                                      style: TextStyle(
+                                                        color: isPositive
+                                                            ? const Color(
+                                                                0xFF22C55E,
+                                                              )
+                                                            : const Color(
+                                                                0xFFEF4444,
+                                                              ),
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -343,23 +617,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           ),
                           const SizedBox(height: 32),
 
-                          if (chartData.isNotEmpty)
-                            SizedBox(
-                              height: 220,
-                              child: LineChart(
-                                _mainChartData(chartData, isDark),
-                              ),
-                            )
-                          else
-                            const SizedBox(
-                              height: 220,
-                              child: Center(
-                                child: Text(
-                                  'No data available for this period',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            ),
+                          StatisticsChart(
+                            points: chartData,
+                            selectedPeriod: _selectedPeriod,
+                            isDark: isDark,
+                          ),
 
                           const SizedBox(height: 32),
 
@@ -442,7 +704,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }).toList();
   }
 
-  List<_ChartPoint> _generateChartData(List<Expense> list, String period) {
+  List<ChartPoint> _generateChartData(List<Expense> list, String period) {
     final Map<int, double> map = {};
 
     if (period == 'Day') {
@@ -485,149 +747,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     final sortedKeys = map.keys.toList()..sort();
-    return sortedKeys.map((k) => _ChartPoint(k.toDouble(), map[k]!)).toList();
+    return sortedKeys.map((k) => ChartPoint(k.toDouble(), map[k]!)).toList();
   }
-
-  LineChartData _mainChartData(List<_ChartPoint> points, bool isDark) {
-    final gradientColors = [const Color(0xFF311B92), const Color(0xFF5E35B1)];
-
-    final spots = points.map((p) => FlSpot(p.x, p.y)).toList();
-
-    double maxY = 100;
-    for (var p in points) {
-      if (p.y > maxY) maxY = p.y;
-    }
-    maxY = (maxY * 1.15).ceilToDouble();
-
-    return LineChartData(
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: false,
-        horizontalInterval: maxY / 4,
-        getDrawingHorizontalLine: (value) {
-          return FlLine(
-            color: isDark ? Colors.white10 : Colors.grey.shade300,
-            strokeWidth: 1,
-          );
-        },
-      ),
-      titlesData: FlTitlesData(
-        show: true,
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            interval: _selectedPeriod == 'Day' ? 4 : 1,
-            getTitlesWidget: (value, meta) {
-              String text = '';
-              final valInt = value.toInt();
-              if (_selectedPeriod == 'Day') {
-                text = '$valInt:00';
-              } else if (_selectedPeriod == 'Week') {
-                text = '$valInt';
-              } else if (_selectedPeriod == 'Month') {
-                text = 'Wk $valInt';
-              } else {
-                switch (valInt) {
-                  case 1:
-                    text = 'Jan';
-                    break;
-                  case 3:
-                    text = 'Mar';
-                    break;
-                  case 5:
-                    text = 'May';
-                    break;
-                  case 7:
-                    text = 'Jul';
-                    break;
-                  case 9:
-                    text = 'Sep';
-                    break;
-                  case 11:
-                    text = 'Nov';
-                    break;
-                }
-              }
-              return SideTitleWidget(
-                meta: meta,
-                space: 8,
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.grey.shade600,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-      borderData: FlBorderData(show: false),
-      minX: points.first.x,
-      maxX: points.last.x,
-      minY: 0,
-      maxY: maxY,
-      lineTouchData: LineTouchData(
-        touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (LineBarSpot touchedSpot) => const Color(0xFF311B92),
-          getTooltipItems: (touchedSpots) {
-            return touchedSpots.map((spot) {
-              return LineTooltipItem(
-                '\$${spot.y.toStringAsFixed(0)}',
-                const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              );
-            }).toList();
-          },
-        ),
-        handleBuiltInTouches: true,
-      ),
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          gradient: LinearGradient(colors: gradientColors),
-          barWidth: 4,
-          isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: true,
-            getDotPainter: (spot, percent, barData, index) =>
-                FlDotCirclePainter(
-                  radius: 6,
-                  color: const Color(0xFF311B92),
-                  strokeWidth: 2,
-                  strokeColor: Colors.white,
-                ),
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              colors: gradientColors
-                  .map((color) => color.withAlpha(50))
-                  .toList(),
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ChartPoint {
-  final double x;
-  final double y;
-
-  const _ChartPoint(this.x, this.y);
 }

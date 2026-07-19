@@ -4,11 +4,11 @@ import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/premium_credit_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/account_option_tile.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/card_number_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:expense_tracker/core/common/utils/sound_service.dart';
+import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 
 class ConnectWalletPage extends StatefulWidget {
   static Route route() =>
@@ -33,12 +33,14 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   final _cardCvcController = TextEditingController();
   final _cardExpiryController = TextEditingController();
   final _cardZipController = TextEditingController();
+  final _cardBalanceController = TextEditingController(text: '0.00');
 
   final _cardNameFocusNode = FocusNode();
   final _cardNumberFocusNode = FocusNode();
   final _cardExpiryFocusNode = FocusNode();
   final _cardCvcFocusNode = FocusNode();
   final _cardZipFocusNode = FocusNode();
+  final _cardBalanceFocusNode = FocusNode();
 
   bool _showAccountDetailsForm = false;
   String _selectedBankType = 'Bank Link';
@@ -48,31 +50,30 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   final _accountNumberController = TextEditingController();
   final _accountBalanceController = TextEditingController(text: '0.00');
 
-  String _selectedBankName = 'City Bank';
-  String _selectedMobileProvider = 'bKash';
+  final _bankNameController = TextEditingController(text: 'Chase Bank');
+  final _mobileProviderController = TextEditingController(text: 'bKash');
 
-  final List<String> _bangladeshBanks = [
-    'City Bank',
+  final _bankNameFocusNode = FocusNode();
+  final _mobileProviderFocusNode = FocusNode();
+
+  final List<String> _popularBanks = [
+    'Chase Bank',
+    'Bank of America',
+    'Wells Fargo',
+    'HSBC',
+    'Barclays',
+    'Citi',
     'BRAC Bank',
     'Dutch-Bangla Bank',
-    'Eastern Bank',
-    'Sonali Bank',
-    'Islami Bank',
-    'Standard Chartered',
-    'HSBC Bangladesh',
-    'Pubali Bank',
-    'Rupali Bank',
-    'Agrani Bank',
-    'Janata Bank',
   ];
 
-  final List<String> _mobileProviders = [
+  final List<String> _popularMobileProviders = [
     'bKash',
     'Nagad',
     'Rocket',
-    'Upay',
-    'SureCash',
-    'MYCash',
+    'Venmo',
+    'Cash App',
+    'M-Pesa',
   ];
 
   @override
@@ -89,32 +90,35 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
     _cardCvcController.dispose();
     _cardExpiryController.dispose();
     _cardZipController.dispose();
+    _cardBalanceController.dispose();
     _cardNameFocusNode.dispose();
     _cardNumberFocusNode.dispose();
     _cardExpiryFocusNode.dispose();
     _cardCvcFocusNode.dispose();
     _cardZipFocusNode.dispose();
+    _cardBalanceFocusNode.dispose();
     _accountNameController.dispose();
     _accountNumberController.dispose();
     _accountBalanceController.dispose();
+    _bankNameController.dispose();
+    _mobileProviderController.dispose();
+    _bankNameFocusNode.dispose();
+    _mobileProviderFocusNode.dispose();
     super.dispose();
   }
 
   void _saveCardWallet(String userId) {
     if (!_cardFormKey.currentState!.validate()) return;
     final cardNum = _cardNumberController.text.replaceAll(' ', '');
+    final initialBalance =
+        double.tryParse(_cardBalanceController.text.trim()) ?? 0.0;
     final wallet = Wallet(
       id: '',
       userId: userId,
       name: _cardNameController.text.trim(),
       type: 'card',
-      balance: 0.0,
-      details: {
-        'card_number': cardNum,
-        'cvc': _cardCvcController.text.trim(),
-        'expiry': _cardExpiryController.text.trim(),
-        'zip': _cardZipController.text.trim(),
-      },
+      balance: initialBalance,
+      details: {'card_number': cardNum},
       createdAt: DateTime.now(),
     );
     setState(() {
@@ -138,10 +142,11 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       final hidden = accNum.length > 4
           ? accNum.substring(accNum.length - 4)
           : accNum;
-      name = '$_selectedBankName (••$hidden)';
+      final bankName = _bankNameController.text.trim();
+      name = '$bankName (••$hidden)';
       type = 'bank';
       details = {
-        'bank_name': _selectedBankName,
+        'bank_name': bankName,
         'account_number': accNum,
         'account_holder': _accountNameController.text.trim(),
       };
@@ -157,9 +162,10 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       final hidden = phone.length > 4
           ? phone.substring(phone.length - 4)
           : phone;
-      name = '$_selectedMobileProvider (••$hidden)';
+      final provider = _mobileProviderController.text.trim();
+      name = '$provider (••$hidden)';
       type = 'others';
-      details = {'provider': _selectedMobileProvider, 'phone_number': phone};
+      details = {'provider': provider, 'phone_number': phone};
     }
 
     final wallet = Wallet(
@@ -189,14 +195,17 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       listener: (context, state) {
         if (_isSaving && state is ExpenseSuccess) {
           setState(() => _isSaving = false);
-          SoundService.playSuccess();
-          Navigator.pop(context);
-          Fluttertoast.showToast(msg: _pendingToast);
+          AnimationHelper.showSuccess(context, _pendingToast);
+          final navigator = Navigator.of(context);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              navigator.pop();
+            }
+          });
         }
         if (_isSaving && state is ExpenseFailure) {
           setState(() => _isSaving = false);
-          SoundService.playFailed();
-          Fluttertoast.showToast(msg: 'Error: ${state.message}');
+          AnimationHelper.showFailed(context, 'Error: ${state.message}');
         }
       },
       builder: (context, expenseState) {
@@ -332,7 +341,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           const SizedBox(height: 8),
           PremiumCreditCard(
             cardHolderName: _cardNameController.text.isEmpty
-                ? displayName.toUpperCase()
+                ? 'JOHN DOE'
                 : _cardNameController.text.toUpperCase(),
             cardNumber: _cardNumberController.text.isEmpty
                 ? '•••• •••• •••• ••••'
@@ -350,7 +359,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
             focusNode: _cardNameFocusNode,
             onChanged: (_) => setState(() {}),
             textCapitalization: TextCapitalization.characters,
-            decoration: _inputDeco('e.g. ${displayName.toUpperCase()}'),
+            decoration: _inputDeco('e.g. JOHN DOE'),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Required' : null,
             onFieldSubmitted: (_) =>
@@ -358,7 +367,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           ),
           const SizedBox(height: 16),
 
-          _fieldLabel('CARD NUMBER'),
+          _fieldLabel('CARD NUMBER (LAST 4 DIGITS OR FULL)'),
           const SizedBox(height: 8),
           TextFormField(
             controller: _cardNumberController,
@@ -366,109 +375,36 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              _CardNumberFormatter(),
+              CardNumberFormatter(),
             ],
             onChanged: (val) {
               setState(() {});
-              if (val.replaceAll(' ', '').length == 16) {
-                FocusScope.of(context).requestFocus(_cardExpiryFocusNode);
-              }
             },
-            decoration: _inputDeco('xxxx xxxx xxxx xxxx'),
+            decoration: _inputDeco('e.g. 4321 or Full Number'),
             validator: (v) {
               final clean = (v ?? '').replaceAll(' ', '');
               if (clean.isEmpty) return 'Card number is required';
-              if (clean.length < 16) return 'Must be 16 digits';
+              if (clean.length < 4) return 'Must be at least 4 digits';
               return null;
             },
+            onFieldSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_cardBalanceFocusNode),
           ),
           const SizedBox(height: 16),
 
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel('EXPIRY (MM/YY)'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _cardExpiryController,
-                      focusNode: _cardExpiryFocusNode,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        _ExpiryFormatter(),
-                      ],
-                      onChanged: (val) {
-                        setState(() {});
-                        if (val.replaceAll('/', '').length == 4) {
-                          FocusScope.of(
-                            context,
-                          ).requestFocus(_cardCvcFocusNode);
-                        }
-                      },
-                      decoration: _inputDeco('MM/YY'),
-                      validator: (v) {
-                        final clean = (v ?? '').replaceAll('/', '');
-                        if (clean.isEmpty) return 'Required';
-                        if (clean.length < 4) return 'Invalid';
-                        final month = int.tryParse(clean.substring(0, 2)) ?? 0;
-                        if (month < 1 || month > 12) return 'Bad month';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _fieldLabel('CVC'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _cardCvcController,
-                      focusNode: _cardCvcFocusNode,
-                      keyboardType: TextInputType.number,
-                      obscureText: true,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(3),
-                      ],
-                      onChanged: (val) {
-                        if (val.length == 3) {
-                          FocusScope.of(
-                            context,
-                          ).requestFocus(_cardZipFocusNode);
-                        }
-                      },
-                      decoration: _inputDeco('•••'),
-                      validator: (v) => (v == null || v.length < 3)
-                          ? 'Must be 3 digits'
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel('ZIP / POSTAL CODE'),
+          _fieldLabel('INITIAL BALANCE'),
           const SizedBox(height: 8),
           TextFormField(
-            controller: _cardZipController,
-            focusNode: _cardZipFocusNode,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
-            ],
-            decoration: _inputDeco('e.g. 1212'),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
+            controller: _cardBalanceController,
+            focusNode: _cardBalanceFocusNode,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _inputDeco('0.00'),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Required';
+              if (double.tryParse(v.trim()) == null) return 'Invalid number';
+              return null;
+            },
+            onFieldSubmitted: (_) => _saveCardWallet(userId),
           ),
           const SizedBox(height: 32),
 
@@ -610,16 +546,43 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           const SizedBox(height: 24),
 
           if (isBank) ...[
-            _fieldLabel('SELECT YOUR BANK'),
+            _fieldLabel('BANK NAME'),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedBankName,
-              dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              decoration: _inputDeco('Select Bank'),
-              items: _bangladeshBanks
-                  .map((b) => DropdownMenuItem(value: b, child: Text(b)))
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedBankName = val!),
+            TextFormField(
+              controller: _bankNameController,
+              focusNode: _bankNameFocusNode,
+              decoration: _inputDeco('e.g. Chase Bank'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: _popularBanks.map((bank) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ActionChip(
+                      label: Text(
+                        bank,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                      backgroundColor: isDark
+                          ? Colors.white10
+                          : Colors.grey.shade100,
+                      onPressed: () {
+                        setState(() {
+                          _bankNameController.text = bank;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -627,15 +590,41 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           if (isMobile) ...[
             _fieldLabel('MOBILE PROVIDER'),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedMobileProvider,
-              dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              decoration: _inputDeco('Select Provider'),
-              items: _mobileProviders
-                  .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                  .toList(),
-              onChanged: (val) =>
-                  setState(() => _selectedMobileProvider = val!),
+            TextFormField(
+              controller: _mobileProviderController,
+              focusNode: _mobileProviderFocusNode,
+              decoration: _inputDeco('e.g. Venmo'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: _popularMobileProviders.map((prov) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ActionChip(
+                      label: Text(
+                        prov,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                      backgroundColor: isDark
+                          ? Colors.white10
+                          : Colors.grey.shade100,
+                      onPressed: () {
+                        setState(() {
+                          _mobileProviderController.text = prov;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -644,7 +633,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           const SizedBox(height: 8),
           TextFormField(
             controller: _accountNameController,
-            decoration: _inputDeco('e.g. $displayName'),
+            decoration: _inputDeco('e.g. JOHN DOE'),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Required' : null,
           ),
@@ -652,10 +641,10 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
           _fieldLabel(
             isBank
-                ? 'ACCOUNT NUMBER'
+                ? 'ACCOUNT NUMBER (LAST 4 DIGITS OR FULL)'
                 : isPaypal
                 ? 'PAYPAL EMAIL ADDRESS'
-                : 'REGISTERED PHONE NUMBER',
+                : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS OR FULL)',
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -666,22 +655,22 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
             inputFormatters: isMobile
                 ? [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(11),
+                    LengthLimitingTextInputFormatter(15),
                   ]
                 : null,
             decoration: _inputDeco(
               isBank
-                  ? 'e.g. 1234567890'
+                  ? 'e.g. 7890 or Full Account Number'
                   : isPaypal
                   ? 'name@example.com'
-                  : '01xxxxxxxxx (11 digits)',
+                  : 'e.g. 4321 or Full Number',
             ),
             validator: (v) {
               final val = v?.trim() ?? '';
               if (val.isEmpty) return 'Required';
               if (isPaypal && !val.contains('@')) return 'Enter a valid email';
-              if (isMobile && val.length != 11) {
-                return 'Must be exactly 11 digits';
+              if (val.length < 4) {
+                return 'Must be at least 4 digits';
               }
               return null;
             },
@@ -765,48 +754,6 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.redAccent),
       ),
-    );
-  }
-}
-
-class _CardNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var digits = newValue.text.replaceAll(' ', '');
-    if (digits.length > 16) digits = digits.substring(0, 16);
-    final buf = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      buf.write(digits[i]);
-      if ((i + 1) % 4 == 0 && (i + 1) != digits.length) buf.write(' ');
-    }
-    final str = buf.toString();
-    return newValue.copyWith(
-      text: str,
-      selection: TextSelection.collapsed(offset: str.length),
-    );
-  }
-}
-
-class _ExpiryFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var digits = newValue.text.replaceAll('/', '');
-    if (digits.length > 4) digits = digits.substring(0, 4);
-    final buf = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      buf.write(digits[i]);
-      if (i == 1 && i + 1 != digits.length) buf.write('/');
-    }
-    final str = buf.toString();
-    return newValue.copyWith(
-      text: str,
-      selection: TextSelection.collapsed(offset: str.length),
     );
   }
 }

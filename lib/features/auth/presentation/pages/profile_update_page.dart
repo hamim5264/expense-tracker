@@ -7,6 +7,7 @@ import 'package:expense_tracker/features/auth/presentation/widgets/profile_text_
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 class ProfileUpdatePage extends StatefulWidget {
   static Route route() =>
@@ -252,17 +253,32 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                 ),
                                 enabled: false,
                               ),
-                              const SizedBox(height: 20),
-                              ProfileTextField(
-                                label: 'Password',
-                                controller: passwordController,
-                                isPassword: !_isPasswordVisible,
-                                onToggleVisibility: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
+                              if (Supabase
+                                          .instance
+                                          .client
+                                          .auth
+                                          .currentUser
+                                          ?.appMetadata['provider'] !=
+                                      'google' &&
+                                  Supabase
+                                          .instance
+                                          .client
+                                          .auth
+                                          .currentUser
+                                          ?.appMetadata['provider'] !=
+                                      'facebook') ...[
+                                const SizedBox(height: 20),
+                                ProfileTextField(
+                                  label: 'Password',
+                                  controller: passwordController,
+                                  isPassword: !_isPasswordVisible,
+                                  onToggleVisibility: () {
+                                    setState(() {
+                                      _isPasswordVisible = !_isPasswordVisible;
+                                    });
+                                  },
+                                ),
+                              ],
                               const SizedBox(height: 40),
                               ElevatedButton(
                                 onPressed: () {
@@ -291,8 +307,86 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                   );
 
                                   if (password.isNotEmpty) {
+                                    if (password.length < 6) {
+                                      showToast(
+                                        'Password must be at least 6 characters',
+                                        isError: true,
+                                      );
+                                      return;
+                                    }
+
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (dialogContext) {
+                                        return AlertDialog(
+                                          title: const Text('Update Password'),
+                                          content: const Text(
+                                            'Do you want to stay logged in or log in again?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(dialogContext);
+                                                context.read<AuthBloc>().add(
+                                                  AuthUpdateUserProfile(
+                                                    name: name,
+                                                    username: username.isEmpty
+                                                        ? null
+                                                        : username,
+                                                    avatarUrl: selectedAvatar,
+                                                  ),
+                                                );
+                                                context.read<AuthBloc>().add(
+                                                  AuthUpdatePassword(
+                                                    password,
+                                                    stayLoggedIn: false,
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text('Login Again'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(dialogContext);
+                                                context.read<AuthBloc>().add(
+                                                  AuthUpdateUserProfile(
+                                                    name: name,
+                                                    username: username.isEmpty
+                                                        ? null
+                                                        : username,
+                                                    avatarUrl: selectedAvatar,
+                                                  ),
+                                                );
+                                                context.read<AuthBloc>().add(
+                                                  AuthUpdatePassword(
+                                                    password,
+                                                    stayLoggedIn: true,
+                                                  ),
+                                                );
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF4F378A,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'Stay Logged In',
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
                                     context.read<AuthBloc>().add(
-                                      AuthUpdatePassword(password),
+                                      AuthUpdateUserProfile(
+                                        name: name,
+                                        username: username.isEmpty
+                                            ? null
+                                            : username,
+                                        avatarUrl: selectedAvatar,
+                                      ),
                                     );
                                   }
                                 },

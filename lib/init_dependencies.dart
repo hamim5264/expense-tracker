@@ -8,6 +8,7 @@ import 'package:expense_tracker/features/auth/domain/usecases/update_user_profil
 import 'package:expense_tracker/features/auth/domain/usecases/user_login.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_logout.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_sign_in_google.dart';
+import 'package:expense_tracker/features/auth/domain/usecases/user_sign_in_facebook.dart';
 import 'package:expense_tracker/features/auth/domain/usecases/user_sign_up.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -33,12 +34,17 @@ import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
+import 'package:expense_tracker/core/common/utils/theme_service.dart';
+
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
   await Hive.initFlutter();
   await SoundService.init();
+  await ThemeService.init();
+  await NotificationService().init();
 
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
@@ -76,6 +82,7 @@ void _initAuth() {
     ..registerFactory(() => UserSignUp(serviceLocator()))
     ..registerFactory(() => UserLogin(serviceLocator()))
     ..registerFactory(() => UserSignInGoogle(serviceLocator()))
+    ..registerFactory(() => UserSignInFacebook(serviceLocator()))
     ..registerFactory(() => UserLogout(serviceLocator()))
     ..registerFactory(() => GetSecurityQuestion(serviceLocator()))
     ..registerFactory(() => ResetPassword(serviceLocator()))
@@ -89,6 +96,7 @@ void _initAuth() {
         userSignUp: serviceLocator(),
         userLogin: serviceLocator(),
         userSignInGoogle: serviceLocator(),
+        userSignInFacebook: serviceLocator(),
         userLogout: serviceLocator(),
         getSecurityQuestion: serviceLocator(),
         resetPassword: serviceLocator(),

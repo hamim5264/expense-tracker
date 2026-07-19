@@ -1,4 +1,4 @@
-package com.example.expense_tracker
+package com.thedevhamim.onyx
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -11,7 +11,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 
 class MainActivity : FlutterActivity() {
-    private val SMS_CHANNEL = "com.example.expense_tracker/sms"
+    private val SMS_CHANNEL = "com.thedevhamim.onyx/sms"
     private var smsReceiver: BroadcastReceiver? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -37,7 +37,7 @@ class MainActivity : FlutterActivity() {
                                                 "sender" to sender,
                                                 "body" to body,
                                                 "timestamp" to time
-                                            )
+                                             )
                                             events?.success(data)
                                         }
                                     }

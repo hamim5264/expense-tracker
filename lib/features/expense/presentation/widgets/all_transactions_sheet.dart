@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
-import 'package:expense_tracker/core/common/utils/currency_service.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 import 'package:flutter/material.dart';
 
-class AllTransactionsSheet extends StatelessWidget {
+class AllTransactionsSheet extends StatefulWidget {
   final List<Expense> transactions;
   final String currencyCode;
 
@@ -14,23 +14,56 @@ class AllTransactionsSheet extends StatelessWidget {
   });
 
   @override
+  State<AllTransactionsSheet> createState() => _AllTransactionsSheetState();
+}
+
+class _AllTransactionsSheetState extends State<AllTransactionsSheet> {
+  int? _selectedMonth;
+  int? _selectedDay;
+
+  final List<String> _months = [
+    'All Months',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     final glassBg = isDark
-        ? Colors.black.withAlpha(200)
-        : Colors.white.withAlpha(225);
+        ? Colors.black.withOpacity(0.8)
+        : Colors.white.withOpacity(0.9);
     final borderColor = isDark
-        ? Colors.white.withAlpha(30)
-        : Colors.black.withAlpha(20);
+        ? Colors.white.withOpacity(0.12)
+        : Colors.black.withOpacity(0.08);
     final textColor = isDark ? Colors.white : Colors.black87;
-    final primaryColor = const Color(0xFF4F378A);
+
+    final filteredTransactions = widget.transactions.where((tx) {
+      if (_selectedMonth != null && tx.date.month != _selectedMonth) {
+        return false;
+      }
+      if (_selectedDay != null && tx.date.day != _selectedDay) {
+        return false;
+      }
+      return true;
+    }).toList();
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.8,
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
           color: glassBg,
           borderRadius: const BorderRadius.only(
@@ -65,76 +98,153 @@ class AllTransactionsSheet extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${transactions.length} total',
+                    '${filteredTransactions.length} found',
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final tx = transactions[index];
-                  final isIncome = tx.type == 'income';
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white10 : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: primaryColor.withAlpha(20),
-                          child: Icon(
-                            isIncome
-                                ? Icons.arrow_downward
-                                : Icons.arrow_upward,
-                            color: isIncome ? Colors.green : Colors.red,
-                          ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tx.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int?>(
+                          value: _selectedMonth,
+                          dropdownColor: isDark
+                              ? const Color(0xFF1E1B29)
+                              : Colors.white,
+                          icon: const Icon(Icons.arrow_drop_down, size: 20),
+                          hint: Text(
+                            'Month',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          isExpanded: true,
+                          items: List.generate(_months.length, (idx) {
+                            return DropdownMenuItem<int?>(
+                              value: idx == 0 ? null : idx,
+                              child: Text(
+                                _months[idx],
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${tx.category} • ${tx.date.day}/${tx.date.month}/${tx.date.year}',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
+                            );
+                          }),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedMonth = val;
+                              _selectedDay = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int?>(
+                          value: _selectedDay,
+                          dropdownColor: isDark
+                              ? const Color(0xFF1E1B29)
+                              : Colors.white,
+                          icon: const Icon(Icons.arrow_drop_down, size: 20),
+                          hint: Text(
+                            'Day',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text(
+                                'All Days',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            ...List.generate(31, (idx) {
+                              final dayNum = idx + 1;
+                              return DropdownMenuItem<int?>(
+                                value: dayNum,
+                                child: Text(
+                                  'Day $dayNum',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedDay = val;
+                            });
+                          },
                         ),
-                        Text(
-                          (isIncome ? '+ ' : '- ') +
-                              CurrencyService.format(tx.amount, currencyCode),
-                          style: TextStyle(
-                            color: isIncome ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Expanded(
+              child: filteredTransactions.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No transactions match filters.',
+                        style: TextStyle(
+                          color: isDark ? Colors.white60 : Colors.black45,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: filteredTransactions.length,
+                      itemBuilder: (context, index) {
+                        final tx = filteredTransactions[index];
+                        return TransactionItemTile(
+                          transaction: tx,
+                          currencyCode: widget.currencyCode,
+                          isDark: isDark,
+                        );
+                      },
+                    ),
             ),
           ],
         ),

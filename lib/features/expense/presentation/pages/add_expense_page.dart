@@ -108,7 +108,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Add Expense',
+          'Add Transaction',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -116,12 +116,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
@@ -149,8 +143,14 @@ class _AddExpensePageState extends State<AddExpensePage> {
                       children: [
                         SlidingSegmentControl(
                           value: _transactionType,
-                          onChanged: (val) =>
-                              setState(() => _transactionType = val),
+                          onChanged: (val) {
+                            setState(() {
+                              _transactionType = val;
+                              _selectedCategory = val == 'income'
+                                  ? 'Salary'
+                                  : 'Food';
+                            });
+                          },
                           isDark: isDark,
                         ),
                         const SizedBox(height: 20),
@@ -167,7 +167,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
                         TextField(
                           controller: _nameController,
                           decoration: InputDecoration(
-                            hintText: 'e.g. Netflix',
+                            hintText: _transactionType == 'expense'
+                                ? 'e.g. Netflix'
+                                : 'e.g. Salary Pay',
                             fillColor: isDark ? Colors.white10 : Colors.white,
                             filled: true,
                             border: OutlineInputBorder(
@@ -297,7 +299,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            initialValue: _selectedWalletId,
+                            value: _selectedWalletId,
                             dropdownColor: isDark
                                 ? const Color(0xFF1E1E1E)
                                 : Colors.white,
@@ -336,6 +338,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                         const SizedBox(height: 10),
                         CategorySelector(
                           selectedCategory: _selectedCategory,
+                          transactionType: _transactionType,
                           onCategorySelected: (cat) =>
                               setState(() => _selectedCategory = cat),
                         ),

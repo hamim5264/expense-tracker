@@ -83,35 +83,65 @@ class TransactionItemTile extends StatelessWidget {
     }
 
     if (lowerCat.contains('food') ||
-        lowerCat.contains('restaurant') ||
-        lowerCat.contains('dining')) {
+        lowerCat.contains('dining') ||
+        lowerCat.contains('restaurant')) {
       return 'assets/images/expense_types/shopping-bag.png';
     }
-    if (lowerCat.contains('shopping') ||
-        lowerCat.contains('grocer') ||
-        lowerCat.contains('merch')) {
+    if (lowerCat.contains('grocer')) {
       return 'assets/images/expense_types/shopping-bag.png';
+    }
+    if (lowerCat.contains('shopping')) {
+      return 'assets/images/expense_types/online-shopping.png';
     }
     if (lowerCat.contains('health') ||
         lowerCat.contains('medical') ||
         lowerCat.contains('doctor')) {
+      return 'assets/images/expense_types/cardiogram.png';
+    }
+    if (lowerCat.contains('stethoscope')) {
       return 'assets/images/expense_types/stethoscope.png';
     }
+    if (lowerCat.contains('travel') || lowerCat.contains('agency')) {
+      return 'assets/images/expense_types/travel-agency.png';
+    }
     if (lowerCat.contains('transport') ||
-        lowerCat.contains('travel') ||
         lowerCat.contains('ride') ||
-        lowerCat.contains('fuel')) {
+        lowerCat.contains('fuel') ||
+        lowerCat.contains('destination')) {
       return 'assets/images/expense_types/destination.png';
     }
-    if (lowerCat.contains('social') ||
-        lowerCat.contains('ent') ||
-        lowerCat.contains('media')) {
-      return 'assets/images/expense_types/social-media.png';
+    if (lowerCat.contains('education') ||
+        lowerCat.contains('investment') ||
+        lowerCat.contains('dividend') ||
+        lowerCat.contains('symbol')) {
+      return 'assets/images/expense_types/symbols.png';
+    }
+    if (lowerCat.contains('bill') ||
+        lowerCat.contains('utilit') ||
+        lowerCat.contains('phone') ||
+        lowerCat.contains('smart')) {
+      return 'assets/images/expense_types/smartphone.png';
+    }
+    if (lowerCat.contains('subscription') ||
+        lowerCat.contains('premium') ||
+        lowerCat.contains('insurance') ||
+        lowerCat.contains('rent') ||
+        lowerCat.contains('home') ||
+        lowerCat.contains('bonus')) {
+      return 'assets/images/expense_types/premium.png';
     }
     if (lowerCat.contains('salary') ||
         lowerCat.contains('income') ||
         lowerCat.contains('freelance')) {
       return 'assets/images/expense_types/freelance.png';
+    }
+    if (lowerCat.contains('social') ||
+        lowerCat.contains('ent') ||
+        lowerCat.contains('media') ||
+        lowerCat.contains('family') ||
+        lowerCat.contains('gift') ||
+        lowerCat.contains('donation')) {
+      return 'assets/images/expense_types/social.png';
     }
 
     return 'assets/images/expense_types/others_pay.png';
@@ -169,25 +199,67 @@ class TransactionItemTile extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  '${transaction.category} • ${transaction.date.day}/${transaction.date.month}',
+                  '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatTime(transaction.date),
+                  style: TextStyle(
+                    color: Colors.grey.withOpacity(0.85),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),
           ),
-          Text(
-            (isIncome ? '+ ' : '- ') +
-                CurrencyService.format(transaction.amount, currencyCode),
-            style: TextStyle(
-              color: isIncome ? Colors.green : Colors.red,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: isIncome
+                  ? const Color(0xFF22C55E).withOpacity(0.1)
+                  : const Color(0xFFEF4444).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isIncome
+                    ? const Color(0xFF22C55E).withOpacity(0.8)
+                    : const Color(0xFFEF4444).withOpacity(0.8),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isIncome
+                      ? const Color(0xFF22C55E).withOpacity(0.15)
+                      : const Color(0xFFEF4444).withOpacity(0.15),
+                  blurRadius: 6,
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: Text(
+              (isIncome ? '+ ' : '- ') +
+                  CurrencyService.format(transaction.amount, currencyCode),
+              style: TextStyle(
+                color: isIncome
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFFEF4444),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 }

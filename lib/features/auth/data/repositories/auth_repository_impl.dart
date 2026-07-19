@@ -72,6 +72,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> signInWithFacebook() async {
+    try {
+      await remoteDataSource.signInWithFacebook();
+      return right(null);
+    } on Failure catch (e) {
+      return left(e);
+    }
+  }
+
+  @override
   Future<Either<Failure, User>> updateUserProfile({
     required String name,
     required String? username,

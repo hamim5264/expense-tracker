@@ -9,6 +9,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 class SplashPage extends StatefulWidget {
   static Route route() =>
       MaterialPageRoute(builder: (context) => const SplashPage());
@@ -49,6 +51,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     );
 
     _entranceController.forward();
+    _requestPermissionAndCheckAuth();
+  }
+
+  Future<void> _requestPermissionAndCheckAuth() async {
+    try {
+      await Permission.sms.request();
+    } catch (_) {}
     _checkAuth();
   }
 
@@ -108,14 +117,15 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               },
             ),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FadeTransition(
-                    opacity: _logoOpacity,
-                    child: ScaleTransition(
-                      scale: _logoScale,
-                      child: Container(
+              child: FadeTransition(
+                opacity: _logoOpacity,
+                child: ScaleTransition(
+                  scale: _logoScale,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -123,37 +133,80 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                         ),
                         child: Image.asset(logoAsset, width: 180),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FadeTransition(
-                    opacity: _logoOpacity,
-                    child: Column(
-                      children: [
-                        const Text(
-                          'ONYX',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2.0,
-                          ),
+                      Positioned(
+                        bottom: -100,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'ONYX',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _isOnline
+                                  ? 'Connecting securely...'
+                                  : 'Offline mode enabled',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _isOnline
-                              ? 'Connecting securely...'
-                              : 'Offline mode enabled',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 40,
+              left: 0,
+              right: 0,
+              child: FadeTransition(
+                opacity: _logoOpacity,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'powered by',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Image.asset(
+                      'assets/images/logos/brand_logo.png',
+                      height: 32,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.business,
+                          color: Colors.white70,
+                          size: 28,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'TheDevHamim',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

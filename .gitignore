@@ -47,5 +47,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Keystore / credentials
+*.jks
+*.keystore
+*.jsk
+
 # Supabase SQL setup
 supabase_setup.sql

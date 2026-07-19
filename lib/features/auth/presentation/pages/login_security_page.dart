@@ -6,6 +6,7 @@ import 'package:expense_tracker/features/auth/presentation/widgets/security_ques
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 class LoginSecurityPage extends StatelessWidget {
   static Route route() =>
@@ -19,6 +20,14 @@ class LoginSecurityPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
+
+    final supabaseUser = Supabase.instance.client.auth.currentUser;
+    final isSocialLogin =
+        supabaseUser?.appMetadata['provider'] == 'google' ||
+        supabaseUser?.appMetadata['provider'] == 'facebook';
+    final providerName = supabaseUser?.appMetadata['provider'] == 'google'
+        ? 'Google'
+        : 'Facebook';
 
     return Scaffold(
       backgroundColor: cardColor,
@@ -38,7 +47,7 @@ class LoginSecurityPage extends StatelessWidget {
             children: [
               CustomPaint(
                 size: Size(MediaQuery.of(context).size.width, 280),
-                painter: HeaderPainter(),
+                painter: HeaderPainter(color: Theme.of(context).primaryColor),
               ),
               Positioned(
                 top: -20,
@@ -100,28 +109,88 @@ class LoginSecurityPage extends StatelessWidget {
                                   child: CircularProgressIndicator(),
                                 ),
                               ),
-                            Text(
-                              'Update Password',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                            if (isSocialLogin) ...[
+                              const SizedBox(height: 20),
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF1E1B24)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white10
+                                        : Colors.black12,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF4F378A,
+                                        ).withAlpha(20),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.security_rounded,
+                                        color: Color(0xFF4F378A),
+                                        size: 32,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Social Account Connected',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Your account is securely linked via $providerName. Password updates and security configurations are managed directly by your social provider.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            const PasswordUpdateForm(),
-                            const SizedBox(height: 40),
-                            Text(
-                              'Security Question Settings',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                              const SizedBox(height: 40),
+                            ] else ...[
+                              Text(
+                                'Update Password',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            const SecurityQuestionForm(),
-                            const SizedBox(height: 40),
+                              const SizedBox(height: 16),
+                              const PasswordUpdateForm(),
+                              const SizedBox(height: 40),
+                              Text(
+                                'Security Question Settings',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const SecurityQuestionForm(),
+                              const SizedBox(height: 40),
+                            ],
                           ],
                         ),
                       ),
