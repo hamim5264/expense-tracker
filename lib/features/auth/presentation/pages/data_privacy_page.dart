@@ -53,7 +53,7 @@ class _DataPrivacyPageState extends State<DataPrivacyPage> {
             // 1. Purple Header Background
             CustomPaint(
               size: Size(MediaQuery.of(context).size.width, 280),
-              painter: HeaderPainter(),
+              painter: HeaderPainter(color: theme.primaryColor),
             ),
             Positioned(
               top: -20,

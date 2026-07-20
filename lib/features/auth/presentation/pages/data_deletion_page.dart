@@ -21,7 +21,7 @@ class DataDeletionPage extends StatelessWidget {
         children: [
           CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 280),
-            painter: HeaderPainter(),
+            painter: HeaderPainter(color: theme.primaryColor),
           ),
           Positioned(
             top: -20,
@@ -141,7 +141,7 @@ class DataDeletionPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF4F378A),
+                              color: theme.primaryColor,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -193,7 +193,7 @@ class DataDeletionPage extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1B24) : const Color(0xFFF5F2FD),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF4F378A).withAlpha(40),
+          color: theme.primaryColor.withAlpha(40),
           width: 1,
         ),
       ),
@@ -202,10 +202,10 @@ class DataDeletionPage extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4F378A),
+              color: theme.primaryColor,
             ),
           ),
           const SizedBox(height: 10),
@@ -219,9 +219,9 @@ class DataDeletionPage extends StatelessWidget {
                 children: [
                   Text(
                     '$index. ',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4F378A),
+                      color: theme.primaryColor,
                     ),
                   ),
                   Expanded(

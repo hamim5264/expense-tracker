@@ -17,8 +17,6 @@ class ProfileHeaderSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Stack(
       children: [
@@ -45,7 +43,7 @@ class ProfileHeaderSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 2,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -83,7 +81,7 @@ class ProfileHeaderSection extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 2),
               Center(
                 child: GestureDetector(
                   onTap: onAvatarTap,
@@ -138,14 +136,14 @@ class ProfileHeaderSection extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               Center(
                 child: Text(
                   user.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: textColor,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -155,10 +153,11 @@ class ProfileHeaderSection extends StatelessWidget {
                       ? '@${user.username}'
                       : 'Set username',
                   style: TextStyle(
-                    color:
-                        user.username != null &&
+                    color: user.username != null &&
                             user.username!.trim().isNotEmpty
-                        ? const Color(0xFF9E82F0)
+                        ? (theme.primaryColor.computeLuminance() > 0.5
+                            ? Colors.black54
+                            : Colors.white70)
                         : Colors.redAccent,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,

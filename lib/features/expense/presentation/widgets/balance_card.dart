@@ -552,11 +552,11 @@ class _BalanceCardState extends State<BalanceCard> {
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: config['totalBalanceColor'],
+                                  color: const Color(0xFF2ECC71),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: config['totalBalanceColor']
+                                      color: const Color(0xFF2ECC71)
                                           .withOpacity(0.4),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),

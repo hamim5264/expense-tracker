@@ -89,7 +89,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
               children: [
                 CustomPaint(
                   size: Size(MediaQuery.of(context).size.width, 280),
-                  painter: HeaderPainter(),
+                  painter: HeaderPainter(color: theme.primaryColor),
                 ),
                 Positioned(
                   top: -20,
@@ -164,7 +164,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                 backgroundColor:
                                     (selectedAvatar == null &&
                                         user.avatarUrl == null)
-                                    ? const Color(0xFF4F378A).withAlpha(60)
+                                    ? Theme.of(context).primaryColor.withAlpha(60)
                                     : Colors.white,
                                 backgroundImage: selectedAvatar != null
                                     ? NetworkImage(selectedAvatar!)
@@ -187,8 +187,8 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                               right: 0,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF4F378A),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -366,9 +366,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                                 );
                                               },
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(
-                                                  0xFF4F378A,
-                                                ),
+                                                backgroundColor: Theme.of(context).primaryColor,
                                               ),
                                               child: const Text(
                                                 'Stay Logged In',
@@ -391,7 +389,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF4F378A),
+                                  backgroundColor: Theme.of(context).primaryColor,
                                   minimumSize: const Size(double.infinity, 50),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25),

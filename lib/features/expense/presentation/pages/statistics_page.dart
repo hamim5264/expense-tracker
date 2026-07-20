@@ -215,7 +215,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? const Color(0xFF4F378A)
+                                      ? theme.primaryColor
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(20),
                                 ),

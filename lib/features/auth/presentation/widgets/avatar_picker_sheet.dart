@@ -88,12 +88,12 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                       ),
                       decoration: BoxDecoration(
                         color: isMaleSelected
-                            ? const Color(0xFF4F378A)
+                            ? Theme.of(context).primaryColor
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isMaleSelected
-                              ? const Color(0xFF4F378A)
+                              ? Theme.of(context).primaryColor
                               : (isDark ? Colors.white30 : Colors.black12),
                         ),
                       ),
@@ -116,12 +116,12 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                       ),
                       decoration: BoxDecoration(
                         color: !isMaleSelected
-                            ? const Color(0xFF4F378A)
+                            ? Theme.of(context).primaryColor
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: !isMaleSelected
-                              ? const Color(0xFF4F378A)
+                              ? Theme.of(context).primaryColor
                               : (isDark ? Colors.white30 : Colors.black12),
                         ),
                       ),

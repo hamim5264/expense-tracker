@@ -36,7 +36,7 @@ class NotificationsPage extends StatelessWidget {
     }
   }
 
-  Color _getColor(String type) {
+  Color _getColor(String type, BuildContext context) {
     switch (type) {
       case 'success':
         return const Color(0xFF22C55E);
@@ -44,7 +44,7 @@ class NotificationsPage extends StatelessWidget {
         return const Color(0xFFF59E0B);
       case 'info':
       default:
-        return const Color(0xFF4F378A);
+        return Theme.of(context).primaryColor;
     }
   }
 
@@ -66,7 +66,7 @@ class NotificationsPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: bgColor,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF4F378A),
+            backgroundColor: theme.primaryColor,
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -138,13 +138,13 @@ class NotificationsPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4F378A).withOpacity(0.08),
+                          color: theme.primaryColor.withOpacity(0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.notifications_off_outlined,
                           size: 64,
-                          color: Color(0xFF4F378A),
+                          color: theme.primaryColor,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -176,7 +176,7 @@ class NotificationsPage extends StatelessWidget {
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final item = list[index];
-                    final itemColor = _getColor(item.type);
+                    final itemColor = _getColor(item.type, context);
 
                     return Dismissible(
                       key: Key(item.id),

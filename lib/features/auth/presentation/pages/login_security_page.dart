@@ -131,14 +131,14 @@ class LoginSecurityPage extends StatelessWidget {
                                       width: 60,
                                       height: 60,
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF4F378A,
-                                        ).withAlpha(20),
+                                        color: Theme.of(context)
+                                            .primaryColor
+                                            .withAlpha(20),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.security_rounded,
-                                        color: Color(0xFF4F378A),
+                                        color: Theme.of(context).primaryColor,
                                         size: 32,
                                       ),
                                     ),

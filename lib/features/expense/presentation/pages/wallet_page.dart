@@ -92,7 +92,7 @@ class _WalletPageState extends State<WalletPage> {
                           icon: const Icon(Icons.refresh),
                           label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4F378A),
+                            backgroundColor: theme.primaryColor,
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -264,10 +264,10 @@ class _WalletPageState extends State<WalletPage> {
                                             (_) => bloc.add(ExpenseFetchAll()),
                                           );
                                         },
-                                        child: const Text(
+                                        child: Text(
                                           'Connect a Wallet',
                                           style: TextStyle(
-                                            color: Color(0xFF4F378A),
+                                            color: theme.primaryColor,
                                           ),
                                         ),
                                       ),
@@ -321,7 +321,7 @@ class _WalletPageState extends State<WalletPage> {
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        final primaryColor = const Color(0xFF4F378A);
+        final primaryColor = Theme.of(dialogContext).primaryColor;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {

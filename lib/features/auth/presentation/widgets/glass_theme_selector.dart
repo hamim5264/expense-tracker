@@ -98,12 +98,12 @@ class GlassThemeSelector extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF4F378A).withAlpha(30)
+                        ? theme.primaryColor.withAlpha(30)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF4F378A)
+                          ? theme.primaryColor
                           : Colors.transparent,
                       width: 1,
                     ),
@@ -121,7 +121,7 @@ class GlassThemeSelector extends StatelessWidget {
                       leading: Icon(
                         icon,
                         color: isSelected
-                            ? const Color(0xFF4F378A)
+                            ? theme.primaryColor
                             : (isDark ? Colors.white70 : Colors.black54),
                       ),
                       title: Text(
@@ -130,7 +130,7 @@ class GlassThemeSelector extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: isSelected
-                              ? const Color(0xFF4F378A)
+                              ? theme.primaryColor
                               : (isDark ? Colors.white : Colors.black87),
                         ),
                       ),
@@ -139,14 +139,14 @@ class GlassThemeSelector extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           color: isSelected
-                              ? const Color(0xFF4F378A).withAlpha(200)
+                              ? theme.primaryColor.withAlpha(200)
                               : (isDark ? Colors.white54 : Colors.black54),
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(
+                          ? Icon(
                               Icons.check_circle_rounded,
-                              color: Color(0xFF4F378A),
+                              color: theme.primaryColor,
                             )
                           : null,
                       onTap: () {

@@ -36,7 +36,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     super.dispose();
   }
 
-  Color _getInsightColor(String type) {
+  Color _getInsightColor(String type, BuildContext context) {
     switch (type) {
       case 'success':
         return const Color(0xFF22C55E);
@@ -44,7 +44,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
         return const Color(0xFFEF4444);
       case 'info':
       default:
-        return const Color(0xFF4F378A);
+        return Theme.of(context).primaryColor;
     }
   }
 
@@ -170,7 +170,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                 );
                               },
                               child: Lottie.asset(
-                                'assets/animations/ai-animation.json',
+                                'assets/animations/onyx_ai.json',
                                 fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) {
                                   return CircleAvatar(
@@ -243,7 +243,8 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                               cardBg: cardBg,
                               textColor: textColor,
                               isDark: isDark,
-                              getInsightColor: _getInsightColor,
+                              getInsightColor: (type) =>
+                                  _getInsightColor(type, context),
                               getInsightIcon: _getInsightIcon,
                             );
                           }),

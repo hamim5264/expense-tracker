@@ -422,7 +422,7 @@ class _HomePageState extends State<HomePage> {
                                                       BorderRadius.circular(12),
                                                 ),
                                                 child: Lottie.asset(
-                                                  'assets/animations/ai-animation.json',
+                                                  'assets/animations/onyx_ai.json',
                                                   fit: BoxFit.contain,
                                                   errorBuilder:
                                                       (
@@ -678,7 +678,7 @@ class _HomePageState extends State<HomePage> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4F378A).withAlpha(100),
+              color: Theme.of(context).primaryColor.withAlpha(100),
               blurRadius: 20,
               spreadRadius: 2,
             ),
@@ -686,10 +686,14 @@ class _HomePageState extends State<HomePage> {
         ),
         child: FloatingActionButton(
           onPressed: () => Navigator.push(context, AddExpensePage.route()),
-          backgroundColor: const Color(0xFF311B92),
+          backgroundColor: Theme.of(context).primaryColor,
           shape: const CircleBorder(),
           elevation: 0,
-          child: const Icon(Icons.add, color: Color(0xFFD1BCFF), size: 32),
+          child: Icon(
+            Icons.add,
+            color: Theme.of(context).colorScheme.onPrimary,
+            size: 32,
+          ),
         ),
       ),
     );
@@ -708,7 +712,7 @@ class _HomePageState extends State<HomePage> {
       icon: Icon(
         icon,
         color: isSelected
-            ? const Color(0xFF4F378A)
+            ? Theme.of(context).primaryColor
             : (isDark ? Colors.white38 : Colors.grey.shade400),
         size: 28,
       ),

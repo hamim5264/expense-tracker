@@ -14,7 +14,7 @@ class SlidingSegmentControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color(0xFF4F378A);
+    final primaryColor = Theme.of(context).primaryColor;
     final isExpense = value == 'expense';
 
     return Container(

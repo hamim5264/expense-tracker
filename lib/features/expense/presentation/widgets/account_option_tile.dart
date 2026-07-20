@@ -20,7 +20,7 @@ class AccountOptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = const Color(0xFF4F378A);
+    final primaryColor = theme.primaryColor;
 
     return GestureDetector(
       onTap: onTap,

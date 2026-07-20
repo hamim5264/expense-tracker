@@ -174,7 +174,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
-    final iconColor = const Color(0xFF4F378A);
+    final iconColor = theme.primaryColor;
     final dividerColor = isDark ? Colors.white12 : Colors.black12;
 
     return Scaffold(

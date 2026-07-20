@@ -94,7 +94,7 @@ class ExportDataCard extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => _exportCSV(expenses),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F378A),
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 4,
@@ -115,7 +115,7 @@ class ExportDataCard extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => _exportJSON(expenses),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F378A),
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 4,

@@ -80,14 +80,12 @@ class GlassCurrencySelector extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(
-                              0xFF4F378A,
-                            ).withAlpha(isSelected ? 30 : 0)
+                          ? theme.primaryColor.withAlpha(isSelected ? 30 : 0)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFF4F378A)
+                            ? theme.primaryColor
                             : Colors.transparent,
                         width: 1,
                       ),
@@ -100,7 +98,7 @@ class GlassCurrencySelector extends StatelessWidget {
                         ),
                         leading: CircleAvatar(
                           backgroundColor: isSelected
-                              ? const Color(0xFF4F378A)
+                              ? theme.primaryColor
                               : (isDark
                                     ? Colors.white10
                                     : Colors.grey.shade100),
@@ -129,9 +127,9 @@ class GlassCurrencySelector extends StatelessWidget {
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_circle_rounded,
-                                color: Color(0xFF4F378A),
+                                color: theme.primaryColor,
                               )
                             : null,
                         onTap: () {

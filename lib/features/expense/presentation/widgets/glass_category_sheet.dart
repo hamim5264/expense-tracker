@@ -249,7 +249,7 @@ class _GlassCategorySheetState extends State<GlassCategorySheet> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _activeTypeFilter == 'expense'
-                                ? const Color(0xFF4F378A)
+                                ? theme.primaryColor
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -276,7 +276,7 @@ class _GlassCategorySheetState extends State<GlassCategorySheet> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _activeTypeFilter == 'income'
-                                ? const Color(0xFF4F378A)
+                                ? theme.primaryColor
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
                           ),

@@ -34,7 +34,8 @@ class StatisticsChart extends StatelessWidget {
       );
     }
 
-    final gradientColors = [const Color(0xFF311B92), const Color(0xFF5E35B1)];
+    final primaryColor = Theme.of(context).primaryColor;
+    final gradientColors = [primaryColor, primaryColor.withOpacity(0.7)];
     final spots = points.map((p) => FlSpot(p.x, p.y)).toList();
 
     double maxY = 100;
@@ -129,7 +130,7 @@ class StatisticsChart extends StatelessWidget {
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
               getTooltipColor: (LineBarSpot touchedSpot) =>
-                  const Color(0xFF311B92),
+                  primaryColor,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
                   return LineTooltipItem(
@@ -156,7 +157,7 @@ class StatisticsChart extends StatelessWidget {
                 getDotPainter: (spot, percent, barData, index) =>
                     FlDotCirclePainter(
                       radius: 6,
-                      color: const Color(0xFF311B92),
+                      color: primaryColor,
                       strokeWidth: 2,
                       strokeColor: Colors.white,
                     ),

@@ -143,14 +143,12 @@ class ContactSupportPage extends StatelessWidget {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF4F378A,
-                                    ).withAlpha(20),
+                                    color: theme.primaryColor.withAlpha(20),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.email_outlined,
-                                    color: Color(0xFF4F378A),
+                                    color: theme.primaryColor,
                                   ),
                                 ),
                                 title: Text(
@@ -221,17 +219,17 @@ class ContactSupportPage extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF4F378A).withAlpha(15),
+                              color: theme.primaryColor.withAlpha(15),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFF4F378A).withAlpha(30),
+                                color: theme.primaryColor.withAlpha(30),
                               ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.info_outline_rounded,
-                                  color: Color(0xFF4F378A),
+                                  color: theme.primaryColor,
                                   size: 24,
                                 ),
                                 const SizedBox(width: 12),

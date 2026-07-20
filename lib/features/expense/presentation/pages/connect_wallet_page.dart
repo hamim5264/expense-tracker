@@ -189,7 +189,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    const primaryColor = Color(0xFF4F378A);
+    final primaryColor = theme.primaryColor;
 
     return BlocConsumer<ExpenseBloc, ExpenseState>(
       listener: (context, state) {
@@ -332,7 +332,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   }
 
   Widget _buildCardsTab(String userId, bool isDark, String displayName) {
-    const primaryColor = Color(0xFF4F378A);
+    final primaryColor = Theme.of(context).primaryColor;
     return Form(
       key: _cardFormKey,
       child: ListView(
@@ -436,7 +436,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   }
 
   Widget _buildAccountsTab(bool isDark) {
-    const primaryColor = Color(0xFF4F378A);
+    final primaryColor = Theme.of(context).primaryColor;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
@@ -501,7 +501,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
     bool isDark,
     String displayName,
   ) {
-    const primaryColor = Color(0xFF4F378A);
+    final primaryColor = Theme.of(context).primaryColor;
 
     final isBank = _selectedBankType == 'Bank Link';
     final isPaypal = _selectedBankType == 'Paypal';
@@ -748,7 +748,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF4F378A), width: 2),
+        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

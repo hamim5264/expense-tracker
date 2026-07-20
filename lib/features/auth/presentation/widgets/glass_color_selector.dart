@@ -31,11 +31,6 @@ class GlassColorSelector extends StatelessWidget {
         'subtitle': 'Classic royalty and elegance',
       },
       {
-        'color': const Color(0xFF0F9B0F),
-        'title': 'Emerald Green',
-        'subtitle': 'Fresh wealth and stability',
-      },
-      {
         'color': const Color(0xFF0083B0),
         'title': 'Ocean Blue',
         'subtitle': 'Calm, trust, and clarity',

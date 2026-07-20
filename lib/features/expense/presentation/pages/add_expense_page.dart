@@ -45,8 +45,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF4F378A),
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               onSurface: Colors.black87,
             ),
@@ -94,7 +94,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = const Color(0xFF4F378A);
+    final primaryColor = theme.primaryColor;
 
     return Scaffold(
       backgroundColor: isDark
@@ -186,8 +186,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF4F378A),
+                              borderSide: BorderSide(
+                                color: primaryColor,
                               ),
                             ),
                           ),
@@ -208,17 +208,17 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF4F378A),
+                            color: primaryColor,
                           ),
                           decoration: InputDecoration(
                             prefixText: '$currencySymbol ',
-                            prefixStyle: const TextStyle(
+                            prefixStyle: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF4F378A),
+                              color: primaryColor,
                             ),
                             hintText: '0.00',
                             fillColor: isDark ? Colors.white10 : Colors.white,
@@ -237,8 +237,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF4F378A),
+                              borderSide: BorderSide(
+                                color: primaryColor,
                               ),
                             ),
                           ),

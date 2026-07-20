@@ -35,7 +35,7 @@ class _ProfileInfoPageState extends State<ProfileInfoPage> {
               children: [
                 CustomPaint(
                   size: Size(MediaQuery.of(context).size.width, 280),
-                  painter: HeaderPainter(),
+                  painter: HeaderPainter(color: theme.primaryColor),
                 ),
                 Positioned(
                   top: -20,
@@ -102,7 +102,7 @@ class _ProfileInfoPageState extends State<ProfileInfoPage> {
                           child: CircleAvatar(
                             radius: 50,
                             backgroundColor: user.avatarUrl == null
-                                ? const Color(0xFF4F378A).withAlpha(60)
+                                ? Theme.of(context).primaryColor.withAlpha(60)
                                 : Colors.white,
                             backgroundImage: user.avatarUrl != null
                                 ? NetworkImage(user.avatarUrl!)
@@ -137,9 +137,11 @@ class _ProfileInfoPageState extends State<ProfileInfoPage> {
                           style: TextStyle(
                             color:
                                 user.username != null &&
-                                    user.username!.trim().isNotEmpty
-                                ? const Color(0xFF9E82F0)
-                                : Colors.redAccent,
+                                        user.username!.trim().isNotEmpty
+                                    ? (theme.primaryColor.computeLuminance() > 0.5
+                                        ? Colors.black54
+                                        : Colors.white70)
+                                    : Colors.redAccent,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -175,15 +177,15 @@ class _ProfileInfoPageState extends State<ProfileInfoPage> {
                                     icon: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF4F378A,
-                                        ).withAlpha(30),
+                                        color: Theme.of(context)
+                                            .primaryColor
+                                            .withAlpha(30),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.edit,
                                         size: 20,
-                                        color: Color(0xFF4F378A),
+                                        color: Theme.of(context).primaryColor,
                                       ),
                                     ),
                                   ),

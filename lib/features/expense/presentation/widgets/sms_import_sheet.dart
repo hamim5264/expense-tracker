@@ -299,7 +299,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                         _selectedExpenses.length == _parsedExpenses.length
                             ? 'Deselect All'
                             : 'Select All',
-                        style: const TextStyle(color: Color(0xFF4F378A)),
+                        style: TextStyle(color: theme.primaryColor),
                       ),
                     ),
                 ],
@@ -320,7 +320,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                   ),
                   Switch(
                     value: _showAllInbox,
-                    activeThumbColor: const Color(0xFF4F378A),
+                    activeThumbColor: theme.primaryColor,
                     onChanged: (val) {
                       setState(() {
                         _showAllInbox = val;
@@ -411,7 +411,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
-                                  ? const Color(0xFF4F378A)
+                                  ? theme.primaryColor
                                   : Colors.transparent,
                               width: 1.5,
                             ),
@@ -420,7 +420,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                             color: Colors.transparent,
                             child: CheckboxListTile(
                               value: isSelected,
-                              activeColor: const Color(0xFF4F378A),
+                              activeColor: theme.primaryColor,
                               controlAffinity: ListTileControlAffinity.leading,
                               onChanged: (_) => _toggleSelect(exp),
                               title: Text(
@@ -506,7 +506,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F378A),
+                    backgroundColor: theme.primaryColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
