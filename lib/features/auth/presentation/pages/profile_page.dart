@@ -10,6 +10,7 @@ import 'package:expense_tracker/features/auth/presentation/widgets/profile_optio
 import 'package:expense_tracker/features/auth/presentation/pages/privacy_policy_page.dart';
 import 'package:expense_tracker/features/auth/presentation/pages/data_deletion_page.dart';
 import 'package:expense_tracker/features/auth/presentation/pages/contact_support_page.dart';
+import 'package:expense_tracker/features/auth/presentation/pages/report_issue_page.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/avatar_picker_sheet.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/profile_header_section.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/invite_friends_sheet.dart';
@@ -506,6 +507,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         showTrailingArrow: true,
                         onTap: () {
                           Navigator.push(context, ContactSupportPage.route());
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      ProfileOptionTile(
+                        icon: Icons.bug_report_outlined,
+                        title: 'Report Issue or Feedback',
+                        subtitle: 'Help us improve by sharing your thoughts',
+                        iconColor: iconColor,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          Navigator.push(context, ReportIssuePage.route());
                         },
                       ),
                       const SizedBox(height: 20),

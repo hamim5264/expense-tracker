@@ -12,10 +12,12 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
 
 class AddExpensePage extends StatefulWidget {
-  static Route route() =>
-      MaterialPageRoute(builder: (context) => const AddExpensePage());
+  final String initialType;
 
-  const AddExpensePage({super.key});
+  static Route route({String initialType = 'expense'}) =>
+      MaterialPageRoute(builder: (context) => AddExpensePage(initialType: initialType));
+
+  const AddExpensePage({super.key, this.initialType = 'expense'});
 
   @override
   State<AddExpensePage> createState() => _AddExpensePageState();
@@ -27,7 +29,13 @@ class _AddExpensePageState extends State<AddExpensePage> {
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Entertainment';
   String? _selectedWalletId;
-  String _transactionType = 'expense';
+  late String _transactionType;
+
+  @override
+  void initState() {
+    super.initState();
+    _transactionType = widget.initialType;
+  }
 
   @override
   void dispose() {
@@ -211,14 +219,14 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: primaryColor,
+                            color: isDark ? Colors.white : primaryColor,
                           ),
                           decoration: InputDecoration(
                             prefixText: '$currencySymbol ',
                             prefixStyle: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: primaryColor,
+                              color: isDark ? Colors.white : primaryColor,
                             ),
                             hintText: '0.00',
                             fillColor: isDark ? Colors.white10 : Colors.white,

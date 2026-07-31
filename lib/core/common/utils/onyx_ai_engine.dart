@@ -68,6 +68,17 @@ class OnyxAiEngine {
           ),
         );
       }
+    } else if (totalExpense > 0) {
+      insights.add(
+        AiInsight(
+          title: 'No Income Tracked Yet',
+          message:
+              'You have registered \$${totalExpense.toStringAsFixed(2)} in expenses but no income has been recorded yet.',
+          type: 'warning',
+          recommendation:
+              'Add your salary, freelance earnings, or other income streams to get a complete financial analysis.',
+        ),
+      );
     }
 
     final expenseTransactions = expenses
@@ -110,6 +121,76 @@ class OnyxAiEngine {
             type: 'info',
             recommendation:
                 'Your category dispersion looks healthy. Keep tracking your daily receipts.',
+          ),
+        );
+      }
+
+      // 1. Week-over-week spending trends
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      final fourteenDaysAgo = now.subtract(const Duration(days: 14));
+
+      final recentExpenses = expenseTransactions
+          .where((e) => e.date.isAfter(sevenDaysAgo))
+          .fold(0.0, (sum, item) => sum + item.amount);
+
+      final priorExpenses = expenseTransactions
+          .where((e) => e.date.isAfter(fourteenDaysAgo) && e.date.isBefore(sevenDaysAgo))
+          .fold(0.0, (sum, item) => sum + item.amount);
+
+      if (priorExpenses > 0) {
+        final change = ((recentExpenses - priorExpenses) / priorExpenses) * 100;
+        if (change > 15) {
+          insights.add(
+            AiInsight(
+              title: 'Spike in Weekly Spending',
+              message:
+                  'Your spending in the last 7 days (\$${recentExpenses.toStringAsFixed(2)}) is ${change.toStringAsFixed(1)}% higher than the previous week (\$${priorExpenses.toStringAsFixed(2)}).',
+              type: 'warning',
+              recommendation:
+                  'Identify what drove this spike and consider delaying non-essential purchases for a few days.',
+            ),
+          );
+        } else if (change < -15) {
+          insights.add(
+            AiInsight(
+              title: 'Great Spending Reduction',
+              message:
+                  'Fantastic! You spent ${change.abs().toStringAsFixed(1)}% less this week compared to the previous week.',
+              type: 'success',
+              recommendation:
+                  'Keep up this discipline! Put the saved amount into your main wallet or savings goal.',
+            ),
+          );
+        }
+      }
+
+      // 2. Subscription/recurring transaction patterns detection
+      final expenseMap = <String, List<Expense>>{};
+      for (final exp in expenseTransactions) {
+        final key = '${exp.category}_${exp.amount.toStringAsFixed(2)}';
+        expenseMap.putIfAbsent(key, () => []).add(exp);
+      }
+
+      final recurringDetected = <String>[];
+      expenseMap.forEach((key, list) {
+        if (list.length >= 3) {
+          final category = list.first.category;
+          final amount = list.first.amount;
+          final title = list.first.title;
+          recurringDetected.add('$title (\$${amount.toStringAsFixed(2)} in $category)');
+        }
+      });
+
+      if (recurringDetected.isNotEmpty) {
+        insights.add(
+          AiInsight(
+            title: 'Recurring Charges Detected',
+            message:
+                'Detected ${recurringDetected.length} potential subscription or recurring payment(s): ${recurringDetected.join(", ")}.',
+            type: 'info',
+            recommendation:
+                'Regularly audit your subscriptions. Cancel any services you no longer actively use.',
           ),
         );
       }

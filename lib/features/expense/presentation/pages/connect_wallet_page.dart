@@ -109,6 +109,21 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
   void _saveCardWallet(String userId) {
     if (!_cardFormKey.currentState!.validate()) return;
+
+    final expenseState = context.read<ExpenseBloc>().state;
+    if (expenseState is ExpenseSuccess) {
+      final cardCount = expenseState.wallets.where((w) => w.type == 'card').length;
+      if (cardCount >= 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You can add a maximum of 3 cards.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+    }
+
     final cardNum = _cardNumberController.text.replaceAll(' ', '');
     final initialBalance =
         double.tryParse(_cardBalanceController.text.trim()) ?? 0.0;

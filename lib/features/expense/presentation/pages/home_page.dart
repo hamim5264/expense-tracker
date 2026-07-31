@@ -10,12 +10,14 @@ import 'package:expense_tracker/features/expense/presentation/widgets/header_pai
 import 'package:expense_tracker/features/expense/presentation/widgets/home_shimmer_loading.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/add_expense_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/wallet_page.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/connect_wallet_page.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/all_transactions_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sms_detected_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/empty_transactions_placeholder.dart';
 import 'package:expense_tracker/core/common/utils/sms_parser.dart';
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:expense_tracker/init_dependencies.dart';
 import 'package:expense_tracker/core/network/network_info.dart';
@@ -280,24 +282,11 @@ class _HomePageState extends State<HomePage> {
                 final isLoading =
                     authState is AuthLoading || expenseState is ExpenseLoading;
 
-                double totalBalance = 0;
-                double income = 0;
-                double expenses = 0;
                 List<Expense> transactionList = [];
 
                 if (expenseState is ExpenseSuccess) {
                   transactionList = List.from(expenseState.expenses);
                   transactionList.sort((a, b) => b.date.compareTo(a.date));
-                  for (var item in transactionList) {
-                    if (item.type == 'income') {
-                      income += item.amount;
-                    } else {
-                      expenses += item.amount;
-                    }
-                  }
-                  for (var wallet in expenseState.wallets) {
-                    totalBalance += wallet.balance;
-                  }
                 }
 
                 return Stack(
@@ -375,29 +364,34 @@ class _HomePageState extends State<HomePage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Good afternoon,',
-                                              style: TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 14,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Good afternoon,',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 14,
+                                                ),
                                               ),
-                                            ),
-                                            Text(
-                                              user.username?.isNotEmpty == true
-                                                  ? user.username!
-                                                  : user.name,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
+                                              Text(
+                                                user.username?.isNotEmpty == true
+                                                    ? user.username!
+                                                    : user.name,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
+                                        const SizedBox(width: 16),
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -527,14 +521,58 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 32),
-                                    BalanceCard(
-                                      totalBalance: totalBalance,
-                                      income: income,
-                                      expenses: expenses,
-                                      currencyCode: user.currency,
-                                    ),
-                                    const SizedBox(height: 24),
+                                     SizedBox(
+                                       height: (expenseState is ExpenseSuccess &&
+                                               expenseState.wallets.where((w) => w.type == 'card').length > 1)
+                                           ? 0
+                                           : 32,
+                                     ),
+                                      BalanceCard(
+                                        cardWallets: expenseState is ExpenseSuccess
+                                            ? expenseState.wallets.where((w) => w.type == 'card').toList()
+                                            : [],
+                                        allTransactions: expenseState is ExpenseSuccess
+                                            ? expenseState.expenses
+                                            : [],
+                                        currencyCode: user.currency,
+                                        onAddCardTap: () {
+                                          Navigator.push(context, ConnectWalletPage.route());
+                                        },
+                                       ),
+                                       const SizedBox(height: 10),
+                                     Row(
+                                       mainAxisAlignment: MainAxisAlignment.center,
+                                       children: [
+                                         _buildActionButton(
+                                           context: context,
+                                           label: 'Expense',
+                                           icon: Icons.north_east_rounded,
+                                           iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFE53935),
+                                           onTap: () {
+                                             Navigator.push(
+                                               context,
+                                               AddExpensePage.route(initialType: 'expense'),
+                                             );
+                                           },
+                                           isDark: isDark,
+                                         ),
+                                         const SizedBox(width: 56),
+                                         _buildActionButton(
+                                           context: context,
+                                           label: 'Income',
+                                           icon: Icons.south_west_rounded,
+                                           iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF43A047),
+                                           onTap: () {
+                                             Navigator.push(
+                                               context,
+                                               AddExpensePage.route(initialType: 'income'),
+                                             );
+                                           },
+                                           isDark: isDark,
+                                         ),
+                                       ],
+                                     ),
+                                      const SizedBox(height: 12),
 
                                     if (user.smsSyncEnabled &&
                                         _detectedSmsExpenses.isNotEmpty) ...[
@@ -577,7 +615,7 @@ class _HomePageState extends State<HomePage> {
                                           },
                                         ),
                                       ),
-                                      const SizedBox(height: 24),
+                                      const SizedBox(height: 12),
                                     ],
 
                                     Row(
@@ -617,7 +655,7 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 6),
 
                                     if (transactionList.isEmpty)
                                       const EmptyTransactionsPlaceholder()
@@ -638,11 +676,13 @@ class _HomePageState extends State<HomePage> {
                                           );
                                         },
                                       ),
+                                      const SizedBox(height: 100),
                                   ],
                                 ),
                               ),
                       ),
                     ),
+                    _buildFloatingNavBar(isDark),
                   ],
                 );
               },
@@ -650,52 +690,7 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10,
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        elevation: 20,
-        padding: EdgeInsets.zero,
-        child: SizedBox(
-          height: 70,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home_rounded, 0, isDark),
-              _buildNavItem(Icons.bar_chart_rounded, 1, isDark),
-              const SizedBox(width: 48),
-              _buildNavItem(Icons.account_balance_wallet_outlined, 2, isDark),
-              _buildNavItem(Icons.person_outline_rounded, 3, isDark),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).primaryColor.withAlpha(100),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () => Navigator.push(context, AddExpensePage.route()),
-          backgroundColor: Theme.of(context).primaryColor,
-          shape: const CircleBorder(),
-          elevation: 0,
-          child: Icon(
-            Icons.add,
-            color: Theme.of(context).colorScheme.onPrimary,
-            size: 32,
-          ),
-        ),
-      ),
+      bottomNavigationBar: null,
     );
   }
 
@@ -712,11 +707,149 @@ class _HomePageState extends State<HomePage> {
       icon: Icon(
         icon,
         color: isSelected
-            ? Theme.of(context).primaryColor
+            ? const Color(0xFF4F378A)
             : (isDark ? Colors.white38 : Colors.grey.shade400),
-        size: 28,
+        size: 24,
       ),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
       onPressed: () => _onTabSelected(index),
+    );
+  }
+
+  Widget _buildActionButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    Widget buttonIcon = Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDark ? null : Colors.grey.shade100,
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.12),
+                  Colors.white.withOpacity(0.02),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.18) : Colors.black.withOpacity(0.05),
+          width: isDark ? 1.2 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          icon,
+          color: iconColor,
+          size: 28,
+        ),
+      ),
+    );
+
+    if (isDark) {
+      buttonIcon = ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: buttonIcon,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          buttonIcon,
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.2,
+              color: isDark ? Colors.white.withOpacity(0.85) : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingNavBar(bool isDark) {
+    Widget navContent = Container(
+      height: 52,
+      width: 280,
+      decoration: BoxDecoration(
+        color: isDark ? null : Colors.white.withOpacity(0.9),
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.12),
+                  Colors.white.withOpacity(0.02),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.18) : Colors.black.withOpacity(0.06),
+          width: isDark ? 1.2 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildNavItem(Icons.home_rounded, 0, isDark)),
+          Expanded(child: _buildNavItem(Icons.bar_chart_rounded, 1, isDark)),
+          Expanded(child: _buildNavItem(Icons.account_balance_wallet_outlined, 2, isDark)),
+          Expanded(child: _buildNavItem(Icons.person_outline_rounded, 3, isDark)),
+        ],
+      ),
+    );
+
+    if (isDark) {
+      navContent = ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: navContent,
+        ),
+      );
+    }
+
+    return Positioned(
+      bottom: 16,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: navContent,
+      ),
     );
   }
 }

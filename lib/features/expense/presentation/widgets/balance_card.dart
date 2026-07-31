@@ -1,21 +1,23 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
+import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BalanceCard extends StatefulWidget {
-  final double totalBalance;
-  final double income;
-  final double expenses;
+  final List<Wallet> cardWallets;
+  final List<Expense> allTransactions;
   final String currencyCode;
+  final VoidCallback? onAddCardTap;
 
   const BalanceCard({
     super.key,
-    required this.totalBalance,
-    required this.income,
-    required this.expenses,
+    required this.cardWallets,
+    required this.allTransactions,
     required this.currencyCode,
+    this.onAddCardTap,
   });
 
   @override
@@ -23,16 +25,32 @@ class BalanceCard extends StatefulWidget {
 }
 
 class _BalanceCardState extends State<BalanceCard> {
+  int _activeIndex = 0;
+  Map<String, String> _cardStyles = {};
   String _selectedStyle = 'purple';
   bool _isBalanceVisible = false;
   double _dragPosition = 0.0;
   final double _maxDragWidth = 135.0;
   Timer? _hideTimer;
 
+  double get _activeBalance {
+    if (widget.cardWallets.isEmpty) return 0.0;
+    if (_activeIndex >= widget.cardWallets.length) return 0.0;
+    return widget.cardWallets[_activeIndex].balance;
+  }
+
   @override
   void initState() {
     super.initState();
-    _loadSelectedStyle();
+    _loadStyles();
+  }
+
+  @override
+  void didUpdateWidget(covariant BalanceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.cardWallets.length != oldWidget.cardWallets.length) {
+      _loadStyles();
+    }
   }
 
   @override
@@ -94,39 +112,71 @@ class _BalanceCardState extends State<BalanceCard> {
     }
   }
 
-  Future<void> _loadSelectedStyle() async {
+  Future<void> _loadStyles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final style = prefs.getString('balance_card_style') ?? 'purple';
+      final savedActiveId = prefs.getString('balance_card_active_wallet_id');
+      int initialActiveIndex = 0;
+      if (savedActiveId != null) {
+        final idx = widget.cardWallets.indexWhere((w) => w.id == savedActiveId);
+        if (idx != -1) {
+          initialActiveIndex = idx;
+        }
+      }
+      final Map<String, String> loadedStyles = {};
+      for (var wallet in widget.cardWallets) {
+        final style = prefs.getString('balance_card_style_${wallet.id}') ?? 'purple';
+        loadedStyles[wallet.id] = style;
+      }
       setState(() {
-        _selectedStyle = style;
+        _activeIndex = initialActiveIndex;
+        _cardStyles = loadedStyles;
+        if (widget.cardWallets.isNotEmpty) {
+          final activeWallet = widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0];
+          _selectedStyle = loadedStyles[activeWallet.id] ?? 'purple';
+        }
       });
     } catch (_) {}
   }
 
+  Future<void> _loadSelectedStyle() async {
+    await _loadStyles();
+  }
+
   Future<void> _saveSelectedStyle(String style) async {
+    if (widget.cardWallets.isEmpty) return;
+    final activeWallet = widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0];
     setState(() {
       _selectedStyle = style;
+      _cardStyles[activeWallet.id] = style;
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('balance_card_style', style);
+      await prefs.setString('balance_card_style_${activeWallet.id}', style);
     } catch (_) {}
   }
 
   Map<String, dynamic> _getStyleConfig(bool isDark) {
+    final balanceVal = _activeBalance;
     switch (_selectedStyle) {
       case 'glass':
         return {
           'isGlass': true,
-          'gradient': null,
-          'solidColor': const Color(0xFF1E1B29).withOpacity(0.4),
-          'borderColor': Colors.white.withOpacity(0.08),
-          'textColor': Colors.white.withOpacity(0.9),
+          'gradient': LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.16),
+              Colors.white.withOpacity(0.03),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          'solidColor': null,
+          'borderColor': Colors.white.withOpacity(0.22),
+          'textColor': Colors.white.withOpacity(0.95),
           'labelColor': Colors.white.withOpacity(0.7),
-          'totalBalanceColor': widget.totalBalance > 0
+          'totalBalanceColor': balanceVal > 0
               ? const Color(0xFF4ADE80)
-              : widget.totalBalance < 0
+              : balanceVal < 0
               ? const Color(0xFFFF6B6B)
               : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
@@ -184,9 +234,9 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': widget.totalBalance > 0
+          'totalBalanceColor': balanceVal > 0
               ? const Color(0xFF4ADE80)
-              : widget.totalBalance < 0
+              : balanceVal < 0
               ? const Color(0xFFFF6B6B)
               : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
@@ -217,9 +267,9 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': widget.totalBalance > 0
+          'totalBalanceColor': balanceVal > 0
               ? const Color(0xFF4ADE80)
-              : widget.totalBalance < 0
+              : balanceVal < 0
               ? const Color(0xFFFF6B6B)
               : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
@@ -370,64 +420,316 @@ class _BalanceCardState extends State<BalanceCard> {
     );
   }
 
+  List<Color> _getBackCardGradient(String style, int index) {
+    final stylesList = ['purple', 'golden', 'emerald', 'ocean', 'sunset', 'dark_obsidian'];
+    String finalStyle = style;
+    if (style == 'purple' || style == 'default') {
+      finalStyle = stylesList[index % stylesList.length];
+    }
+    switch (finalStyle) {
+      case 'emerald':
+        return [const Color(0xFF0F9B0F), const Color(0xFF006400)];
+      case 'ocean':
+        return [const Color(0xFF00B4DB), const Color(0xFF0083B0)];
+      case 'sunset':
+        return [const Color(0xFFF857A6), const Color(0xFFFF5858)];
+      case 'dark_obsidian':
+        return [const Color(0xFF232526), const Color(0xFF414345)];
+      case 'golden':
+        return [const Color(0xFFD4AF37), const Color(0xFF855B00)];
+      case 'glass':
+        return [Colors.white.withOpacity(0.16), Colors.white.withOpacity(0.03)];
+      case 'purple':
+      default:
+        return [const Color(0xFF65558F), const Color(0xFF4F378A)];
+    }
+  }
+
+  Widget _buildBackCardWidget(bool isDark, Wallet wallet, int index, int depth) {
+    final cardNum = wallet.details['card_number'] as String? ?? '0000';
+    final last4 = cardNum.length > 4 ? cardNum.substring(cardNum.length - 4) : cardNum;
+    
+    final style = _cardStyles[wallet.id] ?? 'purple';
+    final colors = _getBackCardGradient(style, index);
+
+    Widget backCardBody = Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.32),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.9),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Transform.translate(
+                  offset: const Offset(-6, 0),
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '•••• •••• $last4',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (widget.onAddCardTap != null) {
+      backCardBody = ClipPath(
+        clipper: CardCutoutClipper(radius: 28),
+        child: backCardBody,
+      );
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        setState(() {
+          _activeIndex = index;
+        });
+        await _loadSelectedStyle();
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('balance_card_active_wallet_id', wallet.id);
+        } catch (_) {}
+      },
+      child: backCardBody,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final config = _getStyleConfig(isDark);
 
+    final activeWallet = widget.cardWallets.isNotEmpty ? widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0] : null;
+    final activeBalance = _activeBalance;
+    
+    double activeIncome = 0.0;
+    double activeExpenses = 0.0;
+    if (activeWallet != null) {
+      final walletTx = widget.allTransactions.where((tx) => tx.walletId == activeWallet.id).toList();
+      for (var tx in walletTx) {
+        if (tx.type == 'income') {
+          activeIncome += tx.amount;
+        } else {
+          activeExpenses += tx.amount;
+        }
+      }
+    }
+
+    Widget cardBody;
+
     if (config['isGlass'] == true) {
-      return ClipRRect(
+      cardBody = ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
             color: config['solidColor'],
-            border: Border.all(color: config['borderColor'], width: 1.5),
+            gradient: config['gradient'],
+            border: Border.all(color: config['borderColor'], width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: Colors.black.withOpacity(0.28),
+                blurRadius: 25,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
               child: Padding(
                 padding: const EdgeInsets.all(22),
-                child: _buildCardContent(config, isDark),
+                child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
               ),
             ),
           ),
         ),
       );
     } else {
-      return Container(
+      cardBody = Container(
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           gradient: config['gradient'],
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 25,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(22),
-          child: _buildCardContent(config, isDark),
+          child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
         ),
       );
     }
+
+    if (widget.onAddCardTap != null) {
+      cardBody = ClipPath(
+        clipper: CardCutoutClipper(radius: 28),
+        child: cardBody,
+      );
+
+      cardBody = Stack(
+        children: [
+          cardBody,
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: widget.onAddCardTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: config['solidColor'] ?? (config['gradient'] != null ? config['gradient'].colors.first : Colors.black),
+                  gradient: config['gradient'] != null
+                      ? LinearGradient(
+                          colors: config['gradient'].colors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withAlpha(40) : Colors.black.withAlpha(20),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.add, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add Card',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (widget.cardWallets.length > 1) {
+      final wallets = widget.cardWallets;
+      final List<Widget> cardStackWidgets = [];
+      final int maxDepth = wallets.length > 2 ? 2 : 1;
+      
+      for (int d = maxDepth; d >= 0; d--) {
+        final walletIdx = (_activeIndex + d) % wallets.length;
+        final wallet = wallets[walletIdx];
+        
+        final double bottomOffset = d == 0 ? 0.0 : (d == 1 ? 20.0 : 40.0);
+        final double scaleVal = d == 0 ? 1.0 : (d == 1 ? 0.95 : 0.90);
+        
+        Widget childWidget;
+        if (d == 0) {
+          childWidget = cardBody;
+        } else {
+          childWidget = _buildBackCardWidget(isDark, wallet, walletIdx, d);
+        }
+        
+        cardStackWidgets.add(
+          AnimatedPositioned(
+            key: ValueKey(wallet.id),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOutCubic,
+            bottom: bottomOffset,
+            left: 0,
+            right: 0,
+            child: AnimatedScale(
+              scale: scaleVal,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.bottomCenter,
+              child: childWidget,
+            ),
+          ),
+        );
+      }
+      
+      return Container(
+        height: 240,
+        margin: const EdgeInsets.only(top: 4),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: cardStackWidgets,
+        ),
+      );
+    }
+
+    return cardBody;
   }
 
-  Widget _buildCardContent(Map<String, dynamic> config, bool isDark) {
+  Widget _buildCardContent(
+    Map<String, dynamic> config,
+    bool isDark,
+    double activeBalance,
+    double activeIncome,
+    double activeExpenses,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -499,7 +801,7 @@ class _BalanceCardState extends State<BalanceCard> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         CurrencyService.format(
-                          widget.totalBalance,
+                          activeBalance,
                           widget.currencyCode,
                         ),
                         style: TextStyle(
@@ -578,33 +880,36 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
         ),
         const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: _buildBalanceItem(
-                label: 'Income',
-                amount: widget.income,
-                icon: Icons.arrow_downward_rounded,
-                iconBgColor: const Color(0xFF22C55E).withOpacity(0.2),
-                iconColor: config['incomeColor'],
-                amountColor: config['incomeColor'],
-                config: config,
+        Padding(
+          padding: EdgeInsets.only(right: widget.onAddCardTap != null ? 75.0 : 0.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _buildBalanceItem(
+                  label: 'Income',
+                  amount: activeIncome,
+                  icon: Icons.arrow_downward_rounded,
+                  iconBgColor: const Color(0xFF22C55E).withOpacity(0.2),
+                  iconColor: config['incomeColor'],
+                  amountColor: config['incomeColor'],
+                  config: config,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildBalanceItem(
-                label: 'Expenses',
-                amount: widget.expenses,
-                icon: Icons.arrow_upward_rounded,
-                iconBgColor: const Color(0xFFEF4444).withOpacity(0.2),
-                iconColor: config['expensesColor'],
-                amountColor: config['expensesColor'],
-                config: config,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildBalanceItem(
+                  label: 'Expenses',
+                  amount: activeExpenses,
+                  icon: Icons.arrow_upward_rounded,
+                  iconBgColor: const Color(0xFFEF4444).withOpacity(0.2),
+                  iconColor: config['expensesColor'],
+                  amountColor: config['expensesColor'],
+                  config: config,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -623,25 +928,30 @@ class _BalanceCardState extends State<BalanceCard> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-          child: Icon(icon, size: 14, color: iconColor),
+          child: Icon(icon, size: 11, color: iconColor),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 5),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: config['labelColor'],
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: config['labelColor'],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -649,7 +959,7 @@ class _BalanceCardState extends State<BalanceCard> {
                   CurrencyService.format(amount, widget.currencyCode),
                   style: TextStyle(
                     color: amountColor,
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -660,4 +970,44 @@ class _BalanceCardState extends State<BalanceCard> {
       ],
     );
   }
+}
+
+class CardCutoutClipper extends CustomClipper<Path> {
+  final double radius;
+  CardCutoutClipper({this.radius = 28.0});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    
+    final cutoutW = 105.0;
+    final cutoutH = 38.0;
+    
+    path.moveTo(radius, 0);
+    path.lineTo(w - radius, 0);
+    path.quadraticBezierTo(w, 0, w, radius);
+    
+    path.lineTo(w, h - cutoutH - radius);
+    path.quadraticBezierTo(w, h - cutoutH, w - radius, h - cutoutH);
+    
+    path.lineTo(w - cutoutW + radius, h - cutoutH);
+    path.quadraticBezierTo(w - cutoutW, h - cutoutH, w - cutoutW, h - cutoutH + radius);
+    
+    path.lineTo(w - cutoutW, h - radius);
+    path.quadraticBezierTo(w - cutoutW, h, w - cutoutW - radius, h);
+    
+    path.lineTo(radius, h);
+    path.quadraticBezierTo(0, h, 0, h - radius);
+    
+    path.lineTo(0, radius);
+    path.quadraticBezierTo(0, 0, radius, 0);
+    
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

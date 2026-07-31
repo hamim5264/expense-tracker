@@ -2,6 +2,10 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Prevent Google Play from filtering out tablets and Wi-Fi-only devices that do not support telephony/SMS hardware -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <application
         android:label="Onyx"
         android:name="${applicationName}"

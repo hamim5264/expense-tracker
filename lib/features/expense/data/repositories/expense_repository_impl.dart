@@ -80,21 +80,48 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   @override
   Future<Either<Failure, List<Wallet>>> getWallets() async {
     try {
+      List<WalletModel> wallets;
       if (await networkInfo.isConnected) {
-        final wallets = await remoteDataSource.getWallets();
+        wallets = await remoteDataSource.getWallets();
         final jsonList = wallets.map((w) => w.toJson()).toList();
         await cacheService.cacheWallets(jsonList);
-        return right(wallets);
       } else {
         final localData = await cacheService.getCachedWallets();
-        final cached = localData.map((w) => WalletModel.fromJson(w)).toList();
-        return right(cached);
+        wallets = localData.map((w) => WalletModel.fromJson(w)).toList();
       }
+
+      List<Expense> expenses = [];
+      final expRes = await getAllExpenses();
+      expRes.fold((_) {}, (r) => expenses = r);
+
+      final updatedWallets = wallets.map((w) {
+        double currentBalance = w.balance;
+        final walletTx = expenses.where((tx) => tx.walletId == w.id).toList();
+        for (var tx in walletTx) {
+          if (tx.type == 'income') {
+            currentBalance += tx.amount;
+          } else {
+            currentBalance -= tx.amount;
+          }
+        }
+        return Wallet(
+          id: w.id,
+          userId: w.userId,
+          name: w.name,
+          type: w.type,
+          balance: currentBalance,
+          details: w.details,
+          createdAt: w.createdAt,
+        );
+      }).toList();
+
+      return right(updatedWallets);
     } on Failure catch (e) {
       try {
         final localData = await cacheService.getCachedWallets();
         if (localData.isNotEmpty) {
-          return right(localData.map((w) => WalletModel.fromJson(w)).toList());
+          final cached = localData.map((w) => WalletModel.fromJson(w)).toList();
+          return right(cached);
         }
       } catch (_) {}
       return left(e);
@@ -102,7 +129,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       try {
         final localData = await cacheService.getCachedWallets();
         if (localData.isNotEmpty) {
-          return right(localData.map((w) => WalletModel.fromJson(w)).toList());
+          final cached = localData.map((w) => WalletModel.fromJson(w)).toList();
+          return right(cached);
         }
       } catch (_) {}
       return left(Failure(e.toString()));

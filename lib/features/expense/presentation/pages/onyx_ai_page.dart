@@ -211,7 +211,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'BETA ANALYSIS ENGINE',
+                                    'BETA ANALYSIS ENGINE 2.0',
                                     style: TextStyle(
                                       color: primaryColor,
                                       fontSize: 11,
