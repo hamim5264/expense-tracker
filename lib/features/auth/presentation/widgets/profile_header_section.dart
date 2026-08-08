@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
 import 'package:expense_tracker/core/routing/app_router.dart';
@@ -74,7 +75,7 @@ class ProfileHeaderSection extends StatelessWidget {
                         Navigator.pushNamed(context, AppRouter.notifications);
                       },
                       icon: const Icon(
-                        Icons.notifications_none,
+                        CupertinoIcons.bell,
                         color: Colors.white,
                       ),
                     ),

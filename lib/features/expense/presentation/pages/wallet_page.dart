@@ -12,6 +12,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/header_pai
 import 'package:expense_tracker/features/expense/presentation/widgets/wallet_shimmer_loading.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/quick_action_button.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/wallet_item_tile.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -164,7 +165,7 @@ class _WalletPageState extends State<WalletPage> {
                               ),
                               IconButton(
                                 icon: const Icon(
-                                  Icons.notifications_none_rounded,
+                                  CupertinoIcons.bell,
                                   color: Colors.white,
                                 ),
                                 onPressed: () {
@@ -183,15 +184,23 @@ class _WalletPageState extends State<WalletPage> {
                           style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          CurrencyService.format(
-                            totalWalletBalance,
-                            user.currency,
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              CurrencyService.format(
+                                totalWalletBalance,
+                                user.currency,
+                              ),
+                              style: TextStyle(
+                                color: totalWalletBalance < 0
+                                    ? const Color(0xFFFF6B6B)
+                                    : Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -232,7 +241,7 @@ class _WalletPageState extends State<WalletPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 48),
                         Expanded(
                           child: wallets.isEmpty
                               ? Center(
@@ -275,9 +284,11 @@ class _WalletPageState extends State<WalletPage> {
                                   ),
                                 )
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
+                                  padding: const EdgeInsets.only(
+                                    left: 24,
+                                    right: 24,
+                                    top: 24,
+                                    bottom: 100,
                                   ),
                                   itemCount: wallets.length,
                                   itemBuilder: (context, index) {

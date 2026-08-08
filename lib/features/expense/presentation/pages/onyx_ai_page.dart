@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
@@ -18,8 +21,24 @@ class OnyxAiPage extends StatefulWidget {
 }
 
 class _OnyxAiPageState extends State<OnyxAiPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
+  late AnimationController _speechController;
+  late Animation<double> _speechScale;
+  late Animation<double> _speechFade;
+
+  Timer? _speechTimer;
+  int _greetingIndex = 0;
+
+  final List<String> _botGreetings = [
+    'Hey there!',
+    'How can I help today?',
+    'Analyzing your spending...',
+    'Hello! Ready to save?',
+    'Hi! I\'m Onyx AI',
+    'Let\'s check your goals',
+    'Looking good today',
+  ];
 
   @override
   void initState() {
@@ -28,11 +47,49 @@ class _OnyxAiPageState extends State<OnyxAiPage>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    _speechController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _speechScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _speechController, curve: Curves.elasticOut),
+    );
+
+    _speechFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _speechController, curve: Curves.easeIn),
+    );
+
+    _startSpeechLoop();
+  }
+
+  void _startSpeechLoop() {
+    _triggerSpeech();
+    _speechTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        _triggerSpeech();
+      }
+    });
+  }
+
+  void _triggerSpeech() async {
+    if (!mounted) return;
+    setState(() {
+      _greetingIndex = (_greetingIndex + 1) % _botGreetings.length;
+    });
+    _speechController.forward();
+    await Future.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      _speechController.reverse();
+    }
   }
 
   @override
   void dispose() {
+    _speechTimer?.cancel();
     _pulseController.dispose();
+    _speechController.dispose();
     super.dispose();
   }
 
@@ -41,7 +98,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
       case 'success':
         return const Color(0xFF22C55E);
       case 'warning':
-        return const Color(0xFFEF4444);
+        return const Color(0xFFFF6B6B);
       case 'info':
       default:
         return Theme.of(context).primaryColor;
@@ -51,12 +108,12 @@ class _OnyxAiPageState extends State<OnyxAiPage>
   IconData _getInsightIcon(String type) {
     switch (type) {
       case 'success':
-        return Icons.insights_rounded;
+        return CupertinoIcons.sparkles;
       case 'warning':
-        return Icons.warning_amber_rounded;
+        return CupertinoIcons.exclamationmark_triangle_fill;
       case 'info':
       default:
-        return Icons.info_outline_rounded;
+        return CupertinoIcons.lightbulb_fill;
     }
   }
 
@@ -103,14 +160,14 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(
-                          Icons.arrow_back_ios_new,
+                          CupertinoIcons.back,
                           color: Colors.white,
                         ),
                       ),
                       const Expanded(
                         child: Center(
                           child: Text(
-                            'Onyx AI Assistant',
+                            'Onyx AI Assistant 2.5',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -147,43 +204,140 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                         children: [
                           const SizedBox(height: 10),
                           Center(
-                            child: AnimatedBuilder(
-                              animation: _pulseController,
-                              builder: (context, child) {
-                                return Container(
-                                  width: 170,
-                                  height: 170,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: primaryColor.withOpacity(
-                                          0.25 * _pulseController.value,
+                            child: SizedBox(
+                              width: 220,
+                              height: 190,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  AnimatedBuilder(
+                                    animation: _pulseController,
+                                    builder: (context, child) {
+                                      return Container(
+                                        width: 170,
+                                        height: 170,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: primaryColor.withOpacity(
+                                                0.55 + 0.35 * _pulseController.value,
+                                              ),
+                                              blurRadius: 45,
+                                              spreadRadius:
+                                                  12 + 10 * _pulseController.value,
+                                            ),
+                                            BoxShadow(
+                                              color: const Color(0xFF8B5CF6).withOpacity(
+                                                0.4 + 0.3 * _pulseController.value,
+                                              ),
+                                              blurRadius: 25,
+                                              spreadRadius: 6,
+                                            ),
+                                          ],
                                         ),
-                                        blurRadius: 35,
-                                        spreadRadius:
-                                            10 * _pulseController.value,
-                                      ),
-                                    ],
+                                        child: child,
+                                      );
+                                    },
+                                    child: Lottie.asset(
+                                      'assets/animations/onyx_ai.json',
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return CircleAvatar(
+                                          backgroundColor: primaryColor
+                                              .withOpacity(0.1),
+                                          child: Icon(
+                                            CupertinoIcons.sparkles,
+                                            size: 72,
+                                            color: primaryColor,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  child: child,
-                                );
-                              },
-                              child: Lottie.asset(
-                                'assets/animations/onyx_ai.json',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return CircleAvatar(
-                                    backgroundColor: primaryColor.withOpacity(
-                                      0.1,
+                                  Positioned(
+                                    top: 0,
+                                    right: 4,
+                                    child: AnimatedBuilder(
+                                      animation: _speechController,
+                                      builder: (context, child) {
+                                        return Opacity(
+                                          opacity: _speechFade.value,
+                                          child: Transform.scale(
+                                            scale: _speechScale.value,
+                                            alignment: Alignment.bottomLeft,
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(16),
+                                          topRight: Radius.circular(16),
+                                          bottomRight: Radius.circular(16),
+                                          bottomLeft: Radius.circular(4),
+                                        ),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(
+                                            sigmaX: 12,
+                                            sigmaY: 12,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? Colors.white.withOpacity(0.12)
+                                                  : Colors.white.withOpacity(0.25),
+                                              borderRadius:
+                                                  const BorderRadius.only(
+                                                    topLeft: Radius.circular(16),
+                                                    topRight: Radius.circular(
+                                                      16,
+                                                    ),
+                                                    bottomRight: Radius.circular(
+                                                      16,
+                                                    ),
+                                                    bottomLeft: Radius.circular(
+                                                      4,
+                                                    ),
+                                                  ),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(
+                                                  0.35,
+                                                ),
+                                                width: 1.2,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(
+                                                        isDark ? 0.2 : 0.05,
+                                                      ),
+                                                  blurRadius: 16,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              _botGreetings[_greetingIndex],
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    child: Icon(
-                                      Icons.psychology,
-                                      size: 72,
-                                      color: primaryColor,
-                                    ),
-                                  );
-                                },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -191,41 +345,41 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                           Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
+                                horizontal: 16,
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.12),
+                                color: primaryColor.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: primaryColor.withOpacity(0.25),
+                                  color: primaryColor.withOpacity(0.3),
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.auto_awesome,
+                                    CupertinoIcons.sparkles,
                                     size: 14,
                                     color: primaryColor,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'BETA ANALYSIS ENGINE 2.0',
+                                    'AI ENGINE 2.5',
                                     style: TextStyle(
                                       color: primaryColor,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.1,
+                                      letterSpacing: 1.2,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 28),
                           Text(
-                            'Smart Insights & Suggestions',
+                            'Smart Insights & Recommendations',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -248,7 +402,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                               getInsightIcon: _getInsightIcon,
                             );
                           }),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
                         ],
                       );
                     },
@@ -342,75 +496,121 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: widget.cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.35), width: 1),
+          borderRadius: BorderRadius.circular(24),
+          gradient: widget.isDark
+              ? LinearGradient(
+                  colors: [
+                    const Color(0xFF2A273A).withOpacity(0.9),
+                    const Color(0xFF1E1B29).withOpacity(0.9),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : LinearGradient(
+                  colors: [
+                    Colors.white,
+                    const Color(0xFFF8F9FA),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          border: Border.all(
+            color: color.withOpacity(widget.isDark ? 0.4 : 0.25),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(widget.isDark ? 0.06 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(widget.isDark ? 0.25 : 0.05),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.insight.title,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.insight.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.1,
+                            color: widget.textColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.insight.message,
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: widget.textColor,
+                      fontSize: 13,
+                      height: 1.45,
+                      color: widget.isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              widget.insight.message,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.4,
-                color: widget.isDark ? Colors.white70 : Colors.black87,
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: widget.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.amber.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.amber.shade700.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          CupertinoIcons.lightbulb_fill,
+                          color: Colors.amber.shade600,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.insight.recommendation,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                              color: widget.isDark
+                                  ? Colors.white70
+                                  : Colors.grey.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Divider(color: Colors.grey.withOpacity(0.15), height: 1),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.lightbulb_outline_rounded,
-                  color: Colors.amber.shade700,
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    widget.insight.recommendation,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                      color: widget.isDark
-                          ? Colors.white60
-                          : Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

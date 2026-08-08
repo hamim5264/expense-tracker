@@ -36,7 +36,7 @@ class ThemeService {
     primaryColorNotifier.value = color;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hex = color.value.toRadixString(16);
+      final hex = color.value.toRadixString(16).padLeft(8, '0');
       await prefs.setString('theme_primary_color', hex);
     } catch (_) {}
   }

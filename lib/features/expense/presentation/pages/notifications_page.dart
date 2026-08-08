@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 
@@ -24,15 +26,15 @@ class NotificationsPage extends StatelessWidget {
     }
   }
 
-  IconData _getIcon(String type) {
+  IconData _getCupertinoIcon(String type) {
     switch (type) {
       case 'success':
-        return Icons.check_circle_outline_rounded;
+        return CupertinoIcons.checkmark_alt_circle_fill;
       case 'warning':
-        return Icons.warning_amber_rounded;
+        return CupertinoIcons.exclamationmark_triangle_fill;
       case 'info':
       default:
-        return Icons.info_outline_rounded;
+        return CupertinoIcons.info_circle_fill;
     }
   }
 
@@ -54,8 +56,7 @@ class NotificationsPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final service = NotificationService();
 
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9FB);
-    final cardBg = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return AnimatedBuilder(
@@ -69,7 +70,7 @@ class NotificationsPage extends StatelessWidget {
             backgroundColor: theme.primaryColor,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              icon: const Icon(CupertinoIcons.back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
@@ -86,8 +87,9 @@ class NotificationsPage extends StatelessWidget {
                 IconButton(
                   tooltip: 'Mark all as read',
                   icon: const Icon(
-                    Icons.mark_chat_read_rounded,
+                    CupertinoIcons.checkmark_seal_fill,
                     color: Colors.white,
+                    size: 22,
                   ),
                   onPressed: () async {
                     await service.markAllAsRead();
@@ -96,16 +98,30 @@ class NotificationsPage extends StatelessWidget {
                 IconButton(
                   tooltip: 'Clear all',
                   icon: const Icon(
-                    Icons.delete_sweep_rounded,
+                    CupertinoIcons.trash,
                     color: Colors.white,
+                    size: 20,
                   ),
                   onPressed: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Clear All Notifications'),
-                        content: const Text(
+                        backgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Text(
+                          'Clear Notifications',
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: Text(
                           'Are you sure you want to delete all notifications?',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
                         ),
                         actions: [
                           TextButton(
@@ -114,7 +130,7 @@ class NotificationsPage extends StatelessWidget {
                           ),
                           TextButton(
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.red,
+                              foregroundColor: Colors.redAccent,
                             ),
                             onPressed: () => Navigator.pop(ctx, true),
                             child: const Text('Clear All'),
@@ -142,12 +158,12 @@ class NotificationsPage extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.notifications_off_outlined,
-                          size: 64,
+                          CupertinoIcons.bell_slash,
+                          size: 56,
                           color: theme.primaryColor,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       Text(
                         'All caught up!',
                         style: TextStyle(
@@ -156,12 +172,12 @@ class NotificationsPage extends StatelessWidget {
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         'No new notifications at the moment.',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDark ? Colors.white60 : Colors.grey,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -169,7 +185,7 @@ class NotificationsPage extends StatelessWidget {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 16,
                     vertical: 16,
                   ),
                   physics: const BouncingScrollPhysics(),
@@ -185,16 +201,17 @@ class NotificationsPage extends StatelessWidget {
                         service.deleteNotification(item.id);
                       },
                       background: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.only(right: 24),
                         alignment: Alignment.centerRight,
                         decoration: BoxDecoration(
-                          color: Colors.red.shade400,
-                          borderRadius: BorderRadius.circular(16),
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Icon(
-                          Icons.delete_outline_rounded,
+                          CupertinoIcons.trash,
                           color: Colors.white,
+                          size: 22,
                         ),
                       ),
                       child: GestureDetector(
@@ -204,105 +221,143 @@ class NotificationsPage extends StatelessWidget {
                           }
                         },
                         child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
+                          margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: isDark
+                                ? LinearGradient(
+                                    colors: [
+                                      const Color(0xFF2A273A).withOpacity(0.95),
+                                      const Color(0xFF1E1B29).withOpacity(0.95),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      Colors.white,
+                                      const Color(0xFFF8F9FA),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                             border: Border.all(
                               color: item.isRead
-                                  ? Colors.transparent
-                                  : itemColor.withOpacity(0.3),
-                              width: 1,
+                                  ? (isDark
+                                      ? Colors.white.withOpacity(0.08)
+                                      : Colors.black.withOpacity(0.06))
+                                  : itemColor.withOpacity(0.5),
+                              width: item.isRead ? 1 : 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(
-                                  isDark ? 0.05 : 0.03,
-                                ),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: itemColor.withOpacity(0.08),
-                                  shape: BoxShape.circle,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
                                 ),
-                                child: Icon(
-                                  _getIcon(item.type),
-                                  color: itemColor,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
+                                child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            item.title,
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: item.isRead
-                                                  ? FontWeight.w600
-                                                  : FontWeight.bold,
-                                              color: textColor,
-                                            ),
-                                          ),
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: itemColor.withOpacity(0.12),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: itemColor.withOpacity(0.25),
+                                          width: 1,
                                         ),
-                                        Text(
-                                          _formatTime(item.timestamp),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: isDark
-                                                ? Colors.white60
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      item.message,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        height: 1.4,
-                                        color: isDark
-                                            ? Colors.white70
-                                            : Colors.black54,
+                                      ),
+                                      child: Icon(
+                                        _getCupertinoIcon(item.type),
+                                        color: itemColor,
+                                        size: 22,
                                       ),
                                     ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  item.title,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: item.isRead
+                                                        ? FontWeight.w600
+                                                        : FontWeight.bold,
+                                                    color: textColor,
+                                                    letterSpacing: 0.1,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                _formatTime(item.timestamp),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: isDark
+                                                      ? Colors.white54
+                                                      : Colors.black45,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            item.message,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              height: 1.4,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87.withOpacity(0.75),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (!item.isRead) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 9,
+                                        height: 9,
+                                        margin: const EdgeInsets.only(top: 4),
+                                        decoration: BoxDecoration(
+                                          color: itemColor,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: itemColor.withOpacity(0.5),
+                                              blurRadius: 6,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
-                              if (!item.isRead) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  margin: const EdgeInsets.only(top: 6),
-                                  decoration: BoxDecoration(
-                                    color: itemColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ],
+                            ),
                           ),
                         ),
                       ),

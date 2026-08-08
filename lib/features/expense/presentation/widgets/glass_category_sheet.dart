@@ -7,6 +7,7 @@ class GlassCategorySheet extends StatefulWidget {
   final ValueChanged<String> onCategorySelected;
 
   static const List<Map<String, dynamic>> categories = [
+    // Expense Categories
     {
       'name': 'Food',
       'icon': Icons.fastfood_rounded,
@@ -86,6 +87,30 @@ class GlassCategorySheet extends StatefulWidget {
       'type': 'expense',
     },
     {
+      'name': 'Fitness & Gym',
+      'icon': Icons.fitness_center_rounded,
+      'color': Colors.lightBlue,
+      'type': 'expense',
+    },
+    {
+      'name': 'Tech & Gadgets',
+      'icon': Icons.devices_rounded,
+      'color': Colors.deepPurpleAccent,
+      'type': 'expense',
+    },
+    {
+      'name': 'Pets',
+      'icon': Icons.pets_rounded,
+      'color': Colors.amberAccent,
+      'type': 'expense',
+    },
+    {
+      'name': 'Taxes & Fees',
+      'icon': Icons.account_balance_rounded,
+      'color': Colors.redAccent,
+      'type': 'expense',
+    },
+    {
       'name': 'Services',
       'icon': Icons.construction_rounded,
       'color': Colors.grey,
@@ -98,8 +123,8 @@ class GlassCategorySheet extends StatefulWidget {
       'type': 'expense',
     },
     {
-      'name': 'Family',
-      'icon': Icons.people_rounded,
+      'name': 'Family & Kids',
+      'icon': Icons.family_restroom_rounded,
       'color': Colors.indigoAccent,
       'type': 'expense',
     },
@@ -109,7 +134,14 @@ class GlassCategorySheet extends StatefulWidget {
       'color': Colors.brown,
       'type': 'expense',
     },
+    {
+      'name': 'Gifts & Charity',
+      'icon': Icons.volunteer_activism_rounded,
+      'color': Colors.pinkAccent,
+      'type': 'expense',
+    },
 
+    // Income Categories
     {
       'name': 'Salary',
       'icon': Icons.monetization_on_rounded,
@@ -120,6 +152,12 @@ class GlassCategorySheet extends StatefulWidget {
       'name': 'Freelance',
       'icon': Icons.work_rounded,
       'color': Colors.greenAccent,
+      'type': 'income',
+    },
+    {
+      'name': 'Business',
+      'icon': Icons.storefront_rounded,
+      'color': Colors.tealAccent,
       'type': 'income',
     },
     {
@@ -138,6 +176,30 @@ class GlassCategorySheet extends StatefulWidget {
       'name': 'Dividend',
       'icon': Icons.pie_chart_rounded,
       'color': Colors.cyanAccent,
+      'type': 'income',
+    },
+    {
+      'name': 'Rental Income',
+      'icon': Icons.other_houses_rounded,
+      'color': Colors.lightGreenAccent,
+      'type': 'income',
+    },
+    {
+      'name': 'Cashback & Rewards',
+      'icon': Icons.stars_rounded,
+      'color': Colors.amberAccent,
+      'type': 'income',
+    },
+    {
+      'name': 'Side Hustle',
+      'icon': Icons.laptop_mac_rounded,
+      'color': Colors.deepPurple,
+      'type': 'income',
+    },
+    {
+      'name': 'Crypto & Stocks',
+      'icon': Icons.currency_bitcoin_rounded,
+      'color': Colors.orangeAccent,
       'type': 'income',
     },
     {
@@ -305,14 +367,14 @@ class _GlassCategorySheetState extends State<GlassCategorySheet> {
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
+                  horizontal: 18,
                   vertical: 8,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  crossAxisSpacing: 12,
+                  crossAxisSpacing: 10,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.95,
+                  childAspectRatio: 0.85,
                 ),
                 itemCount: filteredList.length,
                 itemBuilder: (context, index) {
@@ -327,6 +389,10 @@ class _GlassCategorySheetState extends State<GlassCategorySheet> {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? catColor.withOpacity(0.12)
@@ -341,25 +407,34 @@ class _GlassCategorySheetState extends State<GlassCategorySheet> {
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           CircleAvatar(
-                            backgroundColor: catColor.withOpacity(0.1),
-                            radius: 22,
+                            backgroundColor: catColor.withOpacity(0.15),
+                            radius: 20,
                             child: Icon(
                               cat['icon'] as IconData,
                               color: catColor,
-                              size: 24,
+                              size: 22,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            cat['name'] as String,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: textColor,
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                cat['name'] as String,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: textColor,
+                                  height: 1.15,
+                                ),
+                              ),
                             ),
                           ),
                         ],

@@ -42,18 +42,19 @@ class OnyxAiEngine {
                 'You have saved ${savingsRate.toStringAsFixed(1)}% of your total income this period.',
             type: 'success',
             recommendation:
-                'Consider moving part of these savings into a dedicated wallet or high-yield repository.',
+                'Consider moving part of these savings into a dedicated wallet or high-yield goal.',
           ),
         );
       } else if (savingsRate < 0) {
+        final deficitAmount = totalExpense - totalIncome;
         insights.add(
           AiInsight(
-            title: 'Budget Deficit Warning',
+            title: 'Budget Deficit Alert',
             message:
-                'Your spending exceeded your income by ${(savingsRate.abs()).toStringAsFixed(1)}%.',
+                'Your spending exceeds your total income by ${deficitAmount.toStringAsFixed(2)}. You are spending more than you earn.',
             type: 'warning',
             recommendation:
-                'Review your non-essential categories (like Shopping or Entertainment) to balance your budget.',
+                'Review your non-essential categories (like Shopping or Entertainment) to bring your budget back into balance.',
           ),
         );
       } else {
@@ -61,22 +62,22 @@ class OnyxAiEngine {
           AiInsight(
             title: 'Steady Financial Health',
             message:
-                'You saved ${savingsRate.toStringAsFixed(1)}% of your income. You are living within your means.',
+                'You saved ${savingsRate.toStringAsFixed(1)}% of your income. You are living comfortably within your means.',
             type: 'info',
             recommendation:
-                'Try to increase your savings rate to 20% by cutting back on minor subscription services.',
+                'Try to boost your monthly savings rate to 20% by trimming minor subscription expenses.',
           ),
         );
       }
     } else if (totalExpense > 0) {
       insights.add(
         AiInsight(
-          title: 'No Income Tracked Yet',
+          title: 'Unbalanced Cash Flow',
           message:
-              'You have registered \$${totalExpense.toStringAsFixed(2)} in expenses but no income has been recorded yet.',
+              'You have registered ${totalExpense.toStringAsFixed(2)} in total expenses with zero recorded income.',
           type: 'warning',
           recommendation:
-              'Add your salary, freelance earnings, or other income streams to get a complete financial analysis.',
+              'Record your salary, freelance earnings, or secondary income to get precise cash flow analysis.',
         ),
       );
     }
@@ -84,7 +85,7 @@ class OnyxAiEngine {
     final expenseTransactions = expenses
         .where((e) => e.type == 'expense')
         .toList();
-    if (expenseTransactions.isNotEmpty) {
+    if (expenseTransactions.isNotEmpty && totalExpense > 0) {
       final Map<String, double> categorySums = {};
       for (final tx in expenseTransactions) {
         categorySums[tx.category] =
@@ -104,28 +105,28 @@ class OnyxAiEngine {
       if (percentage > 35) {
         insights.add(
           AiInsight(
-            title: 'High spending in $topCategory',
+            title: 'High Spending: $topCategory',
             message:
-                '$topCategory accounts for ${percentage.toStringAsFixed(1)}% of your total expenses.',
+                '$topCategory makes up ${percentage.toStringAsFixed(1)}% (${maxSpend.toStringAsFixed(2)}) of your overall expenses.',
             type: 'warning',
             recommendation:
-                'Try setting a weekly limit for $topCategory and cook more at home to lower food costs.',
+                'Consider setting a weekly limit for $topCategory to maintain balanced category distribution.',
           ),
         );
       } else {
         insights.add(
           AiInsight(
-            title: 'Balanced Expenditures',
+            title: 'Balanced Expense Allocation',
             message:
-                'Your highest category is $topCategory at ${percentage.toStringAsFixed(1)}% of total spends.',
+                'Your top category is $topCategory taking ${percentage.toStringAsFixed(1)}% of total spends.',
             type: 'info',
             recommendation:
-                'Your category dispersion looks healthy. Keep tracking your daily receipts.',
+                'Your spending distribution across categories is well balanced. Keep it up!',
           ),
         );
       }
 
-      // 1. Week-over-week spending trends
+      // 1. Week-over-week spending trends with ratio caps
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
       final fourteenDaysAgo = now.subtract(const Duration(days: 14));
@@ -139,27 +140,28 @@ class OnyxAiEngine {
           .fold(0.0, (sum, item) => sum + item.amount);
 
       if (priorExpenses > 0) {
-        final change = ((recentExpenses - priorExpenses) / priorExpenses) * 100;
+        final rawChange = ((recentExpenses - priorExpenses) / priorExpenses) * 100;
+        final change = rawChange.clamp(-100.0, 500.0);
         if (change > 15) {
           insights.add(
             AiInsight(
-              title: 'Spike in Weekly Spending',
+              title: 'Weekly Spending Surge',
               message:
-                  'Your spending in the last 7 days (\$${recentExpenses.toStringAsFixed(2)}) is ${change.toStringAsFixed(1)}% higher than the previous week (\$${priorExpenses.toStringAsFixed(2)}).',
+                  'Your 7-day spending (${recentExpenses.toStringAsFixed(2)}) is ${change.toStringAsFixed(1)}% higher than last week (${priorExpenses.toStringAsFixed(2)}).',
               type: 'warning',
               recommendation:
-                  'Identify what drove this spike and consider delaying non-essential purchases for a few days.',
+                  'Check recent transactions to pinpoint what drove this week\'s spending surge.',
             ),
           );
         } else if (change < -15) {
           insights.add(
             AiInsight(
-              title: 'Great Spending Reduction',
+              title: 'Reduced Weekly Expenses',
               message:
-                  'Fantastic! You spent ${change.abs().toStringAsFixed(1)}% less this week compared to the previous week.',
+                  'Great job! You spent ${change.abs().toStringAsFixed(1)}% less this week compared to last week.',
               type: 'success',
               recommendation:
-                  'Keep up this discipline! Put the saved amount into your main wallet or savings goal.',
+                  'Keep up the disciplined spending! Consider allocating extra funds to your savings goal.',
             ),
           );
         }
@@ -178,34 +180,45 @@ class OnyxAiEngine {
           final category = list.first.category;
           final amount = list.first.amount;
           final title = list.first.title;
-          recurringDetected.add('$title (\$${amount.toStringAsFixed(2)} in $category)');
+          recurringDetected.add('$title (${amount.toStringAsFixed(2)} in $category)');
         }
       });
 
       if (recurringDetected.isNotEmpty) {
         insights.add(
           AiInsight(
-            title: 'Recurring Charges Detected',
+            title: 'Recurring Subscriptions Detected',
             message:
-                'Detected ${recurringDetected.length} potential subscription or recurring payment(s): ${recurringDetected.join(", ")}.',
+                'Found ${recurringDetected.length} potential subscription or recurring charges: ${recurringDetected.join(", ")}.',
             type: 'info',
             recommendation:
-                'Regularly audit your subscriptions. Cancel any services you no longer actively use.',
+                'Regularly review recurring charges to cancel services you no longer actively use.',
           ),
         );
       }
     }
 
     for (final wallet in wallets) {
-      if (wallet.balance < 1000) {
+      if (wallet.balance < 0) {
+        insights.add(
+          AiInsight(
+            title: 'Negative Balance: ${wallet.name}',
+            message:
+                'Your ${wallet.name} wallet balance is negative at ${wallet.balance.toStringAsFixed(2)}.',
+            type: 'warning',
+            recommendation:
+                'Top up this wallet immediately to avoid overdraft fees or negative account debt.',
+          ),
+        );
+      } else if (wallet.balance < 500) {
         insights.add(
           AiInsight(
             title: 'Low Balance: ${wallet.name}',
             message:
                 'Your ${wallet.name} wallet balance is low at ${wallet.balance.toStringAsFixed(2)}.',
-            type: 'warning',
+            type: 'info',
             recommendation:
-                'Top up your wallet or avoid using it for large debit payments this week.',
+                'Ensure you have sufficient liquidity before making big upcoming purchases.',
           ),
         );
       }

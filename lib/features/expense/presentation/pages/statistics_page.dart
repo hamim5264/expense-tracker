@@ -664,7 +664,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 isDark: isDark,
                               );
                             }),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),

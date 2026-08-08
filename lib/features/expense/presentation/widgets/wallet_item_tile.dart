@@ -56,7 +56,7 @@ class WalletItemTile extends StatelessWidget {
       case 'card':
         return _WalletMeta(
           icon: CupertinoIcons.creditcard_fill,
-          label: 'Credit / Debit Card',
+          label: 'Card',
           gradientColors: isDark
               ? [const Color(0xFF4527A0), const Color(0xFF7B1FA2)]
               : [const Color(0xFF5E35B1), const Color(0xFF9C27B0)],
@@ -84,162 +84,153 @@ class WalletItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final meta = _getMeta(isDark);
-
-    final glassColor = isDark
-        ? Colors.white.withAlpha(18)
-        : Colors.white.withAlpha(190);
-    final glassBorder = isDark
-        ? Colors.white.withAlpha(35)
-        : Colors.white.withAlpha(220);
-    final shadowColor = isDark
-        ? Colors.black.withAlpha(80)
-        : Colors.black.withAlpha(20);
+    final isNegative = wallet.balance < 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  const Color(0xFF2A273A).withOpacity(0.9),
+                  const Color(0xFF1E1B29).withOpacity(0.9),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [
+                  Colors.white,
+                  const Color(0xFFF8F9FA),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.12)
+              : Colors.black.withOpacity(0.08),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: glassColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: glassBorder, width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: shadowColor,
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Stack(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: meta.gradientColors,
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
+                // Icon block
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: meta.gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: meta.gradientColors,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: meta.gradientColors.first.withAlpha(80),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(meta.icon, color: Colors.white, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              wallet.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              meta.label,
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : Colors.black45,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            CurrencyService.format(
-                              wallet.balance,
-                              currencyCode,
-                            ),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Balance',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark ? Colors.white38 : Colors.black38,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-
-                      GestureDetector(
-                        onTap: () => _confirmDelete(context),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemRed.withAlpha(220),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: CupertinoColors.systemRed.withAlpha(80),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.minus,
-                            color: Colors.white,
-                            size: 15,
-                          ),
-                        ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: meta.gradientColors.first.withOpacity(0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
+                  ),
+                  child: Icon(meta.icon, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+
+                // Name & Type
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        wallet.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        meta.label,
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.black54,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Balance display
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      CurrencyService.format(
+                        wallet.balance,
+                        currencyCode,
+                      ),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                        color: isNegative
+                            ? const Color(0xFFFF6B6B)
+                            : (isDark ? const Color(0xFF4ADE80) : Colors.black87),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Balance',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+
+                // Cupertino Delete Icon button
+                GestureDetector(
+                  onTap: () => _confirmDelete(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemRed.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.trash,
+                      color: CupertinoColors.systemRed,
+                      size: 16,
+                    ),
                   ),
                 ),
               ],

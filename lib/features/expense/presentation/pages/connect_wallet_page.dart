@@ -4,7 +4,6 @@ import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/premium_credit_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/account_option_tile.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/card_number_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -55,6 +54,9 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
   final _bankNameFocusNode = FocusNode();
   final _mobileProviderFocusNode = FocusNode();
+  final _accountNameFocusNode = FocusNode();
+  final _accountNumberFocusNode = FocusNode();
+  final _accountBalanceFocusNode = FocusNode();
 
   final List<String> _popularBanks = [
     'Chase Bank',
@@ -104,6 +106,9 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
     _mobileProviderController.dispose();
     _bankNameFocusNode.dispose();
     _mobileProviderFocusNode.dispose();
+    _accountNameFocusNode.dispose();
+    _accountNumberFocusNode.dispose();
+    _accountBalanceFocusNode.dispose();
     super.dispose();
   }
 
@@ -382,7 +387,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           ),
           const SizedBox(height: 16),
 
-          _fieldLabel('CARD NUMBER (LAST 4 DIGITS OR FULL)'),
+          _fieldLabel('CARD NUMBER (LAST 4 DIGITS)'),
           const SizedBox(height: 8),
           TextFormField(
             controller: _cardNumberController,
@@ -390,16 +395,19 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              CardNumberFormatter(),
+              LengthLimitingTextInputFormatter(4),
             ],
             onChanged: (val) {
               setState(() {});
+              if (val.length == 4) {
+                FocusScope.of(context).requestFocus(_cardBalanceFocusNode);
+              }
             },
-            decoration: _inputDeco('e.g. 4321 or Full Number'),
+            decoration: _inputDeco('e.g. 4321'),
             validator: (v) {
               final clean = (v ?? '').replaceAll(' ', '');
               if (clean.isEmpty) return 'Card number is required';
-              if (clean.length < 4) return 'Must be at least 4 digits';
+              if (clean.length < 4) return 'Must be exactly 4 digits';
               return null;
             },
             onFieldSubmitted: (_) =>
@@ -648,47 +656,58 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           const SizedBox(height: 8),
           TextFormField(
             controller: _accountNameController,
+            focusNode: _accountNameFocusNode,
             decoration: _inputDeco('e.g. JOHN DOE'),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Required' : null,
+            onFieldSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_accountNumberFocusNode),
           ),
           const SizedBox(height: 16),
 
           _fieldLabel(
             isBank
-                ? 'ACCOUNT NUMBER (LAST 4 DIGITS OR FULL)'
+                ? 'ACCOUNT NUMBER (LAST 4 DIGITS)'
                 : isPaypal
                 ? 'PAYPAL EMAIL ADDRESS'
-                : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS OR FULL)',
+                : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS)',
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _accountNumberController,
+            focusNode: _accountNumberFocusNode,
             keyboardType: isPaypal
                 ? TextInputType.emailAddress
                 : TextInputType.number,
-            inputFormatters: isMobile
+            inputFormatters: !isPaypal
                 ? [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(15),
+                    LengthLimitingTextInputFormatter(4),
                   ]
                 : null,
+            onChanged: (val) {
+              if (!isPaypal && val.length == 4) {
+                FocusScope.of(context).requestFocus(_accountBalanceFocusNode);
+              }
+            },
             decoration: _inputDeco(
               isBank
-                  ? 'e.g. 7890 or Full Account Number'
+                  ? 'e.g. 7890'
                   : isPaypal
                   ? 'name@example.com'
-                  : 'e.g. 4321 or Full Number',
+                  : 'e.g. 4321',
             ),
             validator: (v) {
               final val = v?.trim() ?? '';
               if (val.isEmpty) return 'Required';
               if (isPaypal && !val.contains('@')) return 'Enter a valid email';
-              if (val.length < 4) {
-                return 'Must be at least 4 digits';
+              if (!isPaypal && val.length < 4) {
+                return 'Must be exactly 4 digits';
               }
               return null;
             },
+            onFieldSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_accountBalanceFocusNode),
           ),
           const SizedBox(height: 16),
 
@@ -696,6 +715,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           const SizedBox(height: 8),
           TextFormField(
             controller: _accountBalanceController,
+            focusNode: _accountBalanceFocusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: _inputDeco('0.00'),
             validator: (v) {
@@ -705,6 +725,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
               }
               return null;
             },
+            onFieldSubmitted: (_) => _saveBankWallet(userId),
           ),
           const SizedBox(height: 32),
 

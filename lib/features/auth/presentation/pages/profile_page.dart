@@ -535,7 +535,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           context.read<AuthBloc>().add(AuthLogout());
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 120),
                     ],
                   ),
                 ),

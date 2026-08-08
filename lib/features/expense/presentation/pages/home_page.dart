@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/auth/presentation/pages/profile_page.dart';
@@ -23,11 +25,11 @@ import 'package:expense_tracker/init_dependencies.dart';
 import 'package:expense_tracker/core/network/network_info.dart';
 import 'package:expense_tracker/features/expense/domain/repositories/expense_repository.dart';
 import 'package:expense_tracker/features/expense/data/repositories/expense_repository_impl.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/statistics_page.dart';
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:expense_tracker/core/common/utils/rate_us_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
@@ -56,6 +58,11 @@ class _HomePageState extends State<HomePage> {
     _requestSmsPermissionAndScan();
     _setupConnectivityListener();
     _setupIncomingSmsSubscription();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        RateUsService.checkAndShowRateUsDialog(context);
+      }
+    });
   }
 
   Future<void> _requestSmsPermissionAndScan() async {
@@ -237,66 +244,91 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  String _getDynamicDailyGreeting() {
+    final now = DateTime.now();
+    final hour = now.hour;
+    final weekday = now.weekday; // 1 (Mon) to 7 (Sun)
+
+    String timeOfDay;
+    if (hour >= 5 && hour < 12) {
+      timeOfDay = 'Morning';
+    } else if (hour >= 12 && hour < 17) {
+      timeOfDay = 'Afternoon';
+    } else if (hour >= 17 && hour < 22) {
+      timeOfDay = 'Evening';
+    } else {
+      timeOfDay = 'Night';
+    }
+
+    final greetings = {
+      1: 'Fresh Start Monday $timeOfDay,',
+      2: 'Thriving Tuesday $timeOfDay,',
+      3: 'Productive Wednesday $timeOfDay,',
+      4: 'Thoughtful Thursday $timeOfDay,',
+      5: 'Fantastic Friday $timeOfDay,',
+      6: 'Serene Saturday $timeOfDay,',
+      7: 'Peaceful Sunday $timeOfDay,',
+    };
+
+    return greetings[weekday] ?? 'Good $timeOfDay,';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      body: BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthInitial) {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
-          } else if (state is AuthFailure) {
-            showSnackBar(context, state.message, isError: true);
-          }
-        },
-        builder: (context, authState) {
-          if (authState is! AuthSuccess) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final user = authState.user;
+    final Widget body = BlocConsumer<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthInitial) {
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
+            } else if (state is AuthFailure) {
+              showSnackBar(context, state.message, isError: true);
+            }
+          },
+          builder: (context, authState) {
+            if (authState is! AuthSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final user = authState.user;
 
-          if (_selectedIndex == 2) {
-            return WalletPage(onBackTap: () => _onTabSelected(0));
-          }
+            Widget bodyContent;
 
-          if (_selectedIndex == 3) {
-            return ProfilePage(onBackTap: () => _onTabSelected(0));
-          }
+            if (_selectedIndex == 1) {
+              bodyContent = StatisticsPage(onBackTap: () => _onTabSelected(0));
+            } else if (_selectedIndex == 2) {
+              bodyContent = WalletPage(onBackTap: () => _onTabSelected(0));
+            } else if (_selectedIndex == 3) {
+              bodyContent = ProfilePage(onBackTap: () => _onTabSelected(0));
+            } else {
+              bodyContent = BlocListener<ExpenseBloc, ExpenseState>(
+                listener: (context, expenseState) {
+                  if (expenseState is ExpenseSuccess) {
+                    _checkForSmsExpenses();
+                  }
+                },
+                child: BlocBuilder<ExpenseBloc, ExpenseState>(
+                  builder: (context, expenseState) {
+                    final isLoading =
+                        authState is AuthLoading || expenseState is ExpenseLoading;
 
-          if (_selectedIndex == 1) {
-            return StatisticsPage(onBackTap: () => _onTabSelected(0));
-          }
+                    List<Expense> transactionList = [];
 
-          return BlocListener<ExpenseBloc, ExpenseState>(
-            listener: (context, expenseState) {
-              if (expenseState is ExpenseSuccess) {
-                _checkForSmsExpenses();
-              }
-            },
-            child: BlocBuilder<ExpenseBloc, ExpenseState>(
-              builder: (context, expenseState) {
-                final isLoading =
-                    authState is AuthLoading || expenseState is ExpenseLoading;
+                    if (expenseState is ExpenseSuccess) {
+                      transactionList = List.from(expenseState.expenses);
+                      transactionList.sort((a, b) => b.date.compareTo(a.date));
+                    }
 
-                List<Expense> transactionList = [];
-
-                if (expenseState is ExpenseSuccess) {
-                  transactionList = List.from(expenseState.expenses);
-                  transactionList.sort((a, b) => b.date.compareTo(a.date));
-                }
-
-                return Stack(
-                  children: [
-                    CustomPaint(
-                      size: Size(MediaQuery.of(context).size.width, 300),
-                      painter: HeaderPainter(
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
+                    return Stack(
+                      children: [
+                        CustomPaint(
+                          size: Size(MediaQuery.of(context).size.width, 300),
+                          painter: HeaderPainter(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
                     Positioned(
                       top: -20,
                       left: -20,
@@ -369,13 +401,14 @@ class _HomePageState extends State<HomePage> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              const Text(
-                                                'Good afternoon,',
-                                                style: TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
+                                               Text(
+                                                 _getDynamicDailyGreeting(),
+                                                 style: const TextStyle(
+                                                   color: Colors.white70,
+                                                   fontSize: 12,
+                                                   letterSpacing: 0.2,
+                                                 ),
+                                               ),
                                               Text(
                                                 user.username?.isNotEmpty == true
                                                     ? user.username!
@@ -460,10 +493,9 @@ class _HomePageState extends State<HomePage> {
                                                           );
                                                         },
                                                         icon: const Icon(
-                                                          Icons
-                                                              .notifications_none_rounded,
+                                                          CupertinoIcons.bell,
                                                           color: Colors.white,
-                                                          size: 28,
+                                                          size: 24,
                                                         ),
                                                       ),
                                                       if (unread > 0)
@@ -676,21 +708,42 @@ class _HomePageState extends State<HomePage> {
                                           );
                                         },
                                       ),
-                                      const SizedBox(height: 100),
+                                       const SizedBox(height: 100),
                                   ],
                                 ),
                               ),
                       ),
                     ),
-                    _buildFloatingNavBar(isDark),
                   ],
                 );
               },
             ),
           );
-        },
+        }
+
+        return Stack(
+          children: [
+            bodyContent,
+            _buildFloatingNavBar(isDark),
+          ],
+        );
+      },
+    );
+
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        body: body,
+        bottomNavigationBar: null,
       ),
-      bottomNavigationBar: null,
     );
   }
 
@@ -703,18 +756,19 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildNavItem(IconData icon, int index, bool isDark) {
     bool isSelected = _selectedIndex == index;
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isSelected
-            ? const Color(0xFF4F378A)
-            : (isDark ? Colors.white38 : Colors.grey.shade400),
-        size: 24,
+
+    return GestureDetector(
+      onTap: () => _onTabSelected(index),
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Icon(
+          icon,
+          color: isSelected
+              ? Colors.white
+              : (isDark ? Colors.white38 : Colors.grey.shade500),
+          size: isSelected ? 24 : 22,
+        ),
       ),
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      hoverColor: Colors.transparent,
-      onPressed: () => _onTabSelected(index),
     );
   }
 
@@ -743,7 +797,9 @@ class _HomePageState extends State<HomePage> {
               )
             : null,
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.18) : Colors.black.withOpacity(0.05),
+          color: isDark
+              ? Colors.white.withOpacity(0.18)
+              : Colors.black.withOpacity(0.05),
           width: isDark ? 1.2 : 1.0,
         ),
         boxShadow: [
@@ -796,59 +852,92 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildFloatingNavBar(bool isDark) {
     Widget navContent = Container(
-      height: 52,
-      width: 280,
+      height: 60,
+      width: 290,
       decoration: BoxDecoration(
-        color: isDark ? null : Colors.white.withOpacity(0.9),
-        gradient: isDark
-            ? LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.12),
-                  Colors.white.withOpacity(0.02),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
+        color: isDark
+            ? Colors.black.withOpacity(0.4)
+            : Colors.white.withOpacity(0.65),
         borderRadius: BorderRadius.circular(100),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.18) : Colors.black.withOpacity(0.06),
-          width: isDark ? 1.2 : 1.0,
+          color: isDark
+              ? Colors.white.withOpacity(0.18)
+              : Colors.white.withOpacity(0.8),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+            blurRadius: 24,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(child: _buildNavItem(Icons.home_rounded, 0, isDark)),
-          Expanded(child: _buildNavItem(Icons.bar_chart_rounded, 1, isDark)),
-          Expanded(child: _buildNavItem(Icons.account_balance_wallet_outlined, 2, isDark)),
-          Expanded(child: _buildNavItem(Icons.person_outline_rounded, 3, isDark)),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            left: 6 + (_selectedIndex * ((290 - 12) / 4)),
+            top: 5,
+            child: Container(
+              width: (290 - 12) / 4,
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(100),
+                color: isDark
+                    ? Colors.white.withOpacity(0.18)
+                    : Colors.black.withOpacity(0.08),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.12)
+                      : Colors.black.withOpacity(0.05),
+                  width: 1.0,
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNavItem(Icons.home_rounded, 0, isDark),
+              ),
+              Expanded(
+                child: _buildNavItem(Icons.bar_chart_rounded, 1, isDark),
+              ),
+              Expanded(
+                child: _buildNavItem(
+                  Icons.account_balance_wallet_outlined,
+                  2,
+                  isDark,
+                ),
+              ),
+              Expanded(
+                child: _buildNavItem(
+                  Icons.person_outline_rounded,
+                  3,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
 
-    if (isDark) {
-      navContent = ClipRRect(
-        borderRadius: BorderRadius.circular(100),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: navContent,
-        ),
-      );
-    }
-
     return Positioned(
-      bottom: 16,
+      bottom: 20,
       left: 0,
       right: 0,
       child: Center(
-        child: navContent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+            child: navContent,
+          ),
+        ),
       ),
     );
   }

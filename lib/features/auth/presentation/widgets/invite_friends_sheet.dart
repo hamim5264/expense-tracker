@@ -42,27 +42,30 @@ class InviteFriendsSheet extends StatelessWidget {
       },
     ];
 
+    const shareUrl = 'https://play.google.com/store/apps/details?id=com.thedevhamim.onyx';
+    const shareMessage = 'Track your expenses effortlessly with Onyx! Download now: $shareUrl';
+
     Future<void> handleTap(BuildContext context, String name) async {
       if (name == 'Copy Link') {
         Clipboard.setData(
-          const ClipboardData(text: 'https://onyx-app.com/download'),
+          const ClipboardData(text: shareUrl),
         );
-        showToast('Download link copied to clipboard!');
+        showToast('Play Store link copied to clipboard!');
       } else {
         final Uri url;
         if (name == 'WhatsApp') {
           url = Uri.parse(
-            'whatsapp://send?text=Download%20Onyx%20app%20now:%20https://onyx-app.com/download',
+            'whatsapp://send?text=${Uri.encodeComponent(shareMessage)}',
           );
         } else if (name == 'Messenger') {
           url = Uri.parse('https://m.me/');
         } else if (name == 'SMS') {
           url = Uri.parse(
-            'sms:?body=Download%20Onyx%20app%20now:%20https://onyx-app.com/download',
+            'sms:?body=${Uri.encodeComponent(shareMessage)}',
           );
         } else if (name == 'Email') {
           url = Uri.parse(
-            'mailto:?subject=Try%20Onyx%20App&body=Download%20Onyx%20app%20now:%20https://onyx-app.com/download',
+            'mailto:?subject=${Uri.encodeComponent('Try Onyx Expense Tracker')}&body=${Uri.encodeComponent(shareMessage)}',
           );
         } else {
           return;
@@ -74,7 +77,7 @@ class InviteFriendsSheet extends StatelessWidget {
           } else {
             if (name == 'WhatsApp') {
               final fallbackUrl = Uri.parse(
-                'https://wa.me/?text=Download%20Onyx%20app%20now:%20https://onyx-app.com/download',
+                'https://wa.me/?text=${Uri.encodeComponent(shareMessage)}',
               );
               await launchUrl(
                 fallbackUrl,

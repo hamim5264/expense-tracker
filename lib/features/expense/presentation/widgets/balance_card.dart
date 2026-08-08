@@ -29,8 +29,6 @@ class _BalanceCardState extends State<BalanceCard> {
   Map<String, String> _cardStyles = {};
   String _selectedStyle = 'purple';
   bool _isBalanceVisible = false;
-  double _dragPosition = 0.0;
-  final double _maxDragWidth = 135.0;
   Timer? _hideTimer;
 
   double get _activeBalance {
@@ -59,28 +57,9 @@ class _BalanceCardState extends State<BalanceCard> {
     super.dispose();
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    if (_isBalanceVisible) return;
-    setState(() {
-      _dragPosition += details.delta.dx;
-      if (_dragPosition < 0) _dragPosition = 0;
-      if (_dragPosition > _maxDragWidth) _dragPosition = _maxDragWidth;
-    });
-  }
-
-  void _onDragEnd(DragEndDetails details) {
-    if (_isBalanceVisible) return;
-    if (_dragPosition >= _maxDragWidth - 25) {
-      _revealBalance();
-    } else {
-      _resetDrag();
-    }
-  }
-
   void _revealBalance() {
     _hideTimer?.cancel();
     setState(() {
-      _dragPosition = _maxDragWidth;
       _isBalanceVisible = true;
     });
 
@@ -88,15 +67,8 @@ class _BalanceCardState extends State<BalanceCard> {
       if (mounted) {
         setState(() {
           _isBalanceVisible = false;
-          _dragPosition = 0.0;
         });
       }
-    });
-  }
-
-  void _resetDrag() {
-    setState(() {
-      _dragPosition = 0.0;
     });
   }
 
@@ -105,7 +77,6 @@ class _BalanceCardState extends State<BalanceCard> {
       _hideTimer?.cancel();
       setState(() {
         _isBalanceVisible = false;
-        _dragPosition = 0.0;
       });
     } else {
       _revealBalance();
@@ -158,6 +129,8 @@ class _BalanceCardState extends State<BalanceCard> {
 
   Map<String, dynamic> _getStyleConfig(bool isDark) {
     final balanceVal = _activeBalance;
+    final negativeColor = const Color(0xFFFF6B6B);
+
     switch (_selectedStyle) {
       case 'glass':
         return {
@@ -174,11 +147,11 @@ class _BalanceCardState extends State<BalanceCard> {
           'borderColor': Colors.white.withOpacity(0.22),
           'textColor': Colors.white.withOpacity(0.95),
           'labelColor': Colors.white.withOpacity(0.7),
-          'totalBalanceColor': balanceVal > 0
-              ? const Color(0xFF4ADE80)
-              : balanceVal < 0
-              ? const Color(0xFFFF6B6B)
-              : Colors.white,
+          'totalBalanceColor': balanceVal < 0
+              ? negativeColor
+              : (balanceVal > 0
+                  ? const Color(0xFF4ADE80)
+                  : Colors.white),
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF6B6B),
         };
@@ -192,7 +165,7 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': Colors.white,
+          'totalBalanceColor': balanceVal < 0 ? negativeColor : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF9E9E),
         };
@@ -206,7 +179,7 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': Colors.white,
+          'totalBalanceColor': balanceVal < 0 ? negativeColor : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF9E9E),
         };
@@ -220,7 +193,7 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': Colors.white,
+          'totalBalanceColor': balanceVal < 0 ? negativeColor : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFFD2D2),
         };
@@ -234,11 +207,11 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': balanceVal > 0
-              ? const Color(0xFF4ADE80)
-              : balanceVal < 0
-              ? const Color(0xFFFF6B6B)
-              : Colors.white,
+          'totalBalanceColor': balanceVal < 0
+              ? negativeColor
+              : (balanceVal > 0
+                  ? const Color(0xFF4ADE80)
+                  : Colors.white),
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF6B6B),
         };
@@ -252,7 +225,7 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': Colors.white,
+          'totalBalanceColor': balanceVal < 0 ? negativeColor : Colors.white,
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFFD2D2),
         };
@@ -267,11 +240,11 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           'textColor': Colors.white,
           'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': balanceVal > 0
-              ? const Color(0xFF4ADE80)
-              : balanceVal < 0
-              ? const Color(0xFFFF6B6B)
-              : Colors.white,
+          'totalBalanceColor': balanceVal < 0
+              ? negativeColor
+              : (balanceVal > 0
+                  ? const Color(0xFF4ADE80)
+                  : Colors.white),
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF6B6B),
         };
@@ -812,76 +785,66 @@ class _BalanceCardState extends State<BalanceCard> {
                         ),
                       ),
                     )
-                  : Container(
-                      key: const ValueKey('swipe_bar'),
-                      width: 200,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: config['textColor'].withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: config['textColor'].withOpacity(0.12),
-                          width: 1,
+                  : GestureDetector(
+                      key: const ValueKey('tap_reveal_bar'),
+                      onTap: _revealBalance,
+                      child: Container(
+                        width: 180,
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: config['textColor'].withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: config['textColor'].withOpacity(0.12),
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          Positioned.fill(
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: Opacity(
-                                opacity: (1.0 - (_dragPosition / _maxDragWidth))
-                                    .clamp(0.0, 1.0),
-                                child: Text(
-                                  'Swipe to reveal',
-                                  style: TextStyle(
-                                    color: config['textColor'].withOpacity(0.7),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2ECC71),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF2ECC71).withOpacity(0.4),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
                                   ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.payments_outlined,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Tap to reveal',
+                                style: TextStyle(
+                                  color: config['textColor'].withOpacity(0.85),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: _dragPosition + 4,
-                            child: GestureDetector(
-                              onHorizontalDragUpdate: _onDragUpdate,
-                              onHorizontalDragEnd: _onDragEnd,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2ECC71),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF2ECC71)
-                                          .withOpacity(0.4),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  Icons.payments_outlined,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         Padding(
-          padding: EdgeInsets.only(right: widget.onAddCardTap != null ? 75.0 : 0.0),
+          padding: EdgeInsets.only(right: widget.onAddCardTap != null ? 85.0 : 0.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -924,47 +887,41 @@ class _BalanceCardState extends State<BalanceCard> {
     required Color amountColor,
     required Map<String, dynamic> config,
   }) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-          child: Icon(icon, size: 11, color: iconColor),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+              child: Icon(icon, size: 10, color: iconColor),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: config['labelColor'],
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 5),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: config['labelColor'],
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 1),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  CurrencyService.format(amount, widget.currencyCode),
-                  style: TextStyle(
-                    color: amountColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            CurrencyService.format(amount, widget.currencyCode),
+            maxLines: 1,
+            style: TextStyle(
+              color: amountColor,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],

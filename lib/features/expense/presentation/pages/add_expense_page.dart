@@ -138,6 +138,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
               List<Wallet> wallets = [];
               if (expenseState is ExpenseSuccess) {
                 wallets = expenseState.wallets;
+                if (_selectedWalletId == null && wallets.isNotEmpty) {
+                  _selectedWalletId = wallets.first.id;
+                }
               }
 
               return Column(
