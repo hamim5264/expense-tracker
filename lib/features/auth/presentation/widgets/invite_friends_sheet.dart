@@ -14,36 +14,44 @@ class InviteFriendsSheet extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black87;
     final subColor = isDark ? Colors.white60 : Colors.black54;
 
+    final primaryColor = theme.primaryColor;
+    final isDarkPrimary = primaryColor.computeLuminance() < 0.25;
+    final copyLinkColor = (isDark && isDarkPrimary)
+        ? Colors.purpleAccent.shade100
+        : primaryColor;
+
     final List<Map<String, dynamic>> platforms = [
       {
         'name': 'WhatsApp',
         'icon': Icons.chat_bubble_outline_rounded,
-        'color': Colors.green.shade500,
+        'color': const Color(0xFF22C55E),
       },
       {
         'name': 'Messenger',
         'icon': Icons.messenger_outline_rounded,
-        'color': Colors.blue.shade500,
+        'color': const Color(0xFF3B82F6),
       },
       {
         'name': 'SMS',
         'icon': Icons.sms_outlined,
-        'color': Colors.purple.shade400,
+        'color': const Color(0xFFA855F7),
       },
       {
         'name': 'Email',
         'icon': Icons.mail_outline_rounded,
-        'color': Colors.red.shade400,
+        'color': const Color(0xFFEF4444),
       },
       {
         'name': 'Copy Link',
         'icon': Icons.link_rounded,
-        'color': const Color(0xFF4F378A),
+        'color': copyLinkColor,
       },
     ];
 
-    const shareUrl = 'https://play.google.com/store/apps/details?id=com.thedevhamim.onyx';
-    const shareMessage = 'Track your expenses effortlessly with Onyx! Download now: $shareUrl';
+    const shareUrl =
+        'https://play.google.com/store/apps/details?id=com.thedevhamim.onyx';
+    const shareMessage =
+        'Track your expenses effortlessly with Onyx! Download now: $shareUrl';
 
     Future<void> handleTap(BuildContext context, String name) async {
       if (name == 'Copy Link') {
@@ -104,11 +112,11 @@ class InviteFriendsSheet extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.black.withAlpha(120)
-                : Colors.white.withAlpha(200),
+                ? Colors.black.withAlpha(140)
+                : Colors.white.withAlpha(220),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             border: Border.all(
               color: isDark
@@ -143,49 +151,51 @@ class InviteFriendsSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 14, color: subColor),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 30),
-              SizedBox(
-                height: 100,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: platforms.map((platform) {
-                    return GestureDetector(
-                      onTap: () => handleTap(context, platform['name']),
+              const SizedBox(height: 28),
+              Row(
+                children: platforms.map((platform) {
+                  final color = platform['color'] as Color;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => handleTap(context, platform['name'] as String),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: platform['color'].withAlpha(25),
+                              color: color.withOpacity(0.15),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: platform['color'].withAlpha(50),
+                                color: color.withOpacity(0.35),
                                 width: 1.5,
                               ),
                             ),
                             child: Icon(
-                              platform['icon'],
-                              color: platform['color'],
-                              size: 28,
+                              platform['icon'] as IconData,
+                              color: color,
+                              size: 24,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            platform['name'],
+                            platform['name'] as String,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                               color: textColor,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  );
+                }).toList(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),

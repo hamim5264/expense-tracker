@@ -18,6 +18,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/sms_detect
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/empty_transactions_placeholder.dart';
 import 'package:expense_tracker/core/common/utils/sms_parser.dart';
+import 'package:expense_tracker/core/common/utils/sms_import_tracker.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -181,26 +182,19 @@ class _HomePageState extends State<HomePage> {
         setState(() => _isScanningSms = false);
         return;
       }
-      final detected = await SmsParser.scanSmsForExpenses(authState.user.id);
 
       List<Expense> existing = [];
       if (expenseState is ExpenseSuccess) {
         existing = expenseState.expenses;
       }
 
-      final filtered = detected.where((det) {
-        final alreadyExists = existing.any(
-          (ext) =>
-              (ext.amount - det.amount).abs() < 0.01 &&
-              ext.date.year == det.date.year &&
-              ext.date.month == det.date.month &&
-              ext.date.day == det.date.day,
-        );
-        return !alreadyExists;
-      }).toList();
+      final detected = await SmsParser.scanSmsForExpenses(
+        authState.user.id,
+        existingExpenses: existing,
+      );
 
       setState(() {
-        _detectedSmsExpenses = filtered;
+        _detectedSmsExpenses = detected;
         _isScanningSms = false;
       });
     }
@@ -232,6 +226,7 @@ class _HomePageState extends State<HomePage> {
     );
 
     context.read<ExpenseBloc>().add(ExpenseAddTransaction(finalExpense));
+    SmsImportTracker.markAsImported(expense.id);
     setState(() {
       _detectedSmsExpenses.removeWhere((item) => item.id == expense.id);
     });
@@ -242,6 +237,51 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _detectedSmsExpenses.removeWhere((item) => item.id == id);
     });
+  }
+
+  void _syncAllSmsExpenses() {
+    if (_detectedSmsExpenses.isEmpty) return;
+
+    final expenseState = context.read<ExpenseBloc>().state;
+    String? targetWalletId;
+    if (expenseState is ExpenseSuccess && expenseState.wallets.isNotEmpty) {
+      targetWalletId = expenseState.wallets.first.id;
+    }
+
+    if (targetWalletId == null) {
+      showSnackBar(context, 'Please connect a wallet first.', isError: true);
+      return;
+    }
+
+    final count = _detectedSmsExpenses.length;
+    final itemsToSync = List<Expense>.from(_detectedSmsExpenses);
+
+    for (final expense in itemsToSync) {
+      final finalExpense = Expense(
+        id: '',
+        userId: expense.userId,
+        title: expense.title.startsWith('Auto: ')
+            ? expense.title.substring(6)
+            : expense.title,
+        amount: expense.amount,
+        date: expense.date,
+        type: expense.type,
+        category: expense.category,
+        walletId: targetWalletId,
+      );
+
+      context.read<ExpenseBloc>().add(ExpenseAddTransaction(finalExpense));
+      SmsImportTracker.markAsImported(expense.id);
+    }
+
+    setState(() {
+      _detectedSmsExpenses.clear();
+    });
+
+    showSnackBar(
+      context,
+      'Synced $count SMS transaction${count > 1 ? 's' : ''}!',
+    );
   }
 
   String _getDynamicDailyGreeting() {
@@ -606,87 +646,153 @@ class _HomePageState extends State<HomePage> {
                                      ),
                                       const SizedBox(height: 12),
 
-                                    if (user.smsSyncEnabled &&
-                                        _detectedSmsExpenses.isNotEmpty) ...[
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.sms_failed_outlined,
-                                            color: Colors.deepOrangeAccent,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Detected from SMS (${_detectedSmsExpenses.length})',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      SizedBox(
-                                        height: 130,
-                                        child: ListView.builder(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount:
-                                              _detectedSmsExpenses.length,
-                                          itemBuilder: (context, index) {
-                                            final item =
-                                                _detectedSmsExpenses[index];
-                                            return SmsDetectedCard(
-                                              item: item,
-                                              currencyCode: user.currency,
-                                              isDark: isDark,
-                                              onSync: () =>
-                                                  _syncSmsExpense(item),
-                                              onDiscard: () =>
-                                                  _discardSmsExpense(item.id),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                    ],
+                                     if (user.smsSyncEnabled &&
+                                         _detectedSmsExpenses.isNotEmpty) ...[
+                                       Row(
+                                         mainAxisAlignment:
+                                             MainAxisAlignment.spaceBetween,
+                                         children: [
+                                           Text(
+                                             'Detected from SMS (${_detectedSmsExpenses.length})',
+                                             style: const TextStyle(
+                                               fontWeight: FontWeight.bold,
+                                               fontSize: 15,
+                                             ),
+                                           ),
+                                           GestureDetector(
+                                             onTap: _syncAllSmsExpenses,
+                                             child: Container(
+                                               padding:
+                                                   const EdgeInsets.symmetric(
+                                                 horizontal: 10,
+                                                 vertical: 4,
+                                               ),
+                                               decoration: BoxDecoration(
+                                                 color: theme.primaryColor,
+                                                 borderRadius:
+                                                     BorderRadius.circular(16),
+                                                 boxShadow: [
+                                                   BoxShadow(
+                                                     color: theme.primaryColor
+                                                         .withOpacity(0.3),
+                                                     blurRadius: 6,
+                                                     offset: const Offset(0, 2),
+                                                   ),
+                                                 ],
+                                               ),
+                                               child: const Row(
+                                                 mainAxisSize: MainAxisSize.min,
+                                                 children: [
+                                                   Icon(
+                                                     CupertinoIcons
+                                                         .arrow_2_circlepath,
+                                                     size: 11,
+                                                     color: Colors.white,
+                                                   ),
+                                                   SizedBox(width: 4),
+                                                   Text(
+                                                     'Sync All',
+                                                     style: TextStyle(
+                                                       fontSize: 11,
+                                                       fontWeight:
+                                                           FontWeight.bold,
+                                                       color: Colors.white,
+                                                     ),
+                                                   ),
+                                                 ],
+                                               ),
+                                             ),
+                                           ),
+                                         ],
+                                       ),
+                                       const SizedBox(height: 10),
+                                       SizedBox(
+                                         height: 96,
+                                         child: ListView.builder(
+                                           scrollDirection: Axis.horizontal,
+                                           itemCount:
+                                               _detectedSmsExpenses.length,
+                                           itemBuilder: (context, index) {
+                                             final item =
+                                                 _detectedSmsExpenses[index];
+                                             return SmsDetectedCard(
+                                               item: item,
+                                               currencyCode: user.currency,
+                                               isDark: isDark,
+                                               onSync: () =>
+                                                   _syncSmsExpense(item),
+                                               onDiscard: () =>
+                                                   _discardSmsExpense(item.id),
+                                             );
+                                           },
+                                         ),
+                                       ),
+                                       const SizedBox(height: 12),
+                                     ],
 
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          'Recent Transactions',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            showModalBottomSheet(
-                                              context: context,
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                              isScrollControlled: true,
-                                              barrierColor: Colors.black
-                                                  .withAlpha(80),
-                                              builder: (sheetContext) =>
-                                                  AllTransactionsSheet(
-                                                    transactions:
-                                                        transactionList,
-                                                    currencyCode: user.currency,
-                                                  ),
-                                            );
-                                          },
-                                          child: const Text(
-                                            'See All',
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                     Row(
+                                       mainAxisAlignment:
+                                           MainAxisAlignment.spaceBetween,
+                                       children: [
+                                         const Text(
+                                           'Recent Transactions',
+                                           style: TextStyle(
+                                             fontSize: 18,
+                                             fontWeight: FontWeight.bold,
+                                           ),
+                                         ),
+                                         GestureDetector(
+                                           onTap: () {
+                                             showModalBottomSheet(
+                                               context: context,
+                                               backgroundColor:
+                                                   Colors.transparent,
+                                               isScrollControlled: true,
+                                               barrierColor: Colors.black
+                                                   .withAlpha(80),
+                                               builder: (sheetContext) =>
+                                                   AllTransactionsSheet(
+                                                     transactions:
+                                                         transactionList,
+                                                     currencyCode: user.currency,
+                                                   ),
+                                             );
+                                           },
+                                           child: Container(
+                                             padding:
+                                                 const EdgeInsets.symmetric(
+                                               horizontal: 10,
+                                               vertical: 4,
+                                             ),
+                                             decoration: BoxDecoration(
+                                               color: theme.primaryColor,
+                                               borderRadius:
+                                                   BorderRadius.circular(12),
+                                               boxShadow: [
+                                                 BoxShadow(
+                                                   color: theme.primaryColor
+                                                       .withOpacity(0.3),
+                                                   blurRadius: 4,
+                                                   offset: const Offset(0, 2),
+                                                 ),
+                                               ],
+                                             ),
+                                             child: Text(
+                                               'See All',
+                                               style: TextStyle(
+                                                 fontSize: 11.5,
+                                                 fontWeight: FontWeight.bold,
+                                                 color: theme.primaryColor
+                                                             .computeLuminance() >
+                                                         0.45
+                                                     ? Colors.black87
+                                                     : Colors.white,
+                                               ),
+                                             ),
+                                           ),
+                                         ),
+                                       ],
+                                     ),
                                     const SizedBox(height: 6),
 
                                     if (transactionList.isEmpty)

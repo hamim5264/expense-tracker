@@ -155,19 +155,37 @@ class _BalanceCardState extends State<BalanceCard> {
           'incomeColor': const Color(0xFF4ADE80),
           'expensesColor': const Color(0xFFFF6B6B),
         };
-      case 'emerald':
+      case 'silver':
         return {
           'isGlass': false,
           'gradient': const LinearGradient(
-            colors: [Color(0xFF0F9B0F), Color(0xFF006400)],
+            colors: [Color(0xFFF8FAFC), Color(0xFFCBD5E1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          'textColor': Colors.white,
-          'labelColor': Colors.white.withOpacity(0.8),
-          'totalBalanceColor': balanceVal < 0 ? negativeColor : Colors.white,
-          'incomeColor': const Color(0xFF4ADE80),
-          'expensesColor': const Color(0xFFFF9E9E),
+          'textColor': const Color(0xFF0F172A),
+          'labelColor': const Color(0xFF475569),
+          'totalBalanceColor': balanceVal < 0
+              ? const Color(0xFFDC2626)
+              : const Color(0xFF0F172A),
+          'incomeColor': const Color(0xFF16A34A),
+          'expensesColor': const Color(0xFFDC2626),
+        };
+      case 'rose_gold':
+        return {
+          'isGlass': false,
+          'gradient': const LinearGradient(
+            colors: [Color(0xFFFFF1F2), Color(0xFFFECDD3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          'textColor': const Color(0xFF881337),
+          'labelColor': const Color(0xFF9F1239),
+          'totalBalanceColor': balanceVal < 0
+              ? const Color(0xFFE11D48)
+              : const Color(0xFF881337),
+          'incomeColor': const Color(0xFF15803D),
+          'expensesColor': const Color(0xFFE11D48),
         };
       case 'ocean':
         return {
@@ -289,13 +307,17 @@ class _BalanceCardState extends State<BalanceCard> {
                       Colors.white30,
                       Colors.white10,
                     ], true),
+                    _buildStyleOption('silver', 'Platinum', const [
+                      Color(0xFFF8FAFC),
+                      Color(0xFFCBD5E1),
+                    ], false),
+                    _buildStyleOption('rose_gold', 'Rose Gold', const [
+                      Color(0xFFFFF1F2),
+                      Color(0xFFFECDD3),
+                    ], false),
                     _buildStyleOption('golden', 'Golden', const [
                       Color(0xFFD4AF37),
                       Color(0xFF855B00),
-                    ], false),
-                    _buildStyleOption('emerald', 'Emerald', const [
-                      Color(0xFF0F9B0F),
-                      Color(0xFF006400),
                     ], false),
                     _buildStyleOption('ocean', 'Ocean', const [
                       Color(0xFF00B4DB),
@@ -394,14 +416,24 @@ class _BalanceCardState extends State<BalanceCard> {
   }
 
   List<Color> _getBackCardGradient(String style, int index) {
-    final stylesList = ['purple', 'golden', 'emerald', 'ocean', 'sunset', 'dark_obsidian'];
+    final stylesList = [
+      'purple',
+      'silver',
+      'rose_gold',
+      'golden',
+      'ocean',
+      'sunset',
+      'dark_obsidian'
+    ];
     String finalStyle = style;
     if (style == 'purple' || style == 'default') {
       finalStyle = stylesList[index % stylesList.length];
     }
     switch (finalStyle) {
-      case 'emerald':
-        return [const Color(0xFF0F9B0F), const Color(0xFF006400)];
+      case 'silver':
+        return [const Color(0xFFF8FAFC), const Color(0xFFCBD5E1)];
+      case 'rose_gold':
+        return [const Color(0xFFFFF1F2), const Color(0xFFFECDD3)];
       case 'ocean':
         return [const Color(0xFF00B4DB), const Color(0xFF0083B0)];
       case 'sunset':
@@ -423,6 +455,7 @@ class _BalanceCardState extends State<BalanceCard> {
     final last4 = cardNum.length > 4 ? cardNum.substring(cardNum.length - 4) : cardNum;
     
     final style = _cardStyles[wallet.id] ?? 'purple';
+    final isLightBackCard = style == 'silver' || style == 'rose_gold';
     final colors = _getBackCardGradient(style, index);
 
     Widget backCardBody = Container(
@@ -443,12 +476,23 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: CardTexturePainter(isLight: isLightBackCard),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Row(
               children: [
                 Container(
@@ -484,7 +528,9 @@ class _BalanceCardState extends State<BalanceCard> {
           ],
         ),
       ),
-    );
+    ],
+  ),
+);
 
     if (widget.onAddCardTap != null) {
       backCardBody = ClipPath(
@@ -533,6 +579,43 @@ class _BalanceCardState extends State<BalanceCard> {
 
     Widget cardBody;
 
+    final isLightCard =
+        _selectedStyle == 'silver' || _selectedStyle == 'rose_gold';
+
+    final textureOverlay = Positioned.fill(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: Size.infinite,
+              painter: CardTexturePainter(isLight: isLightCard),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isLightCard
+                      ? [
+                          Colors.black.withOpacity(0.04),
+                          Colors.black.withOpacity(0.01),
+                          Colors.transparent,
+                        ]
+                      : [
+                          Colors.white.withOpacity(0.14),
+                          Colors.white.withOpacity(0.02),
+                          Colors.transparent,
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0.0, 0.45, 1.0],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
     if (config['isGlass'] == true) {
       cardBody = ClipRRect(
         borderRadius: BorderRadius.circular(28),
@@ -555,9 +638,14 @@ class _BalanceCardState extends State<BalanceCard> {
             borderRadius: BorderRadius.circular(28),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-              child: Padding(
-                padding: const EdgeInsets.all(22),
-                child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
+              child: Stack(
+                children: [
+                  textureOverlay,
+                  Padding(
+                    padding: const EdgeInsets.all(22),
+                    child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
+                  ),
+                ],
               ),
             ),
           ),
@@ -569,6 +657,10 @@ class _BalanceCardState extends State<BalanceCard> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
           gradient: config['gradient'],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.15),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
@@ -577,9 +669,14 @@ class _BalanceCardState extends State<BalanceCard> {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
+        child: Stack(
+          children: [
+            textureOverlay,
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
+            ),
+          ],
         ),
       );
     }
@@ -589,6 +686,8 @@ class _BalanceCardState extends State<BalanceCard> {
         clipper: CardCutoutClipper(radius: 28),
         child: cardBody,
       );
+
+      final addCardTextColor = config['textColor'] as Color? ?? Colors.white;
 
       cardBody = Stack(
         children: [
@@ -624,13 +723,13 @@ class _BalanceCardState extends State<BalanceCard> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.add, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
+                  children: [
+                    Icon(Icons.add, color: addCardTextColor, size: 14),
+                    const SizedBox(width: 4),
                     Text(
                       'Add Card',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: addCardTextColor,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -967,4 +1066,52 @@ class CardCutoutClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class CardTexturePainter extends CustomPainter {
+  final bool isLight;
+  CardTexturePainter({this.isLight = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeColor = isLight
+        ? Colors.black.withOpacity(0.09)
+        : Colors.white.withOpacity(0.045);
+    final dotColor = isLight
+        ? Colors.black.withOpacity(0.07)
+        : Colors.white.withOpacity(0.035);
+
+    final wavePaint = Paint()
+      ..color = strokeColor
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    for (double i = -size.width * 0.5; i < size.width * 1.5; i += 28) {
+      path.moveTo(i, 0);
+      path.cubicTo(
+        i + size.width * 0.4,
+        size.height * 0.25,
+        i + size.width * 0.15,
+        size.height * 0.75,
+        i + size.width * 0.7,
+        size.height,
+      );
+    }
+    canvas.drawPath(path, wavePaint);
+
+    final dotPaint = Paint()
+      ..color = dotColor
+      ..style = PaintingStyle.fill;
+
+    for (double x = 14; x < size.width; x += 22) {
+      for (double y = 14; y < size.height; y += 22) {
+        canvas.drawCircle(Offset(x, y), 1.0, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CardTexturePainter oldDelegate) =>
+      oldDelegate.isLight != isLight;
 }

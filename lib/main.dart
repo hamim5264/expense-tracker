@@ -15,6 +15,16 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   await dotenv.load(fileName: ".env");
   await initDependencies();
   runApp(
@@ -40,7 +50,20 @@ class MyApp extends StatelessWidget {
       ]),
       builder: (context, _) {
         final primaryColor = ThemeService.primaryColorNotifier.value;
+        final isDark = ThemeService.themeModeNotifier.value == ThemeMode.dark;
+
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          ),
+        );
+
         return MaterialApp(
+          navigatorKey: AppRouter.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'Expense Tracker',
           theme: AppTheme.lightThemeMode(primaryColor),

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AvatarPickerSheet extends StatefulWidget {
@@ -19,15 +20,13 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
   bool isMaleSelected = true;
 
   final List<String> maleAvatars = List.generate(
-    10,
-    (index) =>
-        'https://api.dicebear.com/7.x/avataaars/png?seed=male_${index + 1}',
+    12,
+    (i) => 'https://api.dicebear.com/7.x/avataaars/png?seed=Onyx_Male_v2_$i',
   );
 
   final List<String> femaleAvatars = List.generate(
-    10,
-    (index) =>
-        'https://api.dicebear.com/7.x/avataaars/png?seed=female_${index + 1}',
+    12,
+    (i) => 'https://api.dicebear.com/7.x/avataaars/png?seed=Onyx_Female_v2_$i',
   );
 
   @override
@@ -36,17 +35,18 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
     final isDark = theme.brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
     final list = isMaleSelected ? maleAvatars : femaleAvatars;
+    final primaryColor = theme.primaryColor;
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.black.withAlpha(120)
-                : Colors.white.withAlpha(200),
+                ? Colors.black.withAlpha(140)
+                : Colors.white.withAlpha(220),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             border: Border.all(
               color: isDark
@@ -66,7 +66,7 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 'Choose your avatar',
                 style: TextStyle(
@@ -75,75 +75,102 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                   color: textColor,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onTap: () => setState(() => isMaleSelected = true),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
+                        horizontal: 28,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
                         color: isMaleSelected
-                            ? Theme.of(context).primaryColor
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
+                            ? primaryColor
+                            : (isDark ? Colors.white10 : Colors.grey.shade100),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: isMaleSelected
-                              ? Theme.of(context).primaryColor
-                              : (isDark ? Colors.white30 : Colors.black12),
+                              ? primaryColor
+                              : (isDark ? Colors.white24 : Colors.black12),
+                          width: 1.2,
                         ),
                       ),
-                      child: Text(
-                        'Male',
-                        style: TextStyle(
-                          color: isMaleSelected ? Colors.white : textColor,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.person_fill,
+                            size: 16,
+                            color: isMaleSelected ? Colors.white : textColor,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Male',
+                            style: TextStyle(
+                              color: isMaleSelected ? Colors.white : textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   GestureDetector(
                     onTap: () => setState(() => isMaleSelected = false),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
+                        horizontal: 28,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
                         color: !isMaleSelected
-                            ? Theme.of(context).primaryColor
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
+                            ? primaryColor
+                            : (isDark ? Colors.white10 : Colors.grey.shade100),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: !isMaleSelected
-                              ? Theme.of(context).primaryColor
-                              : (isDark ? Colors.white30 : Colors.black12),
+                              ? primaryColor
+                              : (isDark ? Colors.white24 : Colors.black12),
+                          width: 1.2,
                         ),
                       ),
-                      child: Text(
-                        'Female',
-                        style: TextStyle(
-                          color: !isMaleSelected ? Colors.white : textColor,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.person_fill,
+                            size: 16,
+                            color: !isMaleSelected ? Colors.white : textColor,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Female',
+                            style: TextStyle(
+                              color: !isMaleSelected ? Colors.white : textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
-                height: 180,
+                height: 220,
                 child: GridView.builder(
+                  physics: const BouncingScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
                   ),
                   itemCount: list.length,
                   itemBuilder: (context, index) {
@@ -151,25 +178,48 @@ class _AvatarPickerSheetState extends State<AvatarPickerSheet> {
                     final isSelected = widget.selectedAvatar == avatar;
                     return GestureDetector(
                       onTap: () => widget.onAvatarSelected(avatar),
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFFD1BCFF)
-                                : Colors.transparent,
+                            color: isSelected ? primaryColor : Colors.transparent,
                             width: 3,
                           ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: primaryColor.withOpacity(0.4),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: CircleAvatar(
-                          backgroundImage: NetworkImage(avatar),
+                          backgroundColor: isDark
+                              ? Colors.white12
+                              : Colors.grey.shade200,
+                          child: ClipOval(
+                            child: Image.network(
+                              avatar,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  CupertinoIcons.person_fill,
+                                  color: primaryColor,
+                                  size: 28,
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
             ],
           ),
         ),

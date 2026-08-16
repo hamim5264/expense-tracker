@@ -164,7 +164,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                           onSuccess: (_) =>
                                               AnimationHelper.showSuccess(
                                                 context,
-                                                'onyx Report saved successfully!',
+                                                'Report saved to Downloads & App Reports!',
                                               ),
                                           onFailed: (err) =>
                                               AnimationHelper.showFailed(

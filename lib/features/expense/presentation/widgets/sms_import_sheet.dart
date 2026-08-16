@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
+import 'package:expense_tracker/core/common/utils/sms_import_tracker.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
@@ -44,6 +45,12 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
   }
 
   Future<void> _loadAndParseSms() async {
+    List<Expense> existing = [];
+    final expenseState = context.read<ExpenseBloc>().state;
+    if (expenseState is ExpenseSuccess) {
+      existing = expenseState.expenses;
+    }
+
     setState(() => _isLoading = true);
     try {
       var status = await Permission.sms.status;
@@ -65,6 +72,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
       }
 
       final messages = await _query.querySms(kinds: [SmsQueryKind.inbox]);
+      if (!mounted) return;
 
       final List<Expense> allList = [];
       final amountRegex = RegExp(
@@ -75,17 +83,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
       for (var msg in messages) {
         final body = msg.body ?? '';
         final lowerBody = body.toLowerCase();
-        final idStr = msg.id.toString();
-
-        _smsBodies[idStr] = body;
-
-        final isTx =
-            lowerBody.contains('debited') ||
-            lowerBody.contains('spent') ||
-            lowerBody.contains('payment') ||
-            lowerBody.contains('charged') ||
-            lowerBody.contains('purchase') ||
-            lowerBody.contains('transaction');
+        final msgDate = msg.date ?? DateTime.now();
 
         double amount = 0.0;
         final match = amountRegex.firstMatch(body);
@@ -96,6 +94,44 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
             amount = double.tryParse(cleanedVal) ?? 0.0;
           }
         }
+
+        final fingerprint = SmsImportTracker.getFingerprint(
+          smsId: msg.id,
+          sender: msg.sender,
+          date: msgDate,
+          body: body,
+          amount: amount,
+        );
+
+        _smsBodies[fingerprint] = body;
+
+        // Skip if already marked as imported
+        if (SmsImportTracker.isImported(fingerprint)) {
+          continue;
+        }
+
+        // Check if already in active expenses
+        final isAlreadyInExpenses = existing.any((ext) {
+          final sameAmount = amount > 0 && (ext.amount - amount).abs() < 0.01;
+          final sameDay = ext.date.year == msgDate.year &&
+              ext.date.month == msgDate.month &&
+              ext.date.day == msgDate.day;
+          final closeTime = ext.date.difference(msgDate).inMinutes.abs() < 30;
+          return sameAmount && sameDay && closeTime;
+        });
+
+        if (isAlreadyInExpenses) {
+          await SmsImportTracker.markAsImported(fingerprint);
+          continue;
+        }
+
+        final isTx =
+            lowerBody.contains('debited') ||
+            lowerBody.contains('spent') ||
+            lowerBody.contains('payment') ||
+            lowerBody.contains('charged') ||
+            lowerBody.contains('purchase') ||
+            lowerBody.contains('transaction');
 
         String category = 'Others';
         if (lowerBody.contains('food') || lowerBody.contains('restaurant')) {
@@ -108,11 +144,11 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         if (merchant.length > 25) merchant = merchant.substring(0, 25);
 
         final exp = Expense(
-          id: idStr,
+          id: fingerprint,
           userId: widget.userId,
           title: merchant,
           amount: amount,
-          date: msg.date ?? DateTime.now(),
+          date: msgDate,
           type: 'expense',
           category: category,
         );
@@ -221,6 +257,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
         walletId: _selectedWalletId,
       );
       bloc.add(ExpenseAddTransaction(finalExpense));
+      SmsImportTracker.markAsImported(exp.id);
       count++;
     }
 
@@ -338,32 +375,41 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                   children: [
                     const Text(
                       'Import to Wallet: ',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        initialValue: _selectedWalletId,
-                        items: widget.wallets.map((wallet) {
-                          return DropdownMenuItem<String>(
-                            value: wallet.id,
-                            child: Text(
-                              wallet.name,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                      child: SizedBox(
+                        height: 38,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          isDense: true,
+                          initialValue: _selectedWalletId,
+                          items: widget.wallets.map((wallet) {
+                            return DropdownMenuItem<String>(
+                              value: wallet.id,
+                              child: Text(
+                                wallet.name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) =>
+                              setState(() => _selectedWalletId = val),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedWalletId = val),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
@@ -371,7 +417,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                   ],
                 ),
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -405,10 +451,10 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                         final amount = _manualAmounts[exp.id] ?? exp.amount;
 
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
+                          margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.white10 : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
                                   ? theme.primaryColor
@@ -419,6 +465,12 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                           child: Material(
                             color: Colors.transparent,
                             child: CheckboxListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 2,
+                              ),
                               value: isSelected,
                               activeColor: theme.primaryColor,
                               controlAffinity: ListTileControlAffinity.leading,
@@ -429,6 +481,7 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
                               subtitle: Column(
@@ -437,17 +490,18 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                                   Text(
                                     '${exp.category} • ${_formatDate(exp.date)}',
                                     style: const TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10.5,
                                       color: Colors.grey,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 4),
                                   Text(
                                     _smsBodies[exp.id] ?? '',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 10.5,
+                                      height: 1.3,
                                       color: isDark
                                           ? Colors.white70
                                           : Colors.black87,
@@ -459,8 +513,8 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                                 onTap: () => _showAmountDialog(exp),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
                                     color: amount > 0
@@ -480,13 +534,13 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                                           color: amount > 0
                                               ? Colors.redAccent
                                               : Colors.grey,
-                                          fontSize: 14,
+                                          fontSize: 12,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
+                                      const SizedBox(width: 3),
                                       const Icon(
                                         Icons.edit_rounded,
-                                        size: 14,
+                                        size: 12,
                                         color: Colors.grey,
                                       ),
                                     ],

@@ -37,6 +37,8 @@ import 'package:expense_tracker/core/common/utils/sound_service.dart';
 import 'package:expense_tracker/core/common/utils/theme_service.dart';
 
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:expense_tracker/core/common/utils/sms_import_tracker.dart';
+import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
 
 final serviceLocator = GetIt.instance;
 
@@ -45,6 +47,8 @@ Future<void> initDependencies() async {
   await SoundService.init();
   await ThemeService.init();
   await NotificationService().init();
+  await SmsImportTracker.init();
+  await ReportStorageService.init();
 
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,

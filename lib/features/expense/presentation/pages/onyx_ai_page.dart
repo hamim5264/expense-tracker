@@ -28,7 +28,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
   late Animation<double> _speechFade;
 
   Timer? _speechTimer;
-  int _greetingIndex = 0;
+  final ValueNotifier<int> _greetingIndexNotifier = ValueNotifier<int>(0);
 
   final List<String> _botGreetings = [
     'Hey there!',
@@ -39,6 +39,28 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     'Let\'s check your goals',
     'Looking good today',
   ];
+
+  List<Expense>? _cachedExpensesRef;
+  List<Wallet>? _cachedWalletsRef;
+  List<AiInsight>? _cachedInsights;
+
+  List<AiInsight> _getOrComputeInsights(
+    List<Expense> expenses,
+    List<Wallet> wallets,
+  ) {
+    if (_cachedInsights != null &&
+        identical(_cachedExpensesRef, expenses) &&
+        identical(_cachedWalletsRef, wallets)) {
+      return _cachedInsights!;
+    }
+    _cachedExpensesRef = expenses;
+    _cachedWalletsRef = wallets;
+    _cachedInsights = OnyxAiEngine.analyze(
+      expenses: expenses,
+      wallets: wallets,
+    );
+    return _cachedInsights!;
+  }
 
   @override
   void initState() {
@@ -75,9 +97,8 @@ class _OnyxAiPageState extends State<OnyxAiPage>
 
   void _triggerSpeech() async {
     if (!mounted) return;
-    setState(() {
-      _greetingIndex = (_greetingIndex + 1) % _botGreetings.length;
-    });
+    _greetingIndexNotifier.value =
+        (_greetingIndexNotifier.value + 1) % _botGreetings.length;
     _speechController.forward();
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
@@ -90,6 +111,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     _speechTimer?.cancel();
     _pulseController.dispose();
     _speechController.dispose();
+    _greetingIndexNotifier.dispose();
     super.dispose();
   }
 
@@ -122,6 +144,12 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.primaryColor;
+
+    final glowAccentColor = HSLColor.fromColor(primaryColor)
+        .withLightness(
+          (HSLColor.fromColor(primaryColor).lightness + 0.15).clamp(0.0, 0.95),
+        )
+        .toColor();
 
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF9F9FB);
     final cardBg = isDark ? const Color(0xFF1E1E2C) : Colors.white;
@@ -167,7 +195,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                       const Expanded(
                         child: Center(
                           child: Text(
-                            'Onyx AI Assistant 2.5',
+                            'Onyx Apex AI (Stable)',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -190,10 +218,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                       final wallets = state is ExpenseSuccess
                           ? state.wallets
                           : <Wallet>[];
-                      final insights = OnyxAiEngine.analyze(
-                        expenses: expenses,
-                        wallets: wallets,
-                      );
+                      final insights = _getOrComputeInsights(expenses, wallets);
 
                       return ListView(
                         physics: const BouncingScrollPhysics(),
@@ -205,55 +230,57 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                           const SizedBox(height: 10),
                           Center(
                             child: SizedBox(
-                              width: 220,
-                              height: 190,
+                              width: 200,
+                              height: 170,
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  AnimatedBuilder(
-                                    animation: _pulseController,
-                                    builder: (context, child) {
-                                      return Container(
-                                        width: 170,
-                                        height: 170,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: primaryColor.withOpacity(
-                                                0.55 + 0.35 * _pulseController.value,
+                                  RepaintBoundary(
+                                    child: AnimatedBuilder(
+                                      animation: _pulseController,
+                                      builder: (context, child) {
+                                        return Container(
+                                          width: 150,
+                                          height: 150,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: primaryColor.withOpacity(
+                                                  0.28 + 0.15 * _pulseController.value,
+                                                ),
+                                                blurRadius: 28,
+                                                spreadRadius:
+                                                    5 + 4 * _pulseController.value,
                                               ),
-                                              blurRadius: 45,
-                                              spreadRadius:
-                                                  12 + 10 * _pulseController.value,
-                                            ),
-                                            BoxShadow(
-                                              color: const Color(0xFF8B5CF6).withOpacity(
-                                                0.4 + 0.3 * _pulseController.value,
+                                              BoxShadow(
+                                                color: glowAccentColor.withOpacity(
+                                                  0.22 + 0.12 * _pulseController.value,
+                                                ),
+                                                blurRadius: 16,
+                                                spreadRadius: 3,
                                               ),
-                                              blurRadius: 25,
-                                              spreadRadius: 6,
-                                            ),
-                                          ],
-                                        ),
-                                        child: child,
-                                      );
-                                    },
-                                    child: Lottie.asset(
-                                      'assets/animations/onyx_ai.json',
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return CircleAvatar(
-                                          backgroundColor: primaryColor
-                                              .withOpacity(0.1),
-                                          child: Icon(
-                                            CupertinoIcons.sparkles,
-                                            size: 72,
-                                            color: primaryColor,
+                                            ],
                                           ),
+                                          child: child,
                                         );
                                       },
+                                      child: Lottie.asset(
+                                        'assets/animations/onyx_ai.json',
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return CircleAvatar(
+                                            backgroundColor: primaryColor
+                                                .withOpacity(0.1),
+                                            child: Icon(
+                                              CupertinoIcons.sparkles,
+                                              size: 64,
+                                              color: primaryColor,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                   Positioned(
@@ -322,15 +349,20 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                                 ),
                                               ],
                                             ),
-                                            child: Text(
-                                              _botGreetings[_greetingIndex],
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                              ),
+                                            child: ValueListenableBuilder<int>(
+                                              valueListenable: _greetingIndexNotifier,
+                                              builder: (context, greetingIdx, _) {
+                                                return Text(
+                                                  _botGreetings[greetingIdx],
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : Colors.black87,
+                                                  ),
+                                                );
+                                              },
                                             ),
                                           ),
                                         ),
@@ -341,12 +373,12 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                               ),
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 18),
                           Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 6,
+                                horizontal: 14,
+                                vertical: 5,
                               ),
                               decoration: BoxDecoration(
                                 color: primaryColor.withOpacity(0.15),
@@ -360,17 +392,17 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                 children: [
                                   Icon(
                                     CupertinoIcons.sparkles,
-                                    size: 14,
+                                    size: 13,
                                     color: primaryColor,
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 5),
                                   Text(
-                                    'AI ENGINE 2.5',
+                                    'ONYX APEX STABLE',
                                     style: TextStyle(
                                       color: primaryColor,
-                                      fontSize: 11,
+                                      fontSize: 10.5,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
+                                      letterSpacing: 1.1,
                                     ),
                                   ),
                                 ],
@@ -391,15 +423,17 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                           ...insights.asMap().entries.map((entry) {
                             final idx = entry.key;
                             final insight = entry.value;
-                            return AnimatedInsightCard(
-                              insight: insight,
-                              index: idx,
-                              cardBg: cardBg,
-                              textColor: textColor,
-                              isDark: isDark,
-                              getInsightColor: (type) =>
-                                  _getInsightColor(type, context),
-                              getInsightIcon: _getInsightIcon,
+                            return RepaintBoundary(
+                              child: AnimatedInsightCard(
+                                insight: insight,
+                                index: idx,
+                                cardBg: cardBg,
+                                textColor: textColor,
+                                isDark: isDark,
+                                getInsightColor: (type) =>
+                                    _getInsightColor(type, context),
+                                getInsightIcon: _getInsightIcon,
+                              ),
                             );
                           }),
                           const SizedBox(height: 32),
@@ -495,9 +529,9 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
           gradient: widget.isDark
               ? LinearGradient(
                   colors: [
@@ -516,42 +550,42 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
                   end: Alignment.bottomRight,
                 ),
           border: Border.all(
-            color: color.withOpacity(widget.isDark ? 0.4 : 0.25),
+            color: color.withOpacity(widget.isDark ? 0.35 : 0.2),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(widget.isDark ? 0.25 : 0.05),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(icon, color: color, size: 20),
+                        child: Icon(icon, color: color, size: 17),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           widget.insight.title,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.1,
                             color: widget.textColor,
@@ -560,23 +594,23 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 9),
                   Text(
                     widget.insight.message,
                     style: TextStyle(
-                      fontSize: 13,
-                      height: 1.45,
+                      fontSize: 12,
+                      height: 1.4,
                       color: widget.isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: widget.isDark
                           ? Colors.white.withOpacity(0.05)
                           : Colors.amber.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.amber.shade700.withOpacity(0.2),
                         width: 1,
@@ -588,15 +622,15 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
                         Icon(
                           CupertinoIcons.lightbulb_fill,
                           color: Colors.amber.shade600,
-                          size: 16,
+                          size: 14,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 7),
                         Expanded(
                           child: Text(
                             widget.insight.recommendation,
                             style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
+                              fontSize: 11.5,
+                              height: 1.35,
                               fontWeight: FontWeight.w500,
                               color: widget.isDark
                                   ? Colors.white70

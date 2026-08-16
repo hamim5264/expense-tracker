@@ -41,6 +41,16 @@ class GlassColorSelector extends StatelessWidget {
         'subtitle': 'Bold, energetic, and warm',
       },
       {
+        'color': const Color(0xFFEC4899),
+        'title': 'Rose Quartz',
+        'subtitle': 'Vibrant pink, soft, and modern',
+      },
+      {
+        'color': const Color(0xFF06B6D4),
+        'title': 'Sky Cyan',
+        'subtitle': 'Fresh cyan, serene, and energetic',
+      },
+      {
         'color': const Color(0xFF232526),
         'title': 'Obsidian Dark',
         'subtitle': 'Minimalist, sleek, and tech',

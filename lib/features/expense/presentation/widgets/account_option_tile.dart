@@ -4,6 +4,7 @@ class AccountOptionTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final Color? iconColor;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -12,6 +13,7 @@ class AccountOptionTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.iconColor,
     required this.isSelected,
     required this.onTap,
   });
@@ -21,6 +23,13 @@ class AccountOptionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.primaryColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    final rawIconColor = iconColor ?? primaryColor;
+    final isDarkIcon = rawIconColor.computeLuminance() < 0.25;
+    final effectiveIconColor = (isDark && isDarkIcon)
+        ? Colors.purpleAccent.shade100
+        : rawIconColor;
 
     return GestureDetector(
       onTap: onTap,
@@ -28,23 +37,36 @@ class AccountOptionTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? primaryColor.withAlpha(20)
-              : (isDark ? Colors.white10 : Colors.white),
+              ? primaryColor.withAlpha(25)
+              : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? primaryColor : Colors.grey.shade300,
+            color: isSelected
+                ? primaryColor
+                : (isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade300),
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.grey.shade100,
+                color: effectiveIconColor.withOpacity(0.15),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: effectiveIconColor.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
-              child: Icon(icon, color: primaryColor, size: 28),
+              child: Icon(icon, color: effectiveIconColor, size: 26),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -53,21 +75,31 @@ class AccountOptionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: primaryColor, size: 24),
+              Icon(
+                Icons.check_circle_rounded,
+                color: primaryColor.computeLuminance() < 0.25
+                    ? Colors.purpleAccent.shade100
+                    : primaryColor,
+                size: 24,
+              ),
           ],
         ),
       ),

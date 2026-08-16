@@ -72,6 +72,32 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
+    await sanitizeDuplicates();
+  }
+
+  Future<void> sanitizeDuplicates() async {
+    if (_box == null) return;
+    final seenKeys = <String>{};
+    final keysToRemove = <dynamic>[];
+
+    for (final key in _box!.keys) {
+      final raw = _box!.get(key);
+      if (raw != null) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        final notification = AppNotification.fromJson(map);
+        final uniqueKey = '${notification.title}_${notification.message}';
+        if (seenKeys.contains(uniqueKey)) {
+          keysToRemove.add(key);
+        } else {
+          seenKeys.add(uniqueKey);
+        }
+      }
+    }
+
+    if (keysToRemove.isNotEmpty) {
+      await _box!.deleteAll(keysToRemove);
+      notifyListeners();
+    }
   }
 
   List<AppNotification> get notifications {
@@ -96,6 +122,12 @@ class NotificationService extends ChangeNotifier {
     required String type,
   }) async {
     if (_box == null) await init();
+
+    final isDuplicate = notifications.any(
+      (n) => n.title == title && n.message == message,
+    );
+    if (isDuplicate) return;
+
     final notification = AppNotification(
       id: const Uuid().v4(),
       title: title,

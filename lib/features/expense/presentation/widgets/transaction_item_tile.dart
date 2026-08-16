@@ -151,29 +151,36 @@ class TransactionItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.type == 'income';
     final iconPath = _getCategoryIcon(transaction.category, transaction.title);
+    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.white,
+        color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.05),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(5),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            padding: const EdgeInsets.all(8),
+            width: 40,
+            height: 40,
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white24 : Colors.grey.shade100,
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
               shape: BoxShape.circle,
             ),
             child: Image.asset(
@@ -183,51 +190,61 @@ class TransactionItemTile extends StatelessWidget {
                 return Icon(
                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                   color: isIncome ? Colors.green : Colors.red,
+                  size: 20,
                 );
               },
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   transaction.title,
-                  style: const TextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14,
+                    color: textColor,
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
                 Text(
+                  '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark ? Colors.white60 : Colors.grey.shade600,
+                    fontSize: 10.5,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
                   _formatTime(transaction.date),
                   style: TextStyle(
-                    color: Colors.grey.withOpacity(0.85),
-                    fontSize: 11,
+                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                    fontSize: 10,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
               color: isIncome
-                  ? const Color(0xFF22C55E).withOpacity(0.1)
-                  : const Color(0xFFEF4444).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+                  ? const Color(0xFF22C55E).withOpacity(0.12)
+                  : const Color(0xFFEF4444).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isIncome
                     ? const Color(0xFF22C55E).withOpacity(0.8)
                     : const Color(0xFFEF4444).withOpacity(0.8),
-                width: 1.5,
+                width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
@@ -247,7 +264,7 @@ class TransactionItemTile extends StatelessWidget {
                     ? const Color(0xFF22C55E)
                     : const Color(0xFFEF4444),
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: 11.5,
               ),
             ),
           ),

@@ -5,9 +5,13 @@ import 'package:expense_tracker/features/auth/presentation/pages/splash_page.dar
 import 'package:expense_tracker/features/expense/presentation/pages/home_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/notifications_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/onyx_ai_page.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/expense_reports_page.dart';
 import 'package:flutter/material.dart';
 
 class AppRouter {
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   static const String splash = '/';
   static const String login = '/login';
   static const String signup = '/signup';
@@ -15,6 +19,7 @@ class AppRouter {
   static const String home = '/home';
   static const String notifications = '/notifications';
   static const String onyxAi = '/onyx-ai';
+  static const String expenseReports = '/expense-reports';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final routeName = settings.name ?? '';
@@ -44,6 +49,8 @@ class AppRouter {
         return NotificationsPage.route();
       case onyxAi:
         return OnyxAiPage.route();
+      case expenseReports:
+        return ExpenseReportsPage.route();
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

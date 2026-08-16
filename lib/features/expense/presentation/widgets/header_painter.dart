@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:expense_tracker/core/common/utils/theme_service.dart';
 
 class HeaderPainter extends CustomPainter {
-  final Color color;
+  final Color? color;
 
-  HeaderPainter({this.color = const Color(0xFF4F378A)});
+  HeaderPainter({this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final effectiveColor = color ?? ThemeService.primaryColorNotifier.value;
     Paint paint = Paint()
-      ..color = color
+      ..color = effectiveColor
       ..style = PaintingStyle.fill;
 
     Path path = Path();

@@ -103,16 +103,16 @@ class ProfileHeaderSection extends StatelessWidget {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundColor: user.avatarUrl == null
-                              ? const Color(0xFF4F378A).withAlpha(60)
+                              ? theme.primaryColor.withAlpha(60)
                               : Colors.white,
                           backgroundImage: user.avatarUrl != null
                               ? NetworkImage(user.avatarUrl!)
                               : null,
                           child: user.avatarUrl == null
-                              ? const Icon(
-                                  Icons.person,
+                              ? Icon(
+                                  CupertinoIcons.person_fill,
                                   size: 50,
-                                  color: Color(0xFFD1BCFF),
+                                  color: theme.primaryColor,
                                 )
                               : null,
                         ),
@@ -121,14 +121,15 @@ class ProfileHeaderSection extends StatelessWidget {
                         bottom: 0,
                         right: 0,
                         child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF4F378A),
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: const Icon(
-                            Icons.camera_alt,
-                            size: 16,
+                            CupertinoIcons.camera_fill,
+                            size: 14,
                             color: Colors.white,
                           ),
                         ),

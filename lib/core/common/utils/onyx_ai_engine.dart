@@ -248,18 +248,21 @@ class OnyxAiEngine {
 
     for (final insight in insights) {
       if (insight.type == 'warning') {
+        final expectedTitle = 'AI Alert: ${insight.title}';
         final exists = currentNotifications.any(
           (n) =>
-              n.title == insight.title &&
-              DateTime.now().difference(n.timestamp).inHours < 1,
+              (n.title == expectedTitle || n.title == insight.title) &&
+              n.message == insight.message,
         );
 
         if (!exists) {
-          notificationsService.addNotification(
-            title: 'AI Alert: ${insight.title}',
-            message: insight.message,
-            type: 'warning',
-          );
+          Future.microtask(() {
+            notificationsService.addNotification(
+              title: expectedTitle,
+              message: insight.message,
+              type: 'warning',
+            );
+          });
         }
       }
     }

@@ -403,7 +403,7 @@ class _ReportIssuePageState extends State<ReportIssuePage>
             decoration: InputDecoration(
               hintText: 'e.g. App crashes on wallet page',
               hintStyle: TextStyle(
-                color: isDark ? Colors.white38 : Colors.grey.shade500,
+                color: isDark ? Colors.white60 : Colors.black45,
                 fontSize: 13,
               ),
               prefixIcon: Icon(
@@ -469,7 +469,7 @@ class _ReportIssuePageState extends State<ReportIssuePage>
               hintText:
                   'Describe the issue or share your feedback in detail...',
               hintStyle: TextStyle(
-                color: isDark ? Colors.white38 : Colors.grey.shade500,
+                color: isDark ? Colors.white60 : Colors.black45,
                 fontSize: 13,
               ),
               filled: true,

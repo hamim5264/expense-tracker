@@ -494,7 +494,10 @@ class _WalletPageState extends State<WalletPage> {
       totalAmount: totalBalance,
       onSuccess: (_) {
         if (!mounted) return;
-        AnimationHelper.showSuccess(context, 'onyx Report saved to Downloads!');
+        AnimationHelper.showSuccess(
+          context,
+          'Report saved to Downloads & App Reports!',
+        );
       },
       onFailed: (err) {
         if (!mounted) return;

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_event.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
@@ -20,6 +21,7 @@ import 'package:expense_tracker/core/common/utils/theme_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_currency_selector.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sms_import_sheet.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/expense_reports_page.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:flutter/material.dart';
@@ -90,6 +92,21 @@ class _ProfilePageState extends State<ProfilePage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildSectionHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 14, right: 14, top: 22, bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+          color: isDark ? Colors.white54 : Colors.grey.shade600,
+        ),
+      ),
     );
   }
 
@@ -175,7 +192,15 @@ class _ProfilePageState extends State<ProfilePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
-    final iconColor = theme.primaryColor;
+    final rawPrimary = theme.primaryColor;
+    final isDarkPrimary = rawPrimary.computeLuminance() < 0.25;
+
+    final iconColor = (isDark && isDarkPrimary)
+        ? Colors.purpleAccent.shade100
+        : rawPrimary;
+    final switchActiveColor = (isDark && isDarkPrimary)
+        ? Colors.purpleAccent.shade100
+        : rawPrimary;
     final dividerColor = isDark ? Colors.white12 : Colors.black12;
 
     return Scaffold(
@@ -210,13 +235,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
+                      _buildSectionHeader('COMMUNITY & REWARDS', isDark),
                       ProfileOptionTile(
-                        icon: Icons.diamond_rounded,
+                        icon: CupertinoIcons.sparkles,
                         title: 'Invite Friends',
+                        subtitle: 'Share Onyx with friends & family',
                         iconColor: Colors.teal.shade400,
                         showBackgroundBox: true,
-                        isCircle: true,
-                        showTrailingArrow: false,
+                        showTrailingArrow: true,
                         onTap: () {
                           showModalBottomSheet(
                             context: context,
@@ -226,14 +252,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           );
                         },
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: dividerColor),
-                      ),
+
+                      _buildSectionHeader('ACCOUNT & SECURITY', isDark),
                       ProfileOptionTile(
-                        icon: Icons.person_outline_rounded,
+                        icon: CupertinoIcons.person_crop_circle,
                         title: 'Account Info',
-                        subtitle: 'Manage your profile details',
+                        subtitle: 'Manage profile details',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -246,9 +270,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.security_outlined,
+                        icon: CupertinoIcons.lock_shield,
                         title: 'Login and Security',
-                        subtitle: 'Password and security options',
+                        subtitle: 'Password & security options',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -261,9 +285,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.lock_outline_rounded,
+                        icon: CupertinoIcons.shield_fill,
                         title: 'Data and Privacy',
-                        subtitle: 'Manage your data preferences',
+                        subtitle: 'Data & privacy preferences',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -271,12 +295,23 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(context, DataPrivacyPage.route());
                         },
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: dividerColor),
-                      ),
+
+                      _buildSectionHeader('REPORTS & STATEMENTS', isDark),
                       ProfileOptionTile(
-                        icon: Icons.monetization_on_outlined,
+                        icon: CupertinoIcons.doc_text_fill,
+                        title: 'Expense Reports',
+                        subtitle: 'View & open PDF statements',
+                        iconColor: Colors.redAccent,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          Navigator.push(context, ExpenseReportsPage.route());
+                        },
+                      ),
+
+                      _buildSectionHeader('PREFERENCES & APPEARANCE', isDark),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.money_dollar_circle,
                         title: 'Preferred Currency',
                         subtitle: user.currency,
                         iconColor: Colors.amber.shade700,
@@ -314,7 +349,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         valueListenable: ThemeService.themeModeNotifier,
                         builder: (context, currentMode, _) {
                           return ProfileOptionTile(
-                            icon: Icons.palette_outlined,
+                            icon: CupertinoIcons.paintbrush,
                             title: 'Theme Mode',
                             subtitle: _getThemeModeName(currentMode),
                             iconColor: Colors.blue.shade700,
@@ -332,7 +367,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         valueListenable: ThemeService.primaryColorNotifier,
                         builder: (context, primaryColor, _) {
                           return ProfileOptionTile(
-                            icon: Icons.color_lens_outlined,
+                            icon: CupertinoIcons.color_filter,
                             title: 'Theme Color',
                             subtitle: _getColorName(primaryColor),
                             iconColor: primaryColor,
@@ -342,20 +377,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           );
                         },
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: dividerColor),
-                      ),
+
+                      _buildSectionHeader('DATA INTEGRATION & SYNC', isDark),
                       ProfileOptionTile(
-                        icon: Icons.sms_outlined,
+                        icon: CupertinoIcons.chat_bubble_text,
                         title: 'SMS Expense Sync',
-                        subtitle: 'Scan inbox to auto-detect expenses',
+                        subtitle: 'Auto-detect SMS expenses',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         trailing: Switch(
                           value: user.smsSyncEnabled,
-                          activeThumbColor: iconColor,
-                          activeTrackColor: iconColor.withAlpha(120),
+                          activeThumbColor: isDark ? Colors.white : switchActiveColor,
+                          activeTrackColor: switchActiveColor.withOpacity(0.55),
                           onChanged: (bool value) =>
                               _toggleSmsSync(context, user, value),
                         ),
@@ -368,9 +401,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: Divider(height: 1, color: dividerColor),
                         ),
                         ProfileOptionTile(
-                          icon: Icons.download_rounded,
+                          icon: CupertinoIcons.arrow_down_doc,
                           title: 'Import SMS Transactions',
-                          subtitle: 'Manually import detected transactions',
+                          subtitle: 'Import detected transactions',
                           iconColor: iconColor,
                           showBackgroundBox: true,
                           showTrailingArrow: true,
@@ -395,20 +428,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           },
                         ),
                       ],
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Divider(height: 1, color: dividerColor),
-                      ),
+
+                      _buildSectionHeader('AUDIO & HAPTICS', isDark),
                       ProfileOptionTile(
-                        icon: Icons.volume_up_outlined,
+                        icon: CupertinoIcons.speaker_2,
                         title: 'Sound Effects',
-                        subtitle: 'Play sounds on app operations',
+                        subtitle: 'Play operational sound effects',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         trailing: Switch(
                           value: SoundService.soundEnabled,
-                          activeThumbColor: iconColor,
-                          activeTrackColor: iconColor.withAlpha(120),
+                          activeThumbColor: isDark ? Colors.white : switchActiveColor,
+                          activeTrackColor: switchActiveColor.withOpacity(0.55),
                           onChanged: (bool value) {
                             setState(() {
                               SoundService.setSoundEnabled(value);
@@ -428,15 +459,15 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.vibration_outlined,
+                        icon: CupertinoIcons.waveform_circle,
                         title: 'Haptic Vibration',
-                        subtitle: 'Vibrate device on actions',
+                        subtitle: 'Vibrate device on touch actions',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         trailing: Switch(
                           value: SoundService.vibrateEnabled,
-                          activeThumbColor: iconColor,
-                          activeTrackColor: iconColor.withAlpha(120),
+                          activeThumbColor: isDark ? Colors.white : switchActiveColor,
+                          activeTrackColor: switchActiveColor.withOpacity(0.55),
                           onChanged: (bool value) {
                             setState(() {
                               SoundService.setVibrateEnabled(value);
@@ -451,27 +482,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           });
                         },
                       ),
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Text(
-                          'Support & Legal',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? Colors.white60
-                                : Colors.grey.shade600,
-                          ),
-                        ),
-                      ),
+
+                      _buildSectionHeader('SUPPORT & LEGAL', isDark),
                       ProfileOptionTile(
-                        icon: Icons.privacy_tip_outlined,
+                        icon: CupertinoIcons.doc_plaintext,
                         title: 'Privacy Policy',
-                        subtitle: 'Read our privacy policy & data usage rules',
+                        subtitle: 'Privacy policy & data usage rules',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -484,9 +500,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.delete_forever_outlined,
+                        icon: CupertinoIcons.trash,
                         title: 'Data Deletion Instructions',
-                        subtitle: 'Learn how to request data removal',
+                        subtitle: 'Account & data removal guide',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -499,9 +515,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.support_agent_outlined,
+                        icon: CupertinoIcons.headphones,
                         title: 'Contact Support',
-                        subtitle: 'Get support or submit manual requests',
+                        subtitle: 'Get support & submit requests',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -514,9 +530,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Divider(height: 1, color: dividerColor),
                       ),
                       ProfileOptionTile(
-                        icon: Icons.bug_report_outlined,
+                        icon: CupertinoIcons.ant,
                         title: 'Report Issue or Feedback',
-                        subtitle: 'Help us improve by sharing your thoughts',
+                        subtitle: 'Share feedback or report bugs',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
@@ -524,9 +540,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(context, ReportIssuePage.route());
                         },
                       ),
-                      const SizedBox(height: 20),
+
+                      const SizedBox(height: 24),
                       ProfileOptionTile(
-                        icon: Icons.logout_rounded,
+                        icon: CupertinoIcons.square_arrow_right,
                         title: 'Logout',
                         isDestructive: true,
                         showBackgroundBox: true,

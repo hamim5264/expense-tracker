@@ -1,13 +1,9 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
-
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
+import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
 
 class PdfReportService {
   static Future<void> generateAndSaveReport({
@@ -423,25 +419,17 @@ class PdfReportService {
     );
 
     try {
-      String? selectedPath;
-      try {
-        selectedPath = await FilePicker.platform.getDirectoryPath();
-      } catch (e) {
-        debugPrint('FilePicker error: $e');
-      }
-
-      final String folderPath =
-          selectedPath ?? (await getApplicationDocumentsDirectory()).path;
-      final filePath =
-          "$folderPath/onyx_Report_${period}_${DateTime.now().millisecondsSinceEpoch}.pdf";
-      final file = File(filePath);
-      await file.writeAsBytes(await pdf.save());
+      final pdfBytes = await pdf.save();
+      final savedReport = await ReportStorageService.savePdfReport(
+        period: period,
+        pdfBytes: pdfBytes,
+      );
 
       if (onSuccess != null) {
-        onSuccess(filePath);
+        onSuccess(savedReport.filePath);
       } else {
         Fluttertoast.showToast(
-          msg: "PDF saved successfully!\n$filePath",
+          msg: "Report saved to Downloads folder & App Reports!",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
         );

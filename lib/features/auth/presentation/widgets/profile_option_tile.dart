@@ -32,12 +32,18 @@ class ProfileOptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final color = isDestructive
-        ? Colors.red
+
+    Color effectiveIconColor = isDestructive
+        ? Colors.redAccent
         : (iconColor ?? (isDark ? Colors.white70 : Colors.black54));
+
+    if (!isDestructive && isDark && effectiveIconColor.computeLuminance() < 0.25) {
+      effectiveIconColor = Colors.purpleAccent.shade100;
+    }
+
     final defaultTextColor = isDark ? Colors.white : Colors.black87;
     final actualTextColor = isDestructive
-        ? Colors.red
+        ? Colors.redAccent
         : (textColor ?? defaultTextColor);
 
     return Material(
@@ -49,26 +55,36 @@ class ProfileOptionTile extends StatelessWidget {
           height: 42,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: showBackgroundBox ? color.withAlpha(20) : Colors.transparent,
+            color: showBackgroundBox
+                ? effectiveIconColor.withOpacity(isDark ? 0.22 : 0.12)
+                : Colors.transparent,
             shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
             borderRadius: isCircle ? null : BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: color, size: showBackgroundBox ? 20 : 24),
+          child: Icon(
+            icon,
+            color: effectiveIconColor,
+            size: showBackgroundBox ? 20 : 24,
+          ),
         ),
         title: Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontSize: 14.5,
             color: actualTextColor,
           ),
         ),
         subtitle: subtitle != null
             ? Text(
                 subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  fontSize: 11.5,
+                  color: isDark ? Colors.white70 : Colors.grey.shade600,
                 ),
               )
             : null,

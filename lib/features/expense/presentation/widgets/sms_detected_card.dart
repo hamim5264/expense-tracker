@@ -20,24 +20,38 @@ class SmsDetectedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color(0xFF4F378A);
+    final theme = Theme.of(context);
+    final rawPrimary = theme.primaryColor;
+    final isDarkPrimary = rawPrimary.computeLuminance() < 0.25;
+    final effectivePrimary = (isDark && isDarkPrimary)
+        ? Colors.purpleAccent.shade100
+        : rawPrimary;
+
+    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(
-      width: 260,
-      margin: const EdgeInsets.only(right: 16, bottom: 4),
-      padding: const EdgeInsets.all(12),
+      width: 245,
+      margin: const EdgeInsets.only(right: 12, bottom: 2, top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.white,
+        color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.06),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -46,13 +60,15 @@ class SmsDetectedCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   item.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
+                    color: textColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 6),
               Text(
                 CurrencyService.format(item.amount, currencyCode),
                 style: const TextStyle(
@@ -63,38 +79,70 @@ class SmsDetectedCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Category: ${item.category}',
-            style: const TextStyle(color: Colors.grey, fontSize: 11),
-          ),
-          const Spacer(),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(50, 24),
-                ),
-                onPressed: onDiscard,
-                child: const Text(
-                  'Discard',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+              Expanded(
+                child: Text(
+                  'Category: ${item.category}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark ? Colors.white54 : Colors.grey.shade600,
+                    fontSize: 11,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(60, 28),
-                ),
-                onPressed: onSync,
-                child: const Text(
-                  'Sync',
-                  style: TextStyle(color: Colors.white, fontSize: 11),
-                ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: onDiscard,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        'Discard',
+                        style: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey.shade500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: onSync,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: effectivePrimary,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: effectivePrimary.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'Sync',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
