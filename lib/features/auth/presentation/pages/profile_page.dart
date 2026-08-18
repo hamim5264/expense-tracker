@@ -18,7 +18,6 @@ import 'package:expense_tracker/features/auth/presentation/widgets/invite_friend
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_theme_selector.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_color_selector.dart';
 import 'package:expense_tracker/core/common/utils/theme_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_currency_selector.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sms_import_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/expense_reports_page.dart';
@@ -108,55 +107,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
-  }
-
-  Future<void> _toggleSmsSync(
-    BuildContext context,
-    dynamic user,
-    bool value,
-  ) async {
-    if (value) {
-      final status = await Permission.sms.request();
-      if (status.isGranted) {
-        if (context.mounted) {
-          context.read<AuthBloc>().add(
-            AuthUpdateUserProfile(
-              name: user.name,
-              username: user.username,
-              avatarUrl: user.avatarUrl,
-              currency: user.currency,
-              smsSyncEnabled: true,
-            ),
-          );
-
-          final expenseState = context.read<ExpenseBloc>().state;
-          List<Wallet> wallets = [];
-          if (expenseState is ExpenseSuccess) {
-            wallets = expenseState.wallets;
-          }
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            isScrollControlled: true,
-            barrierColor: Colors.black.withAlpha(80),
-            builder: (sheetContext) =>
-                SmsImportSheet(userId: user.id, wallets: wallets),
-          );
-        }
-      } else {
-        showToast('SMS Permission denied!', isError: true);
-      }
-    } else {
-      context.read<AuthBloc>().add(
-        AuthUpdateUserProfile(
-          name: user.name,
-          username: user.username,
-          avatarUrl: user.avatarUrl,
-          currency: user.currency,
-          smsSyncEnabled: false,
-        ),
-      );
-    }
   }
 
   void _showAvatarPicker(
@@ -380,54 +330,30 @@ class _ProfilePageState extends State<ProfilePage> {
 
                       _buildSectionHeader('DATA INTEGRATION & SYNC', isDark),
                       ProfileOptionTile(
-                        icon: CupertinoIcons.chat_bubble_text,
-                        title: 'SMS Expense Sync',
-                        subtitle: 'Auto-detect SMS expenses',
+                        icon: CupertinoIcons.doc_text_viewfinder,
+                        title: 'Paste & Parse Bank SMS',
+                        subtitle: 'Convert SMS to expense',
                         iconColor: iconColor,
                         showBackgroundBox: true,
-                        trailing: Switch(
-                          value: user.smsSyncEnabled,
-                          activeThumbColor: isDark ? Colors.white : switchActiveColor,
-                          activeTrackColor: switchActiveColor.withOpacity(0.55),
-                          onChanged: (bool value) =>
-                              _toggleSmsSync(context, user, value),
-                        ),
-                        onTap: () =>
-                            _toggleSmsSync(context, user, !user.smsSyncEnabled),
+                        showTrailingArrow: true,
+                        onTap: () {
+                          final expenseState = context.read<ExpenseBloc>().state;
+                          List<Wallet> wallets = [];
+                          if (expenseState is ExpenseSuccess) {
+                            wallets = expenseState.wallets;
+                          }
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black.withAlpha(80),
+                            builder: (sheetContext) => SmsImportSheet(
+                              userId: user.id,
+                              wallets: wallets,
+                            ),
+                          );
+                        },
                       ),
-                      if (user.smsSyncEnabled) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Divider(height: 1, color: dividerColor),
-                        ),
-                        ProfileOptionTile(
-                          icon: CupertinoIcons.arrow_down_doc,
-                          title: 'Import SMS Transactions',
-                          subtitle: 'Import detected transactions',
-                          iconColor: iconColor,
-                          showBackgroundBox: true,
-                          showTrailingArrow: true,
-                          onTap: () {
-                            final expenseState = context
-                                .read<ExpenseBloc>()
-                                .state;
-                            List<Wallet> wallets = [];
-                            if (expenseState is ExpenseSuccess) {
-                              wallets = expenseState.wallets;
-                            }
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              isScrollControlled: true,
-                              barrierColor: Colors.black.withAlpha(80),
-                              builder: (sheetContext) => SmsImportSheet(
-                                userId: user.id,
-                                wallets: wallets,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
 
                       _buildSectionHeader('AUDIO & HAPTICS', isDark),
                       ProfileOptionTile(

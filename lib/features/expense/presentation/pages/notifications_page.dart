@@ -226,9 +226,11 @@ class NotificationsPage extends StatelessWidget {
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                                top: 50,
+                                bottom: 16,
                               ),
                               physics: const BouncingScrollPhysics(),
                               itemCount: list.length,

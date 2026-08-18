@@ -2,14 +2,13 @@ import 'dart:ui';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 import 'package:expense_tracker/core/common/utils/sms_import_tracker.dart';
+import 'package:expense_tracker/core/common/utils/sms_parser.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class SmsImportSheet extends StatefulWidget {
   final String userId;
@@ -26,155 +25,18 @@ class SmsImportSheet extends StatefulWidget {
 }
 
 class _SmsImportSheetState extends State<SmsImportSheet> {
-  final SmsQuery _query = SmsQuery();
-  List<Expense> _parsedExpenses = [];
+  final List<Expense> _parsedExpenses = [];
   final List<Expense> _selectedExpenses = [];
   final Map<String, double> _manualAmounts = {};
   final Map<String, String> _smsBodies = {};
   String? _selectedWalletId;
-  bool _isLoading = false;
-  bool _showAllInbox = false;
+  final bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.wallets.isNotEmpty) {
       _selectedWalletId = widget.wallets.first.id;
-    }
-    _loadAndParseSms();
-  }
-
-  Future<void> _loadAndParseSms() async {
-    List<Expense> existing = [];
-    final expenseState = context.read<ExpenseBloc>().state;
-    if (expenseState is ExpenseSuccess) {
-      existing = expenseState.expenses;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      var status = await Permission.sms.status;
-      if (!status.isGranted) {
-        status = await Permission.sms.request();
-      }
-
-      if (!status.isGranted) {
-        setState(() {
-          _parsedExpenses = [];
-          _selectedExpenses.clear();
-          _isLoading = false;
-        });
-        Fluttertoast.showToast(
-          msg: 'SMS permission is required to import messages.',
-          gravity: ToastGravity.BOTTOM,
-        );
-        return;
-      }
-
-      final messages = await _query.querySms(kinds: [SmsQueryKind.inbox]);
-      if (!mounted) return;
-
-      final List<Expense> allList = [];
-      final amountRegex = RegExp(
-        r'(?:bdt|tk|\$|usd|debited|charged|spent)\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:bdt|tk|\$|usd|taka)',
-        caseSensitive: false,
-      );
-
-      for (var msg in messages) {
-        final body = msg.body ?? '';
-        final lowerBody = body.toLowerCase();
-        final msgDate = msg.date ?? DateTime.now();
-
-        double amount = 0.0;
-        final match = amountRegex.firstMatch(body);
-        if (match != null) {
-          final amountStr = match.group(1) ?? match.group(2);
-          if (amountStr != null) {
-            final cleanedVal = amountStr.replaceAll(',', '');
-            amount = double.tryParse(cleanedVal) ?? 0.0;
-          }
-        }
-
-        final fingerprint = SmsImportTracker.getFingerprint(
-          smsId: msg.id,
-          sender: msg.sender,
-          date: msgDate,
-          body: body,
-          amount: amount,
-        );
-
-        _smsBodies[fingerprint] = body;
-
-        // Skip if already marked as imported
-        if (SmsImportTracker.isImported(fingerprint)) {
-          continue;
-        }
-
-        // Check if already in active expenses
-        final isAlreadyInExpenses = existing.any((ext) {
-          final sameAmount = amount > 0 && (ext.amount - amount).abs() < 0.01;
-          final sameDay = ext.date.year == msgDate.year &&
-              ext.date.month == msgDate.month &&
-              ext.date.day == msgDate.day;
-          final closeTime = ext.date.difference(msgDate).inMinutes.abs() < 30;
-          return sameAmount && sameDay && closeTime;
-        });
-
-        if (isAlreadyInExpenses) {
-          await SmsImportTracker.markAsImported(fingerprint);
-          continue;
-        }
-
-        final isTx =
-            lowerBody.contains('debited') ||
-            lowerBody.contains('spent') ||
-            lowerBody.contains('payment') ||
-            lowerBody.contains('charged') ||
-            lowerBody.contains('purchase') ||
-            lowerBody.contains('transaction');
-
-        String category = 'Others';
-        if (lowerBody.contains('food') || lowerBody.contains('restaurant')) {
-          category = 'Food';
-        } else if (lowerBody.contains('shop') || lowerBody.contains('grocer')) {
-          category = 'Shopping';
-        }
-
-        String merchant = msg.sender ?? 'SMS Alert';
-        if (merchant.length > 25) merchant = merchant.substring(0, 25);
-
-        final exp = Expense(
-          id: fingerprint,
-          userId: widget.userId,
-          title: merchant,
-          amount: amount,
-          date: msgDate,
-          type: 'expense',
-          category: category,
-        );
-
-        if (_showAllInbox) {
-          allList.add(exp);
-        } else {
-          if (isTx && amount > 0) {
-            allList.add(exp);
-          }
-        }
-      }
-
-      setState(() {
-        _parsedExpenses = allList;
-        _selectedExpenses.clear();
-        _selectedExpenses.addAll(
-          allList.where(
-            (e) => (e.amount > 0 || _manualAmounts.containsKey(e.id)),
-          ),
-        );
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      Fluttertoast.showToast(msg: 'Error reading SMS: $e');
     }
   }
 
@@ -188,43 +50,278 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
     });
   }
 
+  void _showPasteSmsDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final controller = TextEditingController();
+
+    final glassBg = isDark
+        ? Colors.black.withOpacity(0.75)
+        : Colors.white.withOpacity(0.85);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.15)
+        : Colors.black.withOpacity(0.08);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            child: Container(
+              padding: const EdgeInsets.all(22.0),
+              decoration: BoxDecoration(
+                color: glassBg,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: borderColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(Icons.paste_rounded, color: theme.primaryColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Paste Bank SMS',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    maxLines: 4,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. BDT 500.00 debited from a/c ... for bKash Payment',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: theme.primaryColor, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: isDark ? Colors.white60 : Colors.black54,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          final text = controller.text.trim();
+                          if (text.isNotEmpty) {
+                            final parsed = SmsParser.parseRawSmsText(text, widget.userId);
+                            if (parsed != null && parsed.amount > 0) {
+                              final id = parsed.id;
+                              if (SmsImportTracker.isImported(id)) {
+                                Fluttertoast.showToast(
+                                  msg: 'This transaction was already imported previously!',
+                                );
+                                return;
+                              }
+                              final isAlreadyInSheet = _parsedExpenses.any((e) => e.id == id);
+                              if (isAlreadyInSheet) {
+                                Fluttertoast.showToast(
+                                  msg: 'This SMS message is already in the list!',
+                                );
+                                return;
+                              }
+
+                              setState(() {
+                                final exp = Expense(
+                                  id: id,
+                                  userId: parsed.userId,
+                                  title: parsed.title,
+                                  amount: parsed.amount,
+                                  date: parsed.date,
+                                  type: parsed.type,
+                                  category: parsed.category,
+                                );
+                                _smsBodies[id] = text;
+                                _parsedExpenses.insert(0, exp);
+                                _selectedExpenses.add(exp);
+                              });
+                              Navigator.pop(ctx);
+                              Fluttertoast.showToast(msg: 'SMS Parsed! Review and import.');
+                            } else {
+                              Fluttertoast.showToast(
+                                  msg: 'Could not detect amount. Please check SMS text.');
+                            }
+                          }
+                        },
+                        child: const Text(
+                          'Parse & Add',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showAmountDialog(Expense exp) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final controller = TextEditingController(
       text: (_manualAmounts[exp.id] ?? (exp.amount > 0 ? exp.amount : ''))
           .toString(),
     );
 
+    final glassBg = isDark
+        ? Colors.black.withOpacity(0.75)
+        : Colors.white.withOpacity(0.85);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.15)
+        : Colors.black.withOpacity(0.08);
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Enter Amount (BDT)'),
-          content: TextField(
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(hintText: '0.00'),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: glassBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderColor, width: 1.5),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Enter Amount',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: controller,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          final amt = double.tryParse(controller.text) ?? 0.0;
+                          if (amt > 0) {
+                            setState(() {
+                              _manualAmounts[exp.id] = amt;
+                              if (!_selectedExpenses.contains(exp)) {
+                                _selectedExpenses.add(exp);
+                              }
+                            });
+                          }
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final amt = double.tryParse(controller.text) ?? 0.0;
-                if (amt > 0) {
-                  setState(() {
-                    _manualAmounts[exp.id] = amt;
-                    if (!_selectedExpenses.contains(exp)) {
-                      _selectedExpenses.add(exp);
-                    }
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -275,12 +372,13 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
     final isDark = theme.brightness == Brightness.dark;
 
     final glassBg = isDark
-        ? Colors.black.withAlpha(200)
-        : Colors.white.withAlpha(225);
+        ? Colors.black.withOpacity(0.75)
+        : Colors.white.withOpacity(0.85);
     final borderColor = isDark
-        ? Colors.white.withAlpha(30)
-        : Colors.black.withAlpha(20);
+        ? Colors.white.withOpacity(0.15)
+        : Colors.black.withOpacity(0.08);
     final textColor = isDark ? Colors.white : Colors.black87;
+    final cardBg = isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04);
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -294,293 +392,353 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
           ),
           border: Border.all(color: borderColor, width: 1.5),
         ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 48,
-              height: 5,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white30 : Colors.black12,
-                borderRadius: BorderRadius.circular(10),
-              ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 44,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white24 : Colors.black12,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'SMS Expense Import',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'SMS Expense Import',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
-                  if (_parsedExpenses.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          if (_selectedExpenses.length ==
-                              _parsedExpenses.length) {
-                            _selectedExpenses.clear();
-                          } else {
-                            _selectedExpenses.clear();
-                            _selectedExpenses.addAll(_parsedExpenses);
-                          }
-                        });
-                      },
-                      child: Text(
-                        _selectedExpenses.length == _parsedExpenses.length
-                            ? 'Deselect All'
-                            : 'Select All',
-                        style: TextStyle(color: theme.primaryColor),
+                ),
+                if (_parsedExpenses.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedExpenses.length == _parsedExpenses.length) {
+                          _selectedExpenses.clear();
+                        } else {
+                          _selectedExpenses.clear();
+                          _selectedExpenses.addAll(_parsedExpenses);
+                        }
+                      });
+                    },
+                    child: Text(
+                      _selectedExpenses.length == _parsedExpenses.length
+                          ? 'Deselect All'
+                          : 'Select All',
+                      style: TextStyle(
+                        color: theme.primaryColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 10),
+          ),
+          const SizedBox(height: 12),
+          if (widget.wallets.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Show all messages manually',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withAlpha(200),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.black.withOpacity(0.05),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  Switch(
-                    value: _showAllInbox,
-                    activeThumbColor: theme.primaryColor,
-                    onChanged: (val) {
-                      setState(() {
-                        _showAllInbox = val;
-                      });
-                      _loadAndParseSms();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            if (widget.wallets.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                  ],
+                ),
                 child: Row(
                   children: [
-                    const Text(
-                      'Import to Wallet: ',
+                    Icon(Icons.account_balance_wallet_outlined, size: 20, color: theme.primaryColor),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Import to Wallet:',
                       style: TextStyle(
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         fontSize: 13,
+                        color: textColor,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: SizedBox(
-                        height: 38,
-                        child: DropdownButtonFormField<String>(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
                           isExpanded: true,
-                          isDense: true,
-                          initialValue: _selectedWalletId,
+                          value: _selectedWalletId,
+                          dropdownColor: isDark ? Colors.grey.shade900 : Colors.white,
                           items: widget.wallets.map((wallet) {
                             return DropdownMenuItem<String>(
                               value: wallet.id,
                               child: Text(
                                 wallet.name,
                                 overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                style: const TextStyle(fontSize: 13),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
                               ),
                             );
                           }).toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedWalletId = val),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
+                          onChanged: (val) => setState(() => _selectedWalletId = val),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _parsedExpenses.isEmpty
-                  ? Center(
+            ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _parsedExpenses.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.sms_failed_rounded,
-                            size: 64,
-                            color: Colors.grey.shade400,
+                          Container(
+                            padding: const EdgeInsets.all(22),
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.mark_email_read_rounded,
+                              size: 52,
+                              color: theme.primaryColor,
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No SMS messages found.',
+                          const SizedBox(height: 18),
+                          Text(
+                            'Quick SMS Expense Conversion',
                             style: TextStyle(
-                              color: Colors.grey,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Copy your bank transaction SMS and paste it below to extract expenses automatically.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white60 : Colors.black54,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => _showPasteSmsDialog(context),
+                            icon: const Icon(Icons.paste_rounded, size: 18),
+                            label: const Text(
+                              'Paste Bank SMS Text',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: _parsedExpenses.length,
-                      itemBuilder: (context, index) {
-                        final exp = _parsedExpenses[index];
-                        final isSelected = _selectedExpenses.contains(exp);
-                        final amount = _manualAmounts[exp.id] ?? exp.amount;
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _parsedExpenses.length,
+                    itemBuilder: (context, index) {
+                      final exp = _parsedExpenses[index];
+                      final isSelected = _selectedExpenses.contains(exp);
+                      final amount = _manualAmounts[exp.id] ?? exp.amount;
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white10 : Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isSelected
-                                  ? theme.primaryColor
-                                  : Colors.transparent,
-                              width: 1.5,
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? theme.primaryColor
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 4,
+                          ),
+                          leading: Checkbox(
+                            value: isSelected,
+                            activeColor: theme.primaryColor,
+                            onChanged: (_) => _toggleSelect(exp),
+                          ),
+                          title: Text(
+                            exp.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: textColor,
                             ),
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: CheckboxListTile(
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 2,
-                              ),
-                              value: isSelected,
-                              activeColor: theme.primaryColor,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              onChanged: (_) => _toggleSelect(exp),
-                              title: Text(
-                                exp.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${exp.category} • ${_formatDate(exp.date)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.primaryColor,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              const SizedBox(height: 4),
+                              Text(
+                                _smsBodies[exp.id] ?? '',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.3,
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: GestureDetector(
+                            onTap: () => _showAmountDialog(exp),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: amount > 0
+                                    ? Colors.redAccent.withOpacity(0.1)
+                                    : theme.primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    '${exp.category} • ${_formatDate(exp.date)}',
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      color: Colors.grey,
+                                    amount > 0
+                                        ? '-${CurrencyService.format(amount, "BDT")}'
+                                        : 'Enter Amt',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: amount > 0
+                                          ? Colors.redAccent
+                                          : theme.primaryColor,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _smsBodies[exp.id] ?? '',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      height: 1.3,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black87,
-                                    ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.edit_rounded,
+                                    size: 13,
+                                    color: amount > 0 ? Colors.redAccent : theme.primaryColor,
                                   ),
                                 ],
                               ),
-                              secondary: GestureDetector(
-                                onTap: () => _showAmountDialog(exp),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: amount > 0
-                                        ? Colors.redAccent.withAlpha(25)
-                                        : Colors.grey.withAlpha(40),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        amount > 0
-                                            ? '-${CurrencyService.format(amount, "BDT")}'
-                                            : 'Enter Amt',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: amount > 0
-                                              ? Colors.redAccent
-                                              : Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      const Icon(
-                                        Icons.edit_rounded,
-                                        size: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-            ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          if (_parsedExpenses.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.all(24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: theme.primaryColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => _showPasteSmsDialog(context),
+                      icon: Icon(Icons.paste_rounded, color: theme.primaryColor, size: 18),
+                      label: Text(
+                        'Paste Another Bank SMS',
+                        style: TextStyle(
+                          color: theme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    elevation: 0,
                   ),
-                  onPressed: _importSelected,
-                  child: Text(
-                    'Import Selected (${_selectedExpenses.length})',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: _importSelected,
+                      child: Text(
+                        'Import Selected (${_selectedExpenses.length})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+        ],
       ),
+    ),
     );
   }
 

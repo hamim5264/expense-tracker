@@ -16,6 +16,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
 
 class WalletPage extends StatefulWidget {
   final VoidCallback? onBackTap;
@@ -163,15 +164,60 @@ class _WalletPageState extends State<WalletPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(
-                                  CupertinoIcons.bell,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRouter.notifications,
+                              AnimatedBuilder(
+                                animation: NotificationService(),
+                                builder: (context, _) {
+                                  final unread = NotificationService().unreadCount;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        AppRouter.notifications,
+                                      );
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        const Padding(
+                                          padding: EdgeInsets.all(8.0),
+                                          child: Icon(
+                                            CupertinoIcons.bell,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        if (unread > 0)
+                                          Positioned(
+                                            right: 4,
+                                            top: 4,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEF4444),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Theme.of(context).primaryColor,
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 16,
+                                                minHeight: 16,
+                                              ),
+                                              child: Text(
+                                                unread > 9 ? '9+' : '$unread',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   );
                                 },
                               ),

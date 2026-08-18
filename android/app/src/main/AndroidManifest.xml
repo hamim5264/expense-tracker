@@ -1,7 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
     
     <!-- Remove broad media permissions added by 3rd-party libraries to comply with Google Play Policy -->

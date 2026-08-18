@@ -30,6 +30,9 @@ class TransactionItemTile extends StatelessWidget {
     if (lowerTitle.contains('spotify')) {
       return 'assets/images/expense_types/spotify.png';
     }
+    if (lowerTitle.contains('mobile recharge') || lowerTitle.contains('recharge')) {
+      return 'assets/images/expense_types/smartphone.png';
+    }
     if (lowerTitle.contains('bkash')) {
       return 'assets/images/expense_types/bKash.png';
     }
@@ -144,6 +147,14 @@ class TransactionItemTile extends StatelessWidget {
       return 'assets/images/expense_types/social.png';
     }
 
+    if (lowerTitle.contains('sms expense') || lowerTitle.contains('sms')) {
+      if (lowerCat.contains('food')) return 'assets/images/expense_types/shopping-bag.png';
+      if (lowerCat.contains('shop')) return 'assets/images/expense_types/online-shopping.png';
+      if (lowerCat.contains('bill')) return 'assets/images/expense_types/smartphone.png';
+      if (lowerCat.contains('recharge') || lowerCat.contains('top-up')) return 'assets/images/expense_types/smartphone.png';
+      return 'assets/images/expense_types/others_pay.png';
+    }
+
     return 'assets/images/expense_types/others_pay.png';
   }
 
@@ -154,11 +165,11 @@ class TransactionItemTile extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.08)
@@ -167,18 +178,20 @@ class TransactionItemTile extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
-            padding: const EdgeInsets.all(7),
+            width: 36,
+            height: 36,
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
               shape: BoxShape.circle,
@@ -190,15 +203,16 @@ class TransactionItemTile extends StatelessWidget {
                 return Icon(
                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                   color: isIncome ? Colors.green : Colors.red,
-                  size: 20,
+                  size: 18,
                 );
               },
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   transaction.title,
@@ -206,7 +220,7 @@ class TransactionItemTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13.5,
                     color: textColor,
                   ),
                 ),
@@ -220,41 +234,23 @@ class TransactionItemTile extends StatelessWidget {
                     fontSize: 10.5,
                   ),
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  _formatTime(transaction.date),
-                  style: TextStyle(
-                    color: isDark ? Colors.white38 : Colors.grey.shade500,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: isIncome
-                  ? const Color(0xFF22C55E).withOpacity(0.12)
-                  : const Color(0xFFEF4444).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(16),
+                  ? const Color(0xFF22C55E).withOpacity(0.1)
+                  : const Color(0xFFEF4444).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isIncome
-                    ? const Color(0xFF22C55E).withOpacity(0.8)
-                    : const Color(0xFFEF4444).withOpacity(0.8),
-                width: 1.2,
+                    ? const Color(0xFF22C55E).withOpacity(0.6)
+                    : const Color(0xFFEF4444).withOpacity(0.6),
+                width: 1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: isIncome
-                      ? const Color(0xFF22C55E).withOpacity(0.15)
-                      : const Color(0xFFEF4444).withOpacity(0.15),
-                  blurRadius: 6,
-                  spreadRadius: 0.5,
-                ),
-              ],
             ),
             child: Text(
               (isIncome ? '+ ' : '- ') +
@@ -264,19 +260,12 @@ class TransactionItemTile extends StatelessWidget {
                     ? const Color(0xFF22C55E)
                     : const Color(0xFFEF4444),
                 fontWeight: FontWeight.bold,
-                fontSize: 11.5,
+                fontSize: 11,
               ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatTime(DateTime dt) {
-    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$hour:$minute $period';
   }
 }

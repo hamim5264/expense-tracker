@@ -31,7 +31,7 @@ import 'package:expense_tracker/features/expense/presentation/pages/statistics_p
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/core/common/utils/rate_us_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/rendering.dart';
 
 class HomePage extends StatefulWidget {
   static Route route() =>
@@ -51,6 +51,8 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription? _smsSubscription;
   bool _isOffline = false;
+  bool _isNavBarVisible = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -66,10 +68,15 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _connectivitySubscription?.cancel();
+    _smsSubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _requestSmsPermissionAndScan() async {
-    try {
-      await Permission.sms.request();
-    } catch (_) {}
     _checkForSmsExpenses();
   }
 
@@ -101,13 +108,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _connectivitySubscription?.cancel();
-    _smsSubscription?.cancel();
-    super.dispose();
   }
 
   void _setupIncomingSmsSubscription() {
@@ -177,12 +177,6 @@ class _HomePageState extends State<HomePage> {
     final expenseState = context.read<ExpenseBloc>().state;
     if (authState is AuthSuccess && authState.user.smsSyncEnabled) {
       setState(() => _isScanningSms = true);
-      final status = await Permission.sms.status;
-      if (!status.isGranted) {
-        setState(() => _isScanningSms = false);
-        return;
-      }
-
       List<Expense> existing = [];
       if (expenseState is ExpenseSuccess) {
         existing = expenseState.expenses;
@@ -393,7 +387,7 @@ class _HomePageState extends State<HomePage> {
                                   );
                                   await _checkForSmsExpenses();
                                 },
-                                child: ListView(
+                                child: Column(
                                   children: [
                                     if (_isOffline)
                                       Container(
@@ -507,88 +501,69 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                             const SizedBox(width: 12),
                                             AnimatedBuilder(
-                                              animation: NotificationService(),
-                                              builder: (context, _) {
-                                                final unread =
-                                                    NotificationService()
-                                                        .unreadCount;
-                                                return Container(
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white
-                                                        .withAlpha(38),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Stack(
-                                                    alignment: Alignment.center,
-                                                    children: [
-                                                      IconButton(
-                                                        onPressed: () {
-                                                          Navigator.pushNamed(
-                                                            context,
-                                                            AppRouter
-                                                                .notifications,
-                                                          );
-                                                        },
-                                                        icon: const Icon(
-                                                          CupertinoIcons.bell,
-                                                          color: Colors.white,
-                                                          size: 24,
-                                                        ),
-                                                      ),
-                                                      if (unread > 0)
-                                                        Positioned(
-                                                          right: 8,
-                                                          top: 8,
-                                                          child: Container(
-                                                            padding:
-                                                                const EdgeInsets.all(
-                                                                  2,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFEF4444,
-                                                                  ),
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                              border: Border.all(
-                                                                color: Theme.of(
-                                                                  context,
-                                                                ).primaryColor,
-                                                                width: 1.5,
-                                                              ),
-                                                            ),
-                                                            constraints:
-                                                                const BoxConstraints(
-                                                                  minWidth: 16,
-                                                                  minHeight: 16,
-                                                                ),
-                                                            child: Text(
-                                                              unread > 9
-                                                                  ? '9+'
-                                                                  : '$unread',
-                                                              style: const TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 9,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ),
+                                               animation: NotificationService(),
+                                               builder: (context, _) {
+                                                 final unread =
+                                                     NotificationService()
+                                                         .unreadCount;
+                                                 return GestureDetector(
+                                                   onTap: () {
+                                                     Navigator.pushNamed(
+                                                       context,
+                                                       AppRouter.notifications,
+                                                     );
+                                                   },
+                                                   behavior: HitTestBehavior.opaque,
+                                                   child: Container(
+                                                     width: 48,
+                                                     height: 48,
+                                                     decoration: BoxDecoration(
+                                                       color: Colors.white.withAlpha(38),
+                                                       borderRadius: BorderRadius.circular(12),
+                                                     ),
+                                                     child: Stack(
+                                                       alignment: Alignment.center,
+                                                       children: [
+                                                         const Icon(
+                                                           CupertinoIcons.bell,
+                                                           color: Colors.white,
+                                                           size: 24,
+                                                         ),
+                                                         if (unread > 0)
+                                                           Positioned(
+                                                             right: 6,
+                                                             top: 6,
+                                                             child: Container(
+                                                               padding: const EdgeInsets.all(2),
+                                                               decoration: BoxDecoration(
+                                                                 color: const Color(0xFFEF4444),
+                                                                 shape: BoxShape.circle,
+                                                                 border: Border.all(
+                                                                   color: Theme.of(context).primaryColor,
+                                                                   width: 1.5,
+                                                                 ),
+                                                               ),
+                                                               constraints: const BoxConstraints(
+                                                                 minWidth: 16,
+                                                                 minHeight: 16,
+                                                               ),
+                                                               child: Text(
+                                                                 unread > 9 ? '9+' : '$unread',
+                                                                 style: const TextStyle(
+                                                                   color: Colors.white,
+                                                                   fontSize: 9,
+                                                                   fontWeight: FontWeight.bold,
+                                                                 ),
+                                                                 textAlign: TextAlign.center,
+                                                               ),
+                                                             ),
+                                                           ),
+                                                       ],
+                                                     ),
+                                                   ),
+                                                 );
+                                               },
+                                             ),
                                           ],
                                         ),
                                       ],
@@ -611,39 +586,39 @@ class _HomePageState extends State<HomePage> {
                                           Navigator.push(context, ConnectWalletPage.route());
                                         },
                                        ),
-                                       const SizedBox(height: 10),
-                                     Row(
-                                       mainAxisAlignment: MainAxisAlignment.center,
-                                       children: [
-                                         _buildActionButton(
-                                           context: context,
-                                           label: 'Expense',
-                                           icon: Icons.north_east_rounded,
-                                           iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFE53935),
-                                           onTap: () {
-                                             Navigator.push(
-                                               context,
-                                               AddExpensePage.route(initialType: 'expense'),
-                                             );
-                                           },
-                                           isDark: isDark,
-                                         ),
-                                         const SizedBox(width: 56),
-                                         _buildActionButton(
-                                           context: context,
-                                           label: 'Income',
-                                           icon: Icons.south_west_rounded,
-                                           iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF43A047),
-                                           onTap: () {
-                                             Navigator.push(
-                                               context,
-                                               AddExpensePage.route(initialType: 'income'),
-                                             );
-                                           },
-                                           isDark: isDark,
-                                         ),
-                                       ],
-                                     ),
+                                        const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          _buildActionButton(
+                                            context: context,
+                                            label: 'Expense',
+                                            icon: Icons.north_east_rounded,
+                                            iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFE53935),
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                AddExpensePage.route(initialType: 'expense'),
+                                              );
+                                            },
+                                            isDark: isDark,
+                                          ),
+                                          const SizedBox(width: 44),
+                                          _buildActionButton(
+                                            context: context,
+                                            label: 'Income',
+                                            icon: Icons.south_west_rounded,
+                                            iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF43A047),
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                AddExpensePage.route(initialType: 'income'),
+                                              );
+                                            },
+                                            isDark: isDark,
+                                          ),
+                                        ],
+                                      ),
                                       const SizedBox(height: 12),
 
                                      if (user.smsSyncEnabled &&
@@ -737,7 +712,7 @@ class _HomePageState extends State<HomePage> {
                                          const Text(
                                            'Recent Transactions',
                                            style: TextStyle(
-                                             fontSize: 18,
+                                             fontSize: 15.5,
                                              fontWeight: FontWeight.bold,
                                            ),
                                          ),
@@ -793,28 +768,42 @@ class _HomePageState extends State<HomePage> {
                                          ),
                                        ],
                                      ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 8),
 
-                                    if (transactionList.isEmpty)
-                                      const EmptyTransactionsPlaceholder()
-                                    else
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: transactionList.length > 5
-                                            ? 5
-                                            : transactionList.length,
-                                        itemBuilder: (context, index) {
-                                          final tx = transactionList[index];
-                                          return TransactionItemTile(
-                                            transaction: tx,
-                                            currencyCode: user.currency,
-                                            isDark: isDark,
-                                          );
-                                        },
-                                      ),
-                                       const SizedBox(height: 100),
+                                    Expanded(
+                                      child: transactionList.isEmpty
+                                          ? const EmptyTransactionsPlaceholder()
+                                          : NotificationListener<UserScrollNotification>(
+                                              onNotification: (notification) {
+                                                if (notification.direction == ScrollDirection.reverse) {
+                                                  if (_isNavBarVisible) {
+                                                    setState(() => _isNavBarVisible = false);
+                                                  }
+                                                } else if (notification.direction == ScrollDirection.forward) {
+                                                  if (!_isNavBarVisible) {
+                                                    setState(() => _isNavBarVisible = true);
+                                                  }
+                                                }
+                                                return true;
+                                              },
+                                              child: ListView.builder(
+                                                controller: _scrollController,
+                                                physics: const BouncingScrollPhysics(),
+                                                padding: const EdgeInsets.only(bottom: 100),
+                                                itemCount: transactionList.length > 10
+                                                    ? 10
+                                                    : transactionList.length,
+                                                itemBuilder: (context, index) {
+                                                  final tx = transactionList[index];
+                                                  return TransactionItemTile(
+                                                    transaction: tx,
+                                                    currencyCode: user.currency,
+                                                    isDark: isDark,
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -862,6 +851,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildNavItem(IconData icon, int index, bool isDark) {
     bool isSelected = _selectedIndex == index;
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: () => _onTabSelected(index),
@@ -870,8 +860,8 @@ class _HomePageState extends State<HomePage> {
         child: Icon(
           icon,
           color: isSelected
-              ? Colors.white
-              : (isDark ? Colors.white38 : Colors.grey.shade500),
+              ? (isDark ? Colors.white : theme.primaryColor)
+              : (isDark ? Colors.white38 : Colors.grey.shade600),
           size: isSelected ? 24 : 22,
         ),
       ),
@@ -887,8 +877,8 @@ class _HomePageState extends State<HomePage> {
     required bool isDark,
   }) {
     Widget buttonIcon = Container(
-      width: 64,
-      height: 64,
+      width: 50,
+      height: 50,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isDark ? null : Colors.grey.shade100,
@@ -910,9 +900,9 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -920,7 +910,7 @@ class _HomePageState extends State<HomePage> {
         child: Icon(
           icon,
           color: iconColor,
-          size: 28,
+          size: 22,
         ),
       ),
     );
@@ -941,11 +931,11 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           buttonIcon,
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.2,
               color: isDark ? Colors.white.withOpacity(0.85) : Colors.black87,
@@ -957,23 +947,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFloatingNavBar(bool isDark) {
+    final theme = Theme.of(context);
     Widget navContent = Container(
       height: 60,
       width: 290,
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.black.withOpacity(0.4)
-            : Colors.white.withOpacity(0.65),
+            ? Colors.black.withOpacity(0.25)
+            : Colors.white.withOpacity(0.92),
         borderRadius: BorderRadius.circular(100),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.18)
-              : Colors.white.withOpacity(0.8),
+              : Colors.black.withOpacity(0.08),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
             blurRadius: 24,
             spreadRadius: 2,
             offset: const Offset(0, 8),
@@ -994,11 +985,11 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(100),
                 color: isDark
                     ? Colors.white.withOpacity(0.18)
-                    : Colors.black.withOpacity(0.08),
+                    : theme.primaryColor.withOpacity(0.12),
                 border: Border.all(
                   color: isDark
                       ? Colors.white.withOpacity(0.12)
-                      : Colors.black.withOpacity(0.05),
+                      : theme.primaryColor.withOpacity(0.2),
                   width: 1.0,
                 ),
               ),
@@ -1032,8 +1023,10 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
-    return Positioned(
-      bottom: 20,
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      bottom: _isNavBarVisible ? 20 : -100,
       left: 0,
       right: 0,
       child: Center(

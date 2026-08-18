@@ -9,8 +9,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:permission_handler/permission_handler.dart';
-
 class SplashPage extends StatefulWidget {
   static Route route() =>
       MaterialPageRoute(builder: (context) => const SplashPage());
@@ -51,13 +49,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     );
 
     _entranceController.forward();
-    _requestPermissionAndCheckAuth();
-  }
-
-  Future<void> _requestPermissionAndCheckAuth() async {
-    try {
-      await Permission.sms.request();
-    } catch (_) {}
     _checkAuth();
   }
 
@@ -89,7 +80,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark
         ? const Color(0xFF121212)
-        : const Color(0xFF4F378A);
+        : theme.primaryColor;
     final logoAsset = 'assets/images/logos/app_final_splash_logo.png';
 
     return Scaffold(
