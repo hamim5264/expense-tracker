@@ -10,6 +10,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/transactio
 
 import 'package:expense_tracker/features/expense/presentation/widgets/statistics_shimmer_loading.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/statistics_chart.dart';
+import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 
@@ -133,12 +134,31 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               color: isDark ? Colors.white : Colors.black87,
                             ),
                             onPressed: () {
+                              if (allPeriodTransactions.isEmpty) {
+                                showToast(
+                                  'Cannot export: No transactions found for $_selectedPeriod.',
+                                  isError: true,
+                                  context: context,
+                                );
+                                return;
+                              }
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('Download Statement'),
-                                  content: const Text(
-                                    'Do you want to download a PDF copy of your transactions statement?',
+                                  title: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Download Statement',
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Do you want to download a PDF statement for $_selectedPeriod?',
                                   ),
                                   actions: [
                                     TextButton(
@@ -151,27 +171,38 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                     TextButton(
                                       onPressed: () {
                                         Navigator.pop(ctx);
-                                        PdfReportService.generateAndSaveReport(
-                                          transactions: allPeriodTransactions,
-                                          userName:
-                                              user.username?.isNotEmpty == true
-                                              ? user.username!
-                                              : user.name,
-                                          currency: user.currency,
-                                          period: _selectedPeriod,
-                                          type: _selectedType,
-                                          totalAmount: totalAmount,
-                                          onSuccess: (_) =>
-                                              AnimationHelper.showSuccess(
-                                                context,
-                                                'Report saved to Downloads & App Reports!',
-                                              ),
-                                          onFailed: (err) =>
-                                              AnimationHelper.showFailed(
-                                                context,
-                                                'Export failed: $err',
-                                              ),
-                                        );
+                                        showExportProgressDialog(context);
+
+                                        Future.microtask(() async {
+                                          await PdfReportService.generateAndSaveReport(
+                                            transactions: allPeriodTransactions,
+                                            userName: user.username?.isNotEmpty == true
+                                                ? user.username!
+                                                : user.name,
+                                            currency: user.currency,
+                                            period: _selectedPeriod,
+                                            type: 'all',
+                                            totalAmount: totalIncome - totalExpenses,
+                                            onSuccess: (_) {
+                                              if (context.mounted) {
+                                                Navigator.of(context, rootNavigator: true).pop();
+                                                AnimationHelper.showSuccess(
+                                                  context,
+                                                  'Report saved to Downloads & App Reports!',
+                                                );
+                                              }
+                                            },
+                                            onFailed: (err) {
+                                              if (context.mounted) {
+                                                Navigator.of(context, rootNavigator: true).pop();
+                                                AnimationHelper.showFailed(
+                                                  context,
+                                                  'Export failed: $err',
+                                                );
+                                              }
+                                            },
+                                          );
+                                        });
                                       },
                                       child: const Text('Download'),
                                     ),

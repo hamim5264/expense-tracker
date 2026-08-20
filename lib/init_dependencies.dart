@@ -137,6 +137,7 @@ void _initExpense() {
         getWallets: serviceLocator(),
         addWallet: serviceLocator(),
         deleteWallet: serviceLocator(),
+        expenseRepository: serviceLocator(),
       ),
     );
 }

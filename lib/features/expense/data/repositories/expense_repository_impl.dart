@@ -95,7 +95,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       expRes.fold((_) {}, (r) => expenses = r);
 
       final updatedWallets = wallets.map((w) {
-        double currentBalance = w.balance;
+        final initialBal = (w.details['initial_balance'] as num?)?.toDouble() ?? w.balance;
+        double currentBalance = initialBal;
         final walletTx = expenses.where((tx) => tx.walletId == w.id).toList();
         for (var tx in walletTx) {
           if (tx.type == 'income') {
@@ -140,13 +141,18 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   @override
   Future<Either<Failure, Wallet>> addWallet(Wallet wallet) async {
     try {
+      final detailsMap = Map<String, dynamic>.from(wallet.details);
+      if (!detailsMap.containsKey('initial_balance')) {
+        detailsMap['initial_balance'] = wallet.balance;
+      }
+
       final walletModel = WalletModel(
         id: '',
         userId: wallet.userId,
         name: wallet.name,
         type: wallet.type,
         balance: wallet.balance,
-        details: wallet.details,
+        details: detailsMap,
         createdAt: wallet.createdAt,
       );
 
@@ -169,7 +175,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           name: wallet.name,
           type: wallet.type,
           balance: wallet.balance,
-          details: wallet.details,
+          details: detailsMap,
           createdAt: wallet.createdAt,
         );
         final currentCache = await cacheService.getCachedWallets();
@@ -194,6 +200,47 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
       if (await networkInfo.isConnected) {
         await remoteDataSource.deleteWallet(walletId);
+      }
+      return right(null);
+    } on Failure catch (e) {
+      return left(e);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> clearTransactions({
+    required String userId,
+    required String type,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final localData = await cacheService.getCachedExpenses();
+      localData.removeWhere((item) {
+        final txType = item['type'] as String?;
+        final txDateStr = item['date'] as String?;
+        final txDate = txDateStr != null ? DateTime.tryParse(txDateStr) : null;
+
+        bool typeMatches = (type == 'all') || (txType == type);
+        bool dateMatches = true;
+        if (txDate != null) {
+          if (startDate != null && txDate.isBefore(startDate)) dateMatches = false;
+          if (endDate != null && txDate.isAfter(endDate)) dateMatches = false;
+        }
+
+        return typeMatches && dateMatches;
+      });
+      await cacheService.cacheExpenses(localData);
+
+      if (await networkInfo.isConnected) {
+        await remoteDataSource.clearTransactions(
+          userId: userId,
+          type: type,
+          startDate: startDate,
+          endDate: endDate,
+        );
       }
       return right(null);
     } on Failure catch (e) {

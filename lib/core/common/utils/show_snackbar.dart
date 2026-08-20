@@ -20,6 +20,82 @@ void showSnackBar(
   GlassToast.show(message, context: context, isError: isError);
 }
 
+void showExportProgressDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (dialogContext) {
+      final theme = Theme.of(dialogContext);
+      final isDark = theme.brightness == Brightness.dark;
+      final primaryColor = theme.primaryColor;
+
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1E1B29).withOpacity(0.85)
+                    : Colors.white.withOpacity(0.92),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: primaryColor.withOpacity(0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: CircularProgressIndicator(
+                      color: primaryColor,
+                      strokeWidth: 3.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Generating Statement PDF...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Preparing layout & compiling transactions log...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class GlassToast {
   static OverlayEntry? _currentEntry;
   static Timer? _dismissTimer;
@@ -158,14 +234,12 @@ class _GlassToastWidgetState extends State<_GlassToastWidget>
         : CupertinoIcons.checkmark_alt_circle_fill;
 
     final glassBg = widget.isDark
-        ? const Color(0xFF1E1B29).withOpacity(0.88)
-        : Colors.white.withOpacity(0.90);
+        ? const Color(0xFF1E1B29).withOpacity(0.72)
+        : const Color(0xFF1E202C).withOpacity(0.78);
 
     final borderColor = widget.isError
-        ? const Color(0xFFFF5252).withOpacity(0.5)
-        : widget.primaryColor.withOpacity(0.4);
-
-    final textColor = widget.isDark ? Colors.white : Colors.black87;
+        ? const Color(0xFFFF5252).withOpacity(0.4)
+        : Colors.white.withOpacity(0.2);
 
     return SafeArea(
       top: false,
@@ -181,34 +255,34 @@ class _GlassToastWidgetState extends State<_GlassToastWidget>
                 onTap: _dismiss,
                 child: Material(
                   color: Colors.transparent,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: glassBg,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: borderColor, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(widget.isDark ? 0.35 : 0.08),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
                         ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        decoration: BoxDecoration(
+                          color: glassBg,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: borderColor, width: 1.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: accentColor.withOpacity(0.15),
+                                color: accentColor.withOpacity(0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -221,10 +295,10 @@ class _GlassToastWidgetState extends State<_GlassToastWidget>
                             Flexible(
                               child: Text(
                                 widget.message,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: textColor,
+                                  color: Colors.white,
                                   height: 1.3,
                                 ),
                               ),

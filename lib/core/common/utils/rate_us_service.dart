@@ -16,9 +16,9 @@ class RateUsService {
 
       int launches = prefs.getInt(_keyAppLaunchCount) ?? 0;
       launches++;
-      await prefs.setInt(_keyAppLaunchCount, launches);
 
-      if (launches >= 2) {
+      if (launches >= 8) {
+        await prefs.setInt(_keyAppLaunchCount, 0);
         if (!context.mounted) return;
         showModalBottomSheet(
           context: context,
@@ -27,6 +27,8 @@ class RateUsService {
           barrierColor: Colors.black.withOpacity(0.6),
           builder: (ctx) => const RateUsBottomSheet(),
         );
+      } else {
+        await prefs.setInt(_keyAppLaunchCount, launches);
       }
     } catch (_) {}
   }
@@ -35,6 +37,13 @@ class RateUsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyHasRated, true);
+    } catch (_) {}
+  }
+
+  static Future<void> resetLaunchCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyAppLaunchCount, 0);
     } catch (_) {}
   }
 }
@@ -62,6 +71,13 @@ class _RateUsBottomSheetState extends State<RateUsBottomSheet> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (_) {}
+  }
+
+  Future<void> _onMaybeLater() async {
+    await RateUsService.resetLaunchCount();
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -157,7 +173,7 @@ class _RateUsBottomSheetState extends State<RateUsBottomSheet> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _onMaybeLater,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

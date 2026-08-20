@@ -1,3 +1,4 @@
+import 'package:expense_tracker/features/expense/domain/repositories/expense_repository.dart';
 import 'package:expense_tracker/core/usecase/usecase.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
@@ -21,6 +22,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   final GetWallets _getWallets;
   final AddWallet _addWallet;
   final DeleteWallet _deleteWallet;
+  final ExpenseRepository _expenseRepository;
 
   ExpenseBloc({
     required GetAllExpenses getAllExpenses,
@@ -28,16 +30,19 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     required GetWallets getWallets,
     required AddWallet addWallet,
     required DeleteWallet deleteWallet,
+    required ExpenseRepository expenseRepository,
   }) : _getAllExpenses = getAllExpenses,
        _addExpense = addExpense,
        _getWallets = getWallets,
        _addWallet = addWallet,
        _deleteWallet = deleteWallet,
+       _expenseRepository = expenseRepository,
        super(ExpenseInitial()) {
     on<ExpenseFetchAll>(_onFetchAll);
     on<ExpenseAddTransaction>(_onAddTransaction);
     on<ExpenseAddWalletCard>(_onAddWalletCard);
     on<ExpenseDeleteWallet>(_onDeleteWallet);
+    on<ExpenseClearTransactions>(_onClearTransactions);
   }
 
   void _onFetchAll(ExpenseFetchAll event, Emitter<ExpenseState> emit) async {
@@ -104,6 +109,28 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
       NotificationService().addNotification(
         title: 'Wallet Deleted',
         message: 'Wallet deleted successfully.',
+        type: 'warning',
+      );
+      add(ExpenseFetchAll());
+    });
+  }
+
+  void _onClearTransactions(
+    ExpenseClearTransactions event,
+    Emitter<ExpenseState> emit,
+  ) async {
+    emit(ExpenseLoading());
+    final res = await _expenseRepository.clearTransactions(
+      userId: event.userId,
+      type: event.type,
+      startDate: event.startDate,
+      endDate: event.endDate,
+    );
+
+    res.fold((l) => emit(ExpenseFailure(l.message)), (_) {
+      NotificationService().addNotification(
+        title: 'History Cleared',
+        message: 'Transaction history cleared successfully.',
         type: 'warning',
       );
       add(ExpenseFetchAll());

@@ -13,4 +13,11 @@ abstract interface class ExpenseRepository {
   Future<Either<Failure, Wallet>> addWallet(Wallet wallet);
 
   Future<Either<Failure, void>> deleteWallet(String walletId);
+
+  Future<Either<Failure, void>> clearTransactions({
+    required String userId,
+    required String type,
+    DateTime? startDate,
+    DateTime? endDate,
+  });
 }

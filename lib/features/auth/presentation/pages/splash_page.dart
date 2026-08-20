@@ -4,6 +4,7 @@ import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart'
 import 'package:expense_tracker/features/auth/presentation/pages/login_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/home_page.dart';
 import 'package:expense_tracker/core/network/network_info.dart';
+import 'package:expense_tracker/core/common/utils/theme_service.dart';
 import 'package:expense_tracker/init_dependencies.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -78,131 +79,138 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? const Color(0xFF121212)
-        : theme.primaryColor;
-    final logoAsset = 'assets/images/logos/app_final_splash_logo.png';
+    const logoAsset = 'assets/images/logos/app_final_splash_logo.png';
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthSuccess) {
-            Navigator.pushReplacement(context, HomePage.route());
-          } else if (state is AuthInitial) {
-            Navigator.pushReplacement(context, LoginPage.route());
-          }
-        },
-        child: Stack(
-          children: [
-            AnimatedBuilder(
-              animation: _rippleController,
-              builder: (context, child) {
-                return CustomPaint(
-                  size: Size.infinite,
-                  painter: SplashPainter(
-                    _rippleController.value,
-                    isDark: isDark,
-                  ),
-                );
-              },
-            ),
-            Center(
-              child: FadeTransition(
-                opacity: _logoOpacity,
-                child: ScaleTransition(
-                  scale: _logoScale,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withAlpha(isDark ? 10 : 20),
-                        ),
-                        child: Image.asset(logoAsset, width: 180),
+    return ValueListenableBuilder<Color>(
+      valueListenable: ThemeService.primaryColorNotifier,
+      builder: (context, primaryColor, child) {
+        final backgroundColor = isDark
+            ? const Color(0xFF121212)
+            : primaryColor;
+
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          body: BlocListener<AuthBloc, AuthState>(
+            listener: (context, state) {
+              if (state is AuthSuccess) {
+                Navigator.pushReplacement(context, HomePage.route());
+              } else if (state is AuthInitial) {
+                Navigator.pushReplacement(context, LoginPage.route());
+              }
+            },
+            child: Stack(
+              children: [
+                AnimatedBuilder(
+                  animation: _rippleController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      size: Size.infinite,
+                      painter: SplashPainter(
+                        _rippleController.value,
+                        isDark: isDark,
+                        primaryColor: primaryColor,
                       ),
-                      Positioned(
-                        bottom: -100,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'ONYX',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
+                    );
+                  },
+                ),
+                Center(
+                  child: FadeTransition(
+                    opacity: _logoOpacity,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withAlpha(isDark ? 10 : 20),
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _isOnline
-                                  ? 'Connecting securely...'
-                                  : 'Offline mode enabled',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                letterSpacing: 1.0,
-                              ),
+                            child: Image.asset(logoAsset, width: 180),
+                          ),
+                          Positioned(
+                            bottom: -100,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'ONYX',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _isOnline
+                                      ? 'Connecting securely...'
+                                      : 'Offline mode enabled',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _logoOpacity,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'powered by',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 12,
-                        letterSpacing: 1.0,
-                      ),
+                Positioned(
+                  bottom: 40,
+                  left: 0,
+                  right: 0,
+                  child: FadeTransition(
+                    opacity: _logoOpacity,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'powered by',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Image.asset(
+                          'assets/images/logos/brand_logo.png',
+                          height: 32,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.business,
+                              color: Colors.white70,
+                              size: 28,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'TheDevHamim',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Image.asset(
-                      'assets/images/logos/brand_logo.png',
-                      height: 32,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.business,
-                          color: Colors.white70,
-                          size: 28,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'TheDevHamim',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -210,8 +218,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 class SplashPainter extends CustomPainter {
   final double animationValue;
   final bool isDark;
+  final Color primaryColor;
 
-  SplashPainter(this.animationValue, {required this.isDark});
+  SplashPainter(
+    this.animationValue, {
+    required this.isDark,
+    required this.primaryColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -220,9 +233,8 @@ class SplashPainter extends CustomPainter {
     final breathingGlow = Paint()
       ..style = PaintingStyle.fill
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80)
-      ..color = const Color(
-        0xFF9E82F0,
-      ).withAlpha((30 + 20 * math.sin(animationValue * 2 * math.pi)).toInt());
+      ..color = primaryColor
+          .withAlpha((40 + 30 * math.sin(animationValue * 2 * math.pi)).toInt());
     canvas.drawCircle(center, 120, breathingGlow);
 
     final ringPaint = Paint()
@@ -249,7 +261,7 @@ class SplashPainter extends CustomPainter {
       final particleGlow = Paint()
         ..style = PaintingStyle.fill
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
-        ..color = const Color(0xFF9E82F0).withAlpha(150);
+        ..color = primaryColor.withAlpha(180);
       canvas.drawCircle(particleCenter, size * 2.5, particleGlow);
 
       particlePaint.color = Colors.white.withAlpha(200);
@@ -259,6 +271,8 @@ class SplashPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant SplashPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.isDark != isDark;
   }
 }

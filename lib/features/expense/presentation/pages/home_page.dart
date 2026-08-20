@@ -64,6 +64,7 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         RateUsService.checkAndShowRateUsDialog(context);
+        NotificationService().fetchRemoteAnnouncements();
       }
     });
   }
@@ -596,6 +597,11 @@ class _HomePageState extends State<HomePage> {
                                             icon: Icons.north_east_rounded,
                                             iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFE53935),
                                             onTap: () {
+                                              final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
+                                              if (wallets.isEmpty) {
+                                                showToast('Please add a card or wallet first.', isError: true, context: context);
+                                                return;
+                                              }
                                               Navigator.push(
                                                 context,
                                                 AddExpensePage.route(initialType: 'expense'),
@@ -610,6 +616,11 @@ class _HomePageState extends State<HomePage> {
                                             icon: Icons.south_west_rounded,
                                             iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF43A047),
                                             onTap: () {
+                                              final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
+                                              if (wallets.isEmpty) {
+                                                showToast('Please add a card or wallet first.', isError: true, context: context);
+                                                return;
+                                              }
                                               Navigator.push(
                                                 context,
                                                 AddExpensePage.route(initialType: 'income'),

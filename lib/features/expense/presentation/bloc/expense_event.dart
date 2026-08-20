@@ -22,3 +22,19 @@ final class ExpenseDeleteWallet extends ExpenseEvent {
 
   ExpenseDeleteWallet(this.walletId);
 }
+
+final class ExpenseClearTransactions extends ExpenseEvent {
+  final String userId;
+  final String type;
+  final String dateFilterMode;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  ExpenseClearTransactions({
+    required this.userId,
+    required this.type,
+    required this.dateFilterMode,
+    this.startDate,
+    this.endDate,
+  });
+}

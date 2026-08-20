@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
 
@@ -32,6 +33,8 @@ class NotificationsPage extends StatelessWidget {
         return CupertinoIcons.checkmark_alt_circle_fill;
       case 'warning':
         return CupertinoIcons.exclamationmark_triangle_fill;
+      case 'update':
+        return CupertinoIcons.arrow_down_square_fill;
       case 'info':
       default:
         return CupertinoIcons.info_circle_fill;
@@ -44,6 +47,8 @@ class NotificationsPage extends StatelessWidget {
         return const Color(0xFF22C55E);
       case 'warning':
         return const Color(0xFFF59E0B);
+      case 'update':
+        return const Color(0xFFEC4899);
       case 'info':
       default:
         return Theme.of(context).primaryColor;
@@ -185,54 +190,66 @@ class NotificationsPage extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: list.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                      child: RefreshIndicator(
+                        color: theme.primaryColor,
+                        onRefresh: () async {
+                          await service.fetchRemoteAnnouncements();
+                        },
+                        child: list.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(24),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          theme.primaryColor.withOpacity(0.08),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      CupertinoIcons.bell_slash,
-                                      size: 56,
-                                      color: theme.primaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'All caught up!',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'No new notifications at the moment.',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.grey.shade600,
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height * 0.5,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(24),
+                                          decoration: BoxDecoration(
+                                            color: theme.primaryColor.withOpacity(0.08),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            CupertinoIcons.bell_slash,
+                                            size: 56,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Text(
+                                          'All caught up!',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'No new notifications at the moment.',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.only(
-                                left: 16,
-                                right: 16,
-                                top: 50,
-                                bottom: 16,
-                              ),
-                              physics: const BouncingScrollPhysics(),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(
+                                  left: 16,
+                                  right: 16,
+                                  top: 50,
+                                  bottom: 16,
+                                ),
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
+                                ),
                               itemCount: list.length,
                               itemBuilder: (context, index) {
                                 final item = list[index];
@@ -286,6 +303,23 @@ class NotificationsPage extends StatelessWidget {
                                         onTap: () async {
                                           if (!item.isRead) {
                                             await service.markAsRead(item.id);
+                                          }
+                                          final isUpdate = item.type == 'update' ||
+                                              item.title.toLowerCase().contains('update');
+                                          if (isUpdate ||
+                                              (item.linkUrl != null &&
+                                                  item.linkUrl!.isNotEmpty)) {
+                                            final targetUrl =
+                                                (item.linkUrl != null && item.linkUrl!.isNotEmpty)
+                                                    ? item.linkUrl!
+                                                    : 'https://play.google.com/store/apps/details?id=com.thedevhamim.onyx';
+                                            final uri = Uri.parse(targetUrl);
+                                            try {
+                                              if (await canLaunchUrl(uri)) {
+                                                await launchUrl(uri,
+                                                    mode: LaunchMode.externalApplication);
+                                              }
+                                            } catch (_) {}
                                           }
                                         },
                                         child: Padding(
@@ -347,8 +381,7 @@ class NotificationsPage extends StatelessWidget {
                                                                 FontWeight.w500,
                                                             color: isDark
                                                                 ? Colors.white54
-                                                                : Colors
-                                                                    .black45,
+                                                                : Colors.black45,
                                                           ),
                                                         ),
                                                       ],
@@ -362,8 +395,7 @@ class NotificationsPage extends StatelessWidget {
                                                         color: isDark
                                                             ? Colors.white70
                                                             : Colors.black87
-                                                                .withOpacity(
-                                                                    0.75),
+                                                                .withOpacity(0.75),
                                                       ),
                                                     ),
                                                   ],
@@ -398,8 +430,9 @@ class NotificationsPage extends StatelessWidget {
                                 );
                               },
                             ),
+                      ),
                     ),
-                  ],
+                   ],
                 ),
               ),
             ],

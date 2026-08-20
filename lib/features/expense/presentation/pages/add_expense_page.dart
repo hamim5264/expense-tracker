@@ -45,6 +45,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -53,11 +56,21 @@ class _AddExpensePageState extends State<AddExpensePage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-              onPrimary: Colors.white,
-              onSurface: Colors.black87,
-            ),
+            dialogBackgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+            scaffoldBackgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: primaryColor,
+                    onPrimary: Colors.white,
+                    surface: const Color(0xFF1E1B29),
+                    onSurface: Colors.white,
+                  )
+                : ColorScheme.light(
+                    primary: primaryColor,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
           ),
           child: child!,
         );

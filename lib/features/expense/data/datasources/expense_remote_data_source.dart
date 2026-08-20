@@ -13,6 +13,13 @@ abstract interface class ExpenseRemoteDataSource {
   Future<WalletModel> addWallet(WalletModel wallet);
 
   Future<void> deleteWallet(String walletId);
+
+  Future<void> clearTransactions({
+    required String userId,
+    required String type,
+    DateTime? startDate,
+    DateTime? endDate,
+  });
 }
 
 class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
@@ -92,6 +99,32 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   Future<void> deleteWallet(String walletId) async {
     try {
       await supabaseClient.from('wallets').delete().eq('id', walletId);
+    } on PostgrestException catch (e) {
+      throw Failure(e.message);
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<void> clearTransactions({
+    required String userId,
+    required String type,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      var query = supabaseClient.from('expenses').delete().eq('user_id', userId);
+      if (type != 'all') {
+        query = query.eq('type', type);
+      }
+      if (startDate != null) {
+        query = query.gte('date', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.lte('date', endDate.toIso8601String());
+      }
+      await query;
     } on PostgrestException catch (e) {
       throw Failure(e.message);
     } catch (e) {

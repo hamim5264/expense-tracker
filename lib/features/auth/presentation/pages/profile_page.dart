@@ -18,9 +18,11 @@ import 'package:expense_tracker/features/auth/presentation/widgets/invite_friend
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_theme_selector.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_color_selector.dart';
 import 'package:expense_tracker/core/common/utils/theme_service.dart';
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_currency_selector.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sms_import_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/expense_reports_page.dart';
+import 'package:expense_tracker/features/auth/presentation/widgets/clear_transaction_history_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:flutter/material.dart';
@@ -258,6 +260,29 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(context, ExpenseReportsPage.route());
                         },
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.trash_circle_fill,
+                        title: 'Clear Transaction History',
+                        subtitle: 'Clear expense or income logs',
+                        iconColor: Colors.orangeAccent.shade400,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black.withAlpha(80),
+                            builder: (sheetContext) => ClearTransactionHistorySheet(
+                              userId: user.id,
+                            ),
+                          );
+                        },
+                      ),
 
                       _buildSectionHeader('PREFERENCES & APPEARANCE', isDark),
                       ProfileOptionTile(
@@ -324,6 +349,33 @@ class _ProfilePageState extends State<ProfilePage> {
                             showBackgroundBox: true,
                             showTrailingArrow: true,
                             onTap: () => _showColorThemeSelector(context),
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      AnimatedBuilder(
+                        animation: NotificationService(),
+                        builder: (context, _) {
+                          final isEnabled = NotificationService().isNotificationsEnabled;
+                          return ProfileOptionTile(
+                            icon: CupertinoIcons.bell_fill,
+                            title: 'Notifications',
+                            subtitle: isEnabled ? 'Enabled' : 'Disabled',
+                            iconColor: Colors.purpleAccent,
+                            showBackgroundBox: true,
+                            trailing: CupertinoSwitch(
+                              value: isEnabled,
+                              activeColor: Theme.of(context).primaryColor,
+                              onChanged: (val) {
+                                NotificationService().setNotificationsEnabled(val);
+                              },
+                            ),
+                            onTap: () {
+                              NotificationService().setNotificationsEnabled(!isEnabled);
+                            },
                           );
                         },
                       ),

@@ -6,6 +6,7 @@ import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.
 import 'package:expense_tracker/core/routing/app_router.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
+import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/connect_wallet_page.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
@@ -276,7 +277,7 @@ class _WalletPageState extends State<WalletPage> {
                             QuickActionButton(
                               icon: Icons.download_rounded,
                               label: 'Export',
-                              onTap: () => _exportTransactions(
+                              onTap: () => _showExportPeriodSheet(
                                 expenses,
                                 wallets,
                                 user.name.isEmpty
@@ -356,6 +357,194 @@ class _WalletPageState extends State<WalletPage> {
         },
       ),
     );
+  }
+
+  List<Expense> _filterByPeriod(List<Expense> list, String period) {
+    if (period == 'All Time' || period == 'all') return list;
+    final now = DateTime.now();
+    return list.where((tx) {
+      if (period == 'Day') {
+        return tx.date.year == now.year &&
+            tx.date.month == now.month &&
+            tx.date.day == now.day;
+      } else if (period == 'Week') {
+        final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+        final startOfCurrentWeek = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day,
+        );
+        return tx.date.isAfter(startOfCurrentWeek) ||
+            (tx.date.year == startOfCurrentWeek.year &&
+                tx.date.month == startOfCurrentWeek.month &&
+                tx.date.day == startOfCurrentWeek.day);
+      } else if (period == 'Month') {
+        return tx.date.year == now.year && tx.date.month == now.month;
+      } else if (period == 'Year') {
+        return tx.date.year == now.year;
+      }
+      return true;
+    }).toList();
+  }
+
+  void _showExportPeriodSheet(
+    List<Expense> expenses,
+    List<Wallet> wallets,
+    String userName,
+    String currency,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        final primaryColor = Theme.of(sheetContext).primaryColor;
+        final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
+        final textColor = isDark ? Colors.white : Colors.black87;
+
+        final options = [
+          {'id': 'Day', 'label': "Today's Statement", 'icon': CupertinoIcons.calendar_today},
+          {'id': 'Week', 'label': 'This Week', 'icon': CupertinoIcons.calendar},
+          {'id': 'Month', 'label': 'This Month', 'icon': CupertinoIcons.calendar_badge_minus},
+          {'id': 'Year', 'label': 'This Year', 'icon': CupertinoIcons.calendar_badge_plus},
+          {'id': 'All Time', 'label': 'All Time Statement', 'icon': CupertinoIcons.infinite},
+        ];
+
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select Statement Timeframe',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...options.map((opt) {
+                    final id = opt['id'] as String;
+                    final label = opt['label'] as String;
+                    final icon = opt['icon'] as IconData;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: isDark ? Colors.white10 : Colors.grey.shade200,
+                          ),
+                        ),
+                        tileColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: primaryColor, size: 18),
+                        ),
+                        title: Text(
+                          label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                        trailing: Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 16,
+                          color: isDark ? Colors.white38 : Colors.grey,
+                        ),
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          _exportTransactions(
+                            expenses,
+                            wallets,
+                            userName,
+                            currency,
+                            period: id,
+                          );
+                        },
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportTransactions(
+    List<Expense> expenses,
+    List<Wallet> wallets,
+    String userName,
+    String currency, {
+    String period = 'all',
+  }) async {
+    final filteredExpenses = _filterByPeriod(expenses, period);
+
+    if (filteredExpenses.isEmpty) {
+      if (!mounted) return;
+      showToast('Cannot export: No transactions found for $period.', isError: true, context: context);
+      return;
+    }
+
+    final totalBalance = wallets.fold(0.0, (sum, w) => sum + w.balance);
+
+    showExportProgressDialog(context);
+
+    Future.microtask(() async {
+      await PdfReportService.generateAndSaveReport(
+        transactions: filteredExpenses,
+        userName: userName,
+        currency: currency,
+        period: period,
+        type: 'all',
+        totalAmount: totalBalance,
+        onSuccess: (_) {
+          if (!mounted) return;
+          Navigator.of(context, rootNavigator: true).pop();
+          AnimationHelper.showSuccess(
+            context,
+            'Report saved to Downloads & App Reports!',
+          );
+        },
+        onFailed: (err) {
+          if (!mounted) return;
+          Navigator.of(context, rootNavigator: true).pop();
+          AnimationHelper.showFailed(context, 'Export failed: $err');
+        },
+      );
+    });
   }
 
   void _showTransferDialog(
@@ -513,41 +702,6 @@ class _WalletPageState extends State<WalletPage> {
             );
           },
         );
-      },
-    );
-  }
-
-  Future<void> _exportTransactions(
-    List<Expense> expenses,
-    List<Wallet> wallets,
-    String userName,
-    String currency,
-  ) async {
-    if (expenses.isEmpty) {
-      if (!mounted) return;
-      AnimationHelper.showFailed(context, 'No transactions to export.');
-      return;
-    }
-
-    final totalBalance = wallets.fold(0.0, (sum, w) => sum + w.balance);
-
-    await PdfReportService.generateAndSaveReport(
-      transactions: expenses,
-      userName: userName,
-      currency: currency,
-      period: 'all',
-      type: 'all',
-      totalAmount: totalBalance,
-      onSuccess: (_) {
-        if (!mounted) return;
-        AnimationHelper.showSuccess(
-          context,
-          'Report saved to Downloads & App Reports!',
-        );
-      },
-      onFailed: (err) {
-        if (!mounted) return;
-        AnimationHelper.showFailed(context, 'Export failed: $err');
       },
     );
   }

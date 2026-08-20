@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class AppNotification {
@@ -9,6 +11,7 @@ class AppNotification {
   final DateTime timestamp;
   final bool isRead;
   final String type;
+  final String? linkUrl;
 
   AppNotification({
     required this.id,
@@ -17,6 +20,7 @@ class AppNotification {
     required this.timestamp,
     this.isRead = false,
     required this.type,
+    this.linkUrl,
   });
 
   AppNotification copyWith({
@@ -26,6 +30,7 @@ class AppNotification {
     DateTime? timestamp,
     bool? isRead,
     String? type,
+    String? linkUrl,
   }) {
     return AppNotification(
       id: id ?? this.id,
@@ -34,6 +39,7 @@ class AppNotification {
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
       type: type ?? this.type,
+      linkUrl: linkUrl ?? this.linkUrl,
     );
   }
 
@@ -45,6 +51,7 @@ class AppNotification {
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
       'type': type,
+      'linkUrl': linkUrl,
     };
   }
 
@@ -56,12 +63,14 @@ class AppNotification {
       timestamp: DateTime.parse(json['timestamp'] as String),
       isRead: json['isRead'] as bool? ?? false,
       type: json['type'] as String? ?? 'info',
+      linkUrl: json['linkUrl'] as String?,
     );
   }
 }
 
 class NotificationService extends ChangeNotifier {
   static const String _boxName = 'notifications_box';
+  static const String _keyNotificationsEnabled = 'notifications_enabled';
   static final NotificationService _instance = NotificationService._internal();
 
   factory NotificationService() => _instance;
@@ -69,10 +78,85 @@ class NotificationService extends ChangeNotifier {
   NotificationService._internal();
 
   Box? _box;
+  bool _isNotificationsEnabled = true;
+
+  bool get isNotificationsEnabled => _isNotificationsEnabled;
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
     await sanitizeDuplicates();
+    await _loadPreferences();
+    if (_isNotificationsEnabled) {
+      fetchRemoteAnnouncements();
+    }
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isNotificationsEnabled = prefs.getBool(_keyNotificationsEnabled) ?? true;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    _isNotificationsEnabled = enabled;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyNotificationsEnabled, enabled);
+    } catch (_) {}
+    if (enabled) {
+      fetchRemoteAnnouncements();
+    }
+  }
+
+  Future<void> fetchRemoteAnnouncements() async {
+    if (_box == null) await init();
+    if (!_isNotificationsEnabled) return;
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('system_announcements')
+          .select()
+          .eq('is_active', true)
+          .order('created_at', ascending: false);
+
+      bool addedAny = false;
+      for (final row in response) {
+        final title = row['title'] as String? ?? '';
+        final message = row['message'] as String? ?? '';
+        final type = row['type'] as String? ?? 'info';
+        final linkUrl = row['link_url'] as String?;
+        final createdAtStr = row['created_at'] as String?;
+        final timestamp =
+            createdAtStr != null ? DateTime.parse(createdAtStr) : DateTime.now();
+
+        if (title.isEmpty || message.isEmpty) continue;
+
+        final isDuplicate = notifications.any(
+          (n) => n.title == title && n.message == message,
+        );
+
+        if (!isDuplicate) {
+          final id = row['id']?.toString() ?? const Uuid().v4();
+          final notification = AppNotification(
+            id: id,
+            title: title,
+            message: message,
+            timestamp: timestamp,
+            type: type,
+            isRead: false,
+            linkUrl: linkUrl,
+          );
+          await _box!.put(notification.id, notification.toJson());
+          addedAny = true;
+        }
+      }
+      if (addedAny) {
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<void> sanitizeDuplicates() async {
@@ -120,6 +204,7 @@ class NotificationService extends ChangeNotifier {
     required String title,
     required String message,
     required String type,
+    String? linkUrl,
   }) async {
     if (_box == null) await init();
 
@@ -135,6 +220,7 @@ class NotificationService extends ChangeNotifier {
       timestamp: DateTime.now(),
       type: type,
       isRead: false,
+      linkUrl: linkUrl,
     );
     await _box!.put(notification.id, notification.toJson());
     notifyListeners();

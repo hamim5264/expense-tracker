@@ -86,25 +86,34 @@ class _BalanceCardState extends State<BalanceCard> {
   Future<void> _loadStyles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final defaultStyle = prefs.getString('balance_card_style_default') ?? 'purple';
       final savedActiveId = prefs.getString('balance_card_active_wallet_id');
-      int initialActiveIndex = 0;
-      if (savedActiveId != null) {
+      
+      int activeIdx = _activeIndex;
+      if (savedActiveId != null && widget.cardWallets.isNotEmpty) {
         final idx = widget.cardWallets.indexWhere((w) => w.id == savedActiveId);
         if (idx != -1) {
-          initialActiveIndex = idx;
+          activeIdx = idx;
         }
       }
+      if (activeIdx >= widget.cardWallets.length && widget.cardWallets.isNotEmpty) {
+        activeIdx = 0;
+      }
+
       final Map<String, String> loadedStyles = {};
       for (var wallet in widget.cardWallets) {
-        final style = prefs.getString('balance_card_style_${wallet.id}') ?? 'purple';
+        final style = prefs.getString('balance_card_style_${wallet.id}') ?? defaultStyle;
         loadedStyles[wallet.id] = style;
       }
+
       setState(() {
-        _activeIndex = initialActiveIndex;
+        _activeIndex = activeIdx;
         _cardStyles = loadedStyles;
         if (widget.cardWallets.isNotEmpty) {
           final activeWallet = widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0];
-          _selectedStyle = loadedStyles[activeWallet.id] ?? 'purple';
+          _selectedStyle = loadedStyles[activeWallet.id] ?? defaultStyle;
+        } else {
+          _selectedStyle = defaultStyle;
         }
       });
     } catch (_) {}
@@ -115,15 +124,19 @@ class _BalanceCardState extends State<BalanceCard> {
   }
 
   Future<void> _saveSelectedStyle(String style) async {
-    if (widget.cardWallets.isEmpty) return;
-    final activeWallet = widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0];
     setState(() {
       _selectedStyle = style;
-      _cardStyles[activeWallet.id] = style;
     });
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('balance_card_style_${activeWallet.id}', style);
+      await prefs.setString('balance_card_style_default', style);
+      
+      if (widget.cardWallets.isNotEmpty) {
+        final activeWallet = widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0];
+        _cardStyles[activeWallet.id] = style;
+        await prefs.setString('balance_card_style_${activeWallet.id}', style);
+      }
     } catch (_) {}
   }
 
@@ -426,7 +439,7 @@ class _BalanceCardState extends State<BalanceCard> {
       'dark_obsidian'
     ];
     String finalStyle = style;
-    if (style == 'purple' || style == 'default') {
+    if (style == 'default') {
       finalStyle = stylesList[index % stylesList.length];
     }
     switch (finalStyle) {
