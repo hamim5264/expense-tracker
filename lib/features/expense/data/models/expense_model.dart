@@ -10,6 +10,7 @@ class ExpenseModel extends Expense {
     required super.type,
     super.category = 'Others',
     super.walletId,
+    super.notes,
   });
 
   Map<String, dynamic> toJson() {
@@ -22,6 +23,7 @@ class ExpenseModel extends Expense {
       'type': type,
       'category': category,
       'wallet_id': walletId,
+      'notes': notes,
     };
   }
 
@@ -35,6 +37,7 @@ class ExpenseModel extends Expense {
       type: map['type'] as String,
       category: map['category'] as String? ?? 'Others',
       walletId: map['wallet_id'] as String?,
+      notes: map['notes'] as String?,
     );
   }
 
@@ -47,6 +50,7 @@ class ExpenseModel extends Expense {
     String? type,
     String? category,
     String? walletId,
+    String? notes,
   }) {
     return ExpenseModel(
       id: id ?? this.id,
@@ -57,6 +61,7 @@ class ExpenseModel extends Expense {
       type: type ?? this.type,
       category: category ?? this.category,
       walletId: walletId ?? this.walletId,
+      notes: notes ?? this.notes,
     );
   }
 }

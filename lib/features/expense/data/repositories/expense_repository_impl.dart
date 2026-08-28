@@ -58,6 +58,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         type: expense.type,
         category: expense.category,
         walletId: expense.walletId,
+        notes: expense.notes,
       );
 
       final currentCache = await cacheService.getCachedExpenses();
@@ -183,6 +184,71 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         await cacheService.cacheWallets(currentCache);
         await cacheService.addUnsyncedWallet(offlineModel.toJson());
         return right(offlineModel);
+      }
+    } on Failure catch (e) {
+      return left(e);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Wallet>> updateWallet(Wallet wallet) async {
+    try {
+      // Calculate net sum of transactions for this wallet
+      List<Expense> expenses = [];
+      final expRes = await getAllExpenses();
+      expRes.fold((_) {}, (r) => expenses = r);
+
+      final walletTx = expenses.where((tx) => tx.walletId == wallet.id).toList();
+      double txSum = 0.0;
+      for (var tx in walletTx) {
+        if (tx.type == 'income') {
+          txSum += tx.amount;
+        } else {
+          txSum -= tx.amount;
+        }
+      }
+
+      // The new initial_balance is (Desired Target Balance - Net Transactions Sum)
+      final newInitialBalance = wallet.balance - txSum;
+
+      final detailsMap = Map<String, dynamic>.from(wallet.details);
+      detailsMap['initial_balance'] = newInitialBalance;
+
+      final walletModel = WalletModel(
+        id: wallet.id,
+        userId: wallet.userId,
+        name: wallet.name,
+        type: wallet.type,
+        balance: wallet.balance,
+        details: detailsMap,
+        createdAt: wallet.createdAt,
+      );
+
+      final localData = await cacheService.getCachedWallets();
+      final index = localData.indexWhere((w) => w['id'] == wallet.id);
+      if (index != -1) {
+        localData[index] = walletModel.toJson();
+      } else {
+        localData.insert(0, walletModel.toJson());
+      }
+      await cacheService.cacheWallets(localData);
+
+      if (await networkInfo.isConnected) {
+        final updated = await remoteDataSource.updateWallet(walletModel);
+        return right(Wallet(
+          id: updated.id,
+          userId: updated.userId,
+          name: updated.name,
+          type: updated.type,
+          balance: wallet.balance,
+          details: updated.details,
+          createdAt: updated.createdAt,
+        ));
+      } else {
+        await cacheService.addUnsyncedWallet(walletModel.toJson());
+        return right(wallet);
       }
     } on Failure catch (e) {
       return left(e);

@@ -2,12 +2,13 @@ import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/premium_credit_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/account_option_tile.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/add_card_tab_form.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/account_details_form.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
+import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 
 class ConnectWalletPage extends StatefulWidget {
   static Route route() =>
@@ -32,7 +33,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   final _cardCvcController = TextEditingController();
   final _cardExpiryController = TextEditingController();
   final _cardZipController = TextEditingController();
-  final _cardBalanceController = TextEditingController(text: '0.00');
+  final _cardBalanceController = TextEditingController();
 
   final _cardNameFocusNode = FocusNode();
   final _cardNumberFocusNode = FocusNode();
@@ -47,7 +48,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
   final _accountFormKey = GlobalKey<FormState>();
   final _accountNameController = TextEditingController();
   final _accountNumberController = TextEditingController();
-  final _accountBalanceController = TextEditingController(text: '0.00');
+  final _accountBalanceController = TextEditingController();
 
   final _bankNameController = TextEditingController(text: 'Chase Bank');
   final _mobileProviderController = TextEditingController(text: 'bKash');
@@ -119,12 +120,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
     if (expenseState is ExpenseSuccess) {
       final cardCount = expenseState.wallets.where((w) => w.type == 'card').length;
       if (cardCount >= 3) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You can add a maximum of 3 cards.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        showToast('Maximum limit reached: You can only add up to 3 cards.', isError: true, context: context);
         return;
       }
     }
@@ -163,7 +159,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           ? accNum.substring(accNum.length - 4)
           : accNum;
       final bankName = _bankNameController.text.trim();
-      name = '$bankName (••$hidden)';
+      name = '$bankName ($hidden)';
       type = 'bank';
       details = {
         'bank_name': bankName,
@@ -183,7 +179,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           ? phone.substring(phone.length - 4)
           : phone;
       final provider = _mobileProviderController.text.trim();
-      name = '$provider (••$hidden)';
+      name = '$provider ($hidden)';
       type = 'others';
       details = {'provider': provider, 'phone_number': phone};
     }
@@ -245,43 +241,53 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
               backgroundColor: isDark
                   ? const Color(0xFF121212)
                   : const Color(0xFFF9F9FB),
-              appBar: AppBar(
-                backgroundColor: primaryColor,
-                elevation: 0,
-                leading: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new,
-                    color: Colors.white,
-                  ),
-                  onPressed: () {
-                    if (_showAccountDetailsForm) {
-                      setState(() => _showAccountDetailsForm = false);
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-                title: Text(
-                  _showAccountDetailsForm
-                      ? 'Enter Account Details'
-                      : 'Connect Wallet',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                centerTitle: true,
-              ),
-              body: Stack(
-                children: [
-                  Column(
-                    children: [
+              body: SafeArea(
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        // Clean Top Navigation Header
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.arrow_back_ios_new,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                                onPressed: () {
+                                  if (_showAccountDetailsForm) {
+                                    setState(() => _showAccountDetailsForm = false);
+                                  } else {
+                                    Navigator.pop(context);
+                                  }
+                                },
+                              ),
+                              Expanded(
+                                child: Text(
+                                  _showAccountDetailsForm
+                                      ? 'Enter Account Details'
+                                      : 'Connect Wallet',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 48),
+                            ],
+                          ),
+                        ),
                       if (!_showAccountDetailsForm)
                         Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
+                          margin: const EdgeInsets.only(
+                            left: 24,
+                            right: 24,
+                            top: 4,
+                            bottom: 12,
                           ),
                           height: 48,
                           decoration: BoxDecoration(
@@ -321,15 +327,42 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
                       Expanded(
                         child: _showAccountDetailsForm
-                            ? _buildAccountDetailsForm(
-                                user.id,
-                                isDark,
-                                displayName,
+                            ? AccountDetailsForm(
+                                formKey: _accountFormKey,
+                                selectedBankType: _selectedBankType,
+                                bankNameController: _bankNameController,
+                                mobileProviderController: _mobileProviderController,
+                                accountNameController: _accountNameController,
+                                accountNumberController: _accountNumberController,
+                                accountBalanceController: _accountBalanceController,
+                                bankNameFocusNode: _bankNameFocusNode,
+                                mobileProviderFocusNode: _mobileProviderFocusNode,
+                                accountNameFocusNode: _accountNameFocusNode,
+                                accountNumberFocusNode: _accountNumberFocusNode,
+                                accountBalanceFocusNode: _accountBalanceFocusNode,
+                                popularBanks: _popularBanks,
+                                popularMobileProviders: _popularMobileProviders,
+                                isDark: isDark,
+                                displayName: displayName,
+                                userId: user.id,
+                                onChanged: () => setState(() {}),
+                                onSaveBankWallet: _saveBankWallet,
                               )
                             : TabBarView(
                                 controller: _tabController,
                                 children: [
-                                  _buildCardsTab(user.id, isDark, displayName),
+                                  AddCardTabForm(
+                                    formKey: _cardFormKey,
+                                    nameController: _cardNameController,
+                                    numberController: _cardNumberController,
+                                    balanceController: _cardBalanceController,
+                                    nameFocusNode: _cardNameFocusNode,
+                                    numberFocusNode: _cardNumberFocusNode,
+                                    balanceFocusNode: _cardBalanceFocusNode,
+                                    onChanged: () => setState(() {}),
+                                    onSaveCard: _saveCardWallet,
+                                    userId: user.id,
+                                  ),
                                   _buildAccountsTab(isDark),
                                 ],
                               ),
@@ -344,117 +377,11 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
                     ),
                 ],
               ),
-            );
+            ),
+          );
           },
         );
       },
-    );
-  }
-
-  Widget _buildCardsTab(String userId, bool isDark, String displayName) {
-    final primaryColor = Theme.of(context).primaryColor;
-    return Form(
-      key: _cardFormKey,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        children: [
-          const SizedBox(height: 8),
-          PremiumCreditCard(
-            cardHolderName: _cardNameController.text.isEmpty
-                ? 'JOHN DOE'
-                : _cardNameController.text.toUpperCase(),
-            cardNumber: _cardNumberController.text.isEmpty
-                ? '•••• •••• •••• ••••'
-                : _cardNumberController.text,
-            expiryDate: _cardExpiryController.text.isEmpty
-                ? 'MM/YY'
-                : _cardExpiryController.text,
-          ),
-          const SizedBox(height: 24),
-
-          _fieldLabel('NAME ON CARD'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _cardNameController,
-            focusNode: _cardNameFocusNode,
-            onChanged: (_) => setState(() {}),
-            textCapitalization: TextCapitalization.characters,
-            decoration: _inputDeco('e.g. JOHN DOE'),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_cardNumberFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel('CARD NUMBER (LAST 4 DIGITS)'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _cardNumberController,
-            focusNode: _cardNumberFocusNode,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
-            ],
-            onChanged: (val) {
-              setState(() {});
-              if (val.length == 4) {
-                FocusScope.of(context).requestFocus(_cardBalanceFocusNode);
-              }
-            },
-            decoration: _inputDeco('e.g. 4321'),
-            validator: (v) {
-              final clean = (v ?? '').replaceAll(' ', '');
-              if (clean.isEmpty) return 'Card number is required';
-              if (clean.length < 4) return 'Must be exactly 4 digits';
-              return null;
-            },
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_cardBalanceFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel('INITIAL BALANCE'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _cardBalanceController,
-            focusNode: _cardBalanceFocusNode,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: _inputDeco('0.00'),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Required';
-              if (double.tryParse(v.trim()) == null) return 'Invalid number';
-              return null;
-            },
-            onFieldSubmitted: (_) => _saveCardWallet(userId),
-          ),
-          const SizedBox(height: 32),
-
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              onPressed: () => _saveCardWallet(userId),
-              child: const Text(
-                'Add Card',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
     );
   }
 
@@ -521,278 +448,5 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       ],
     );
   }
-
-  Widget _buildAccountDetailsForm(
-    String userId,
-    bool isDark,
-    String displayName,
-  ) {
-    final primaryColor = Theme.of(context).primaryColor;
-
-    final isBank = _selectedBankType == 'Bank Link';
-    final isPaypal = _selectedBankType == 'Paypal';
-    final isMobile = _selectedBankType == 'Mobile Banking';
-
-    return Form(
-      key: _accountFormKey,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        children: [
-          const SizedBox(height: 16),
-
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: primaryColor.withAlpha(20),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isBank
-                    ? Icons.account_balance_rounded
-                    : isPaypal
-                    ? Icons.payment_rounded
-                    : Icons.phone_android_rounded,
-                color: primaryColor,
-                size: 36,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              isBank
-                  ? 'Link Bank Account'
-                  : isPaypal
-                  ? 'Link PayPal'
-                  : 'Link Mobile Wallet',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          if (isBank) ...[
-            _fieldLabel('BANK NAME'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _bankNameController,
-              focusNode: _bankNameFocusNode,
-              decoration: _inputDeco('e.g. Chase Bank'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: _popularBanks.map((bank) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ActionChip(
-                      label: Text(
-                        bank,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                      backgroundColor: isDark
-                          ? Colors.white10
-                          : Colors.grey.shade100,
-                      onPressed: () {
-                        setState(() {
-                          _bankNameController.text = bank;
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          if (isMobile) ...[
-            _fieldLabel('MOBILE PROVIDER'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _mobileProviderController,
-              focusNode: _mobileProviderFocusNode,
-              decoration: _inputDeco('e.g. Venmo'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: _popularMobileProviders.map((prov) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ActionChip(
-                      label: Text(
-                        prov,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                      backgroundColor: isDark
-                          ? Colors.white10
-                          : Colors.grey.shade100,
-                      onPressed: () {
-                        setState(() {
-                          _mobileProviderController.text = prov;
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          _fieldLabel(isBank ? 'ACCOUNT HOLDER NAME' : 'YOUR NAME / ALIAS'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _accountNameController,
-            focusNode: _accountNameFocusNode,
-            decoration: _inputDeco('e.g. JOHN DOE'),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_accountNumberFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel(
-            isBank
-                ? 'ACCOUNT NUMBER (LAST 4 DIGITS)'
-                : isPaypal
-                ? 'PAYPAL EMAIL ADDRESS'
-                : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS)',
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _accountNumberController,
-            focusNode: _accountNumberFocusNode,
-            keyboardType: isPaypal
-                ? TextInputType.emailAddress
-                : TextInputType.number,
-            inputFormatters: !isPaypal
-                ? [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ]
-                : null,
-            onChanged: (val) {
-              if (!isPaypal && val.length == 4) {
-                FocusScope.of(context).requestFocus(_accountBalanceFocusNode);
-              }
-            },
-            decoration: _inputDeco(
-              isBank
-                  ? 'e.g. 7890'
-                  : isPaypal
-                  ? 'name@example.com'
-                  : 'e.g. 4321',
-            ),
-            validator: (v) {
-              final val = v?.trim() ?? '';
-              if (val.isEmpty) return 'Required';
-              if (isPaypal && !val.contains('@')) return 'Enter a valid email';
-              if (!isPaypal && val.length < 4) {
-                return 'Must be exactly 4 digits';
-              }
-              return null;
-            },
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(_accountBalanceFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel('INITIAL BALANCE'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _accountBalanceController,
-            focusNode: _accountBalanceFocusNode,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: _inputDeco('0.00'),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Required';
-              if (double.tryParse(v.trim()) == null) {
-                return 'Enter a valid amount';
-              }
-              return null;
-            },
-            onFieldSubmitted: (_) => _saveBankWallet(userId),
-          ),
-          const SizedBox(height: 32),
-
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              onPressed: () => _saveBankWallet(userId),
-              child: const Text(
-                'Link Account',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _fieldLabel(String text) => Text(
-    text,
-    style: const TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.bold,
-      color: Colors.grey,
-      letterSpacing: 0.8,
-    ),
-  );
-
-  InputDecoration _inputDeco(String hint) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-      fillColor: isDark ? Colors.white10 : Colors.white,
-      filled: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-    );
-  }
 }
+

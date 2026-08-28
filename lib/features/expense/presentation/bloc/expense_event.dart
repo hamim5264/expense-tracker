@@ -17,6 +17,12 @@ final class ExpenseAddWalletCard extends ExpenseEvent {
   ExpenseAddWalletCard(this.wallet);
 }
 
+final class ExpenseUpdateWallet extends ExpenseEvent {
+  final Wallet wallet;
+
+  ExpenseUpdateWallet(this.wallet);
+}
+
 final class ExpenseDeleteWallet extends ExpenseEvent {
   final String walletId;
 

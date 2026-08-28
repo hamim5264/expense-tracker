@@ -6,6 +6,7 @@ import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/category_selector.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sliding_segment_control.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/transaction_form_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -26,6 +27,7 @@ class AddExpensePage extends StatefulWidget {
 class _AddExpensePageState extends State<AddExpensePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Entertainment';
   String? _selectedWalletId;
@@ -41,6 +43,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
   void dispose() {
     _nameController.dispose();
     _amountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -84,6 +87,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
   void _submitExpense(String userId) {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final notes = _notesController.text.trim();
 
     if (name.isEmpty) {
       Fluttertoast.showToast(msg: 'Please enter transaction name');
@@ -103,6 +107,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
       type: _transactionType,
       category: _selectedCategory,
       walletId: _selectedWalletId,
+      notes: notes.isNotEmpty ? notes : null,
     );
 
     context.read<ExpenseBloc>().add(ExpenseAddTransaction(expense));
@@ -156,15 +161,25 @@ class _AddExpensePageState extends State<AddExpensePage> {
                 }
               }
 
+              final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
+              final borderColor = isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200;
+              final labelStyle = TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
+              );
+
               return Column(
                 children: [
                   Expanded(
                     child: ListView(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+                        horizontal: 20,
                         vertical: 16,
                       ),
                       children: [
+                        // Segment control
                         SlidingSegmentControl(
                           value: _transactionType,
                           onChanged: (val) {
@@ -177,196 +192,117 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           },
                           isDark: isDark,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 18),
 
-                        const Text(
-                          'NAME',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
+                        // Section 1: Main Transaction Details Card
+                        TransactionFormCard(
+                          nameController: _nameController,
+                          amountController: _amountController,
+                          selectedDate: _selectedDate,
+                          transactionType: _transactionType,
+                          selectedWalletId: _selectedWalletId,
+                          wallets: wallets,
+                          currencySymbol: currencySymbol,
+                          isDark: isDark,
+                          primaryColor: primaryColor,
+                          onPickDate: _pickDate,
+                          onWalletChanged: (val) => setState(() => _selectedWalletId = val),
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            hintText: _transactionType == 'expense'
-                                ? 'e.g. Netflix'
-                                : 'e.g. Salary Pay',
-                            fillColor: isDark ? Colors.white10 : Colors.white,
-                            filled: true,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: primaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
-                        const Text(
-                          'AMOUNT',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                        // Section 2: Category Selector
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: borderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('CATEGORY', style: labelStyle),
+                              const SizedBox(height: 8),
+                              CategorySelector(
+                                selectedCategory: _selectedCategory,
+                                transactionType: _transactionType,
+                                onCategorySelected: (cat) => setState(() => _selectedCategory = cat),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _amountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : primaryColor,
-                          ),
-                          decoration: InputDecoration(
-                            prefixText: '$currencySymbol ',
-                            prefixStyle: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : primaryColor,
-                            ),
-                            hintText: '0.00',
-                            fillColor: isDark ? Colors.white10 : Colors.white,
-                            filled: true,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: primaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
-                        const Text(
-                          'DATE',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                        // Section 3: Notes Field Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: borderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _pickDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.black87,
-                                    fontSize: 16,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('NOTES (OPTIONAL)', style: labelStyle),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _notesController,
+                                minLines: 2,
+                                maxLines: 2,
+                                maxLength: 155,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  hintText: 'e.g. Paid via online banking ref #482...',
+                                  hintStyle: TextStyle(
+                                    color: isDark ? Colors.white30 : Colors.grey.shade400,
+                                    fontSize: 12,
+                                  ),
+                                  fillColor: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade50,
+                                  filled: true,
+                                  counterStyle: TextStyle(
+                                    fontSize: 10,
+                                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: borderColor),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: borderColor),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: primaryColor, width: 1.5),
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.calendar_today_rounded,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
 
-                        if (wallets.isNotEmpty) ...[
-                          const Text(
-                            'PAYMENT METHOD (WALLET)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _selectedWalletId,
-                            dropdownColor: isDark
-                                ? const Color(0xFF1E1E1E)
-                                : Colors.white,
-                            items: wallets.map((wallet) {
-                              return DropdownMenuItem<String>(
-                                value: wallet.id,
-                                child: Text(
-                                  '${wallet.name} (${wallet.type.toUpperCase()})',
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) =>
-                                setState(() => _selectedWalletId = val),
-                            decoration: InputDecoration(
-                              fillColor: isDark ? Colors.white10 : Colors.white,
-                              filled: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-
-                        const Text(
-                          'CATEGORY',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        CategorySelector(
-                          selectedCategory: _selectedCategory,
-                          transactionType: _transactionType,
-                          onCategorySelected: (cat) =>
-                              setState(() => _selectedCategory = cat),
-                        ),
-                        const SizedBox(height: 32),
+                        // Submit Button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -376,7 +312,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              elevation: 0,
+                              elevation: 2,
+                              shadowColor: primaryColor.withOpacity(0.4),
                             ),
                             onPressed: () => _submitExpense(user.id),
                             child: const Text(
@@ -385,11 +322,12 @@ class _AddExpensePageState extends State<AddExpensePage> {
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 0.2,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),

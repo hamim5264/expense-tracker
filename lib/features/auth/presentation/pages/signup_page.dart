@@ -59,9 +59,32 @@ class _SignUpPageState extends State<SignUpPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        toolbarHeight: 60,
+        titleSpacing: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: Icon(Icons.arrow_back_ios, color: onSurface),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Create Account',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: onSurface,
+              ),
+            ),
+            Text(
+              'Start tracking your financial journey today.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: const Color(0xFF6A707C),
+              ),
+            ),
+          ],
         ),
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -88,65 +111,18 @@ class _SignUpPageState extends State<SignUpPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: theme.brightness == Brightness.dark
-                                  ? Colors.white.withAlpha(8)
-                                  : const Color(0xFF4F378A).withAlpha(15),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.brightness == Brightness.dark
-                                    ? Colors.white.withAlpha(20)
-                                    : const Color(0xFF4F378A).withAlpha(35),
-                              ),
-                              child: Image.asset(
-                                'assets/images/logos/app_final_splash_logo.png',
-                                height: 80,
-                              ),
-                            ),
-                          ),
-                        ),
                         const SizedBox(height: 10),
-                        Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                'Nice to meet you',
-                                style: GoogleFonts.inter(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Before we begin, we need some details.',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  color: const Color(0xFF6A707C),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
                         AuthField(
                           hintText: 'Username',
                           controller: nameController,
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         AuthField(
                           hintText: 'Enter your email',
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         AuthField(
                           hintText: 'Password',
                           controller: passwordController,
@@ -165,7 +141,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         AuthField(
                           hintText: 'Confirm password',
                           controller: confirmPasswordController,
@@ -184,7 +160,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         DropdownButtonFormField<String>(
                           isExpanded: true,
                           initialValue: selectedQuestion,
@@ -221,12 +197,12 @@ class _SignUpPageState extends State<SignUpPage> {
                           validator: (val) =>
                               val == null ? 'Please select a question' : null,
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         AuthField(
                           hintText: 'Your Answer',
                           controller: securityAnswerController,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
                         ElevatedButton(
                           onPressed: () {
                             if (formKey.currentState!.validate()) {
@@ -253,24 +229,24 @@ class _SignUpPageState extends State<SignUpPage> {
                           },
                           child: const Text('Register'),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
                         Center(
                           child: Text(
                             'Or Register with',
                             style: GoogleFonts.inter(
                               color: const Color(0xFF6A707C),
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         Row(
                           children: [
                             SocialButton(
                               icon: Image.asset(
                                 'assets/images/components/facebook.png',
-                                height: 26,
+                                height: 24,
                               ),
                               onPressed: () {
                                 context.read<AuthBloc>().add(
@@ -282,7 +258,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             SocialButton(
                               icon: Image.asset(
                                 'assets/images/components/google.png',
-                                height: 26,
+                                height: 24,
                               ),
                               onPressed: () {
                                 context.read<AuthBloc>().add(
@@ -292,7 +268,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 25),
+                        const SizedBox(height: 12),
                         Center(
                           child: GestureDetector(
                             onTap: () {
@@ -303,7 +279,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                 text: "Already have an account? ",
                                 style: GoogleFonts.inter(
                                   color: onSurface,
-                                  fontSize: 15,
+                                  fontSize: 14,
                                 ),
                                 children: [
                                   TextSpan(
@@ -318,7 +294,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),

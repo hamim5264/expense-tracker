@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
+import 'package:expense_tracker/core/common/utils/theme_service.dart';
+import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 
 class WalletItemTile extends StatelessWidget {
   final Wallet wallet;
@@ -18,6 +20,318 @@ class WalletItemTile extends StatelessWidget {
     required this.wallet,
     required this.currencyCode,
   });
+
+  void _showEditDialog(BuildContext context) {
+    final bloc = context.read<ExpenseBloc>();
+    final cleanWalletName = wallet.name.replaceAll('••', '').replaceAll('•', '').trim();
+    final nameController = TextEditingController(text: cleanWalletName);
+    final balanceController = TextEditingController(
+      text: wallet.balance.toStringAsFixed(2),
+    );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ValueListenableBuilder<Color>(
+        valueListenable: ThemeService.primaryColorNotifier,
+        builder: (context, primaryColor, _) {
+          final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
+          final textColor = isDark ? Colors.white : Colors.black87;
+          final subTextColor = isDark ? Colors.white60 : Colors.black54;
+          final fieldBg = isDark ? const Color(0xFF2A273A) : Colors.grey.shade100;
+          final inputTextColor = isDark ? Colors.white : Colors.black87;
+          final balanceTextColor = isDark ? const Color(0xFF4ADE80) : primaryColor;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, -10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Title Header with Icon
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.pencil_outline,
+                          color: primaryColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Edit Wallet / Card',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Update your card name or current balance',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: subTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+
+                  // Name Field
+                  Text(
+                    'Wallet / Card Name',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: nameController,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: inputTextColor,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(
+                        CupertinoIcons.creditcard,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        size: 18,
+                      ),
+                      hintText: 'Wallet Name',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      filled: true,
+                      fillColor: fieldBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: primaryColor, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Balance Field
+                  Text(
+                    'Current Balance ($currencyCode)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: balanceController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: balanceTextColor,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              CurrencyService.getSymbol(currencyCode),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: balanceTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 0,
+                      ),
+                      hintText: '0.00',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                      filled: true,
+                      fillColor: fieldBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: primaryColor, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // Action buttons (Cancel & Save)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                primaryColor,
+                                primaryColor.withOpacity(0.85),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withOpacity(0.35),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: () {
+                              final newName = nameController.text.trim();
+                              final newBalance =
+                                  double.tryParse(balanceController.text.trim()) ??
+                                      wallet.balance;
+
+                              if (newName.isEmpty) return;
+
+                              final updatedWallet = Wallet(
+                                id: wallet.id,
+                                userId: wallet.userId,
+                                name: newName,
+                                type: wallet.type,
+                                balance: newBalance,
+                                details: wallet.details,
+                                createdAt: wallet.createdAt,
+                              );
+
+                              SoundService.playSuccess();
+                              bloc.add(ExpenseUpdateWallet(updatedWallet));
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   void _confirmDelete(BuildContext context) {
     final bloc = context.read<ExpenseBloc>();
@@ -39,6 +353,7 @@ class WalletItemTile extends StatelessWidget {
               Navigator.pop(ctx);
               SoundService.playSuccess();
               bloc.add(ExpenseDeleteWallet(wallet.id));
+              showToast('Wallet "${wallet.name}" removed successfully', context: context);
             },
             child: const Text('Remove'),
           ),
@@ -52,30 +367,116 @@ class WalletItemTile extends StatelessWidget {
   }
 
   _WalletMeta _getMeta(bool isDark) {
+    final nameLower = wallet.name.toLowerCase();
+    final providerLower = (wallet.details['provider'] ?? '').toString().toLowerCase();
+    final bankLower = (wallet.details['bank_name'] ?? '').toString().toLowerCase();
+    final rawNum = (wallet.details['card_number'] ?? '').toString().replaceAll(RegExp(r'\s+'), '');
+    final combined = '$nameLower $providerLower $bankLower';
+
+    String? assetPath;
+    Color accentColor = const Color(0xFF6366F1);
+    List<Color> cardGradients;
+    String brandLabel = wallet.type == 'card' ? 'Card' : (wallet.type == 'bank' ? 'Bank Account' : 'Mobile Wallet');
+
+    if (rawNum.startsWith('4') || combined.contains('visa')) {
+      assetPath = 'assets/images/expense_types/visa.png';
+      accentColor = const Color(0xFF38BDF8);
+      brandLabel = 'Visa';
+      cardGradients = isDark
+          ? [const Color(0xFF0F172A), const Color(0xFF1E3A8A), const Color(0xFF1E293B)]
+          : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE), const Color(0xFFF8FAFC)];
+    } else if (RegExp(r'^(5[1-5]|2[2-7])').hasMatch(rawNum) || combined.contains('mastercard') || combined.contains('master')) {
+      assetPath = 'assets/images/expense_types/card.png';
+      accentColor = const Color(0xFFF87171);
+      brandLabel = 'Mastercard';
+      cardGradients = isDark
+          ? [const Color(0xFF311218), const Color(0xFF450A0A), const Color(0xFF18181B)]
+          : [const Color(0xFFFEF2F2), const Color(0xFFFEE2E2), const Color(0xFFFAF5FF)];
+    } else if (RegExp(r'^3[47]').hasMatch(rawNum) || combined.contains('american') || combined.contains('express') || combined.contains('amex')) {
+      assetPath = 'assets/images/expense_types/american-express.png';
+      accentColor = const Color(0xFF2DD4BF);
+      brandLabel = 'Amex';
+      cardGradients = isDark
+          ? [const Color(0xFF064E3B), const Color(0xFF022C22), const Color(0xFF0F172A)]
+          : [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7), const Color(0xFFFAFAF9)];
+    } else if (RegExp(r'^(6011|65)').hasMatch(rawNum) || combined.contains('discover')) {
+      assetPath = 'assets/images/expense_types/card.png';
+      accentColor = const Color(0xFFFB923C);
+      brandLabel = 'Discover';
+      cardGradients = isDark
+          ? [const Color(0xFF431407), const Color(0xFF2A0800), const Color(0xFF18181B)]
+          : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5), const Color(0xFFFAFAF9)];
+    } else if (combined.contains('bkash')) {
+      assetPath = 'assets/images/expense_types/bKash.png';
+      accentColor = const Color(0xFFE2136E);
+      brandLabel = 'bKash Wallet';
+      cardGradients = isDark
+          ? [const Color(0xFF33081E), const Color(0xFF1E0A24), const Color(0xFF140D26)]
+          : [const Color(0xFFFFF0F5), const Color(0xFFFDE8F0), const Color(0xFFF9F5FF)];
+    } else if (combined.contains('nagad')) {
+      assetPath = 'assets/images/expense_types/nagad-payment.png';
+      accentColor = const Color(0xFFF7941D);
+      brandLabel = 'Nagad Wallet';
+      cardGradients = isDark
+          ? [const Color(0xFF3B1800), const Color(0xFF241005), const Color(0xFF180E1B)]
+          : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5), const Color(0xFFFAFAF9)];
+    } else if (combined.contains('rocket')) {
+      assetPath = 'assets/images/expense_types/rocket-pay.png';
+      accentColor = const Color(0xFF8C3694);
+      brandLabel = 'Rocket Wallet';
+      cardGradients = isDark
+          ? [const Color(0xFF2B0A33), const Color(0xFF1D0826), const Color(0xFF130A24)]
+          : [const Color(0xFFFAF5FF), const Color(0xFFF3E8FF), const Color(0xFFF8FAFC)];
+    } else if (combined.contains('upay')) {
+      assetPath = 'assets/images/expense_types/upay-pay.png';
+      accentColor = const Color(0xFFFFC72C);
+      brandLabel = 'Upay Wallet';
+      cardGradients = isDark
+          ? [const Color(0xFF302400), const Color(0xFF1F1A08), const Color(0xFF14131A)]
+          : [const Color(0xFFFEFCE8), const Color(0xFFFEF08A), const Color(0xFFFAFAF9)];
+    } else if (combined.contains('nexus')) {
+      assetPath = 'assets/images/expense_types/nexus-pay.png';
+      accentColor = const Color(0xFF0072BC);
+      brandLabel = 'NexusPay Card';
+      cardGradients = isDark
+          ? [const Color(0xFF06233B), const Color(0xFF0A1828), const Color(0xFF0E1322)]
+          : [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE), const Color(0xFFF8FAFC)];
+    } else {
+      assetPath = wallet.type == 'card'
+          ? 'assets/images/expense_types/card.png'
+          : wallet.type == 'bank'
+              ? 'assets/images/expense_types/atm-card.png'
+              : 'assets/images/expense_types/smartphone.png';
+      accentColor = isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5);
+      cardGradients = isDark
+          ? [const Color(0xFF231E3D), const Color(0xFF19152B), const Color(0xFF12101F)]
+          : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE), const Color(0xFFFAF9FE)];
+    }
+
     switch (wallet.type) {
       case 'card':
         return _WalletMeta(
           icon: CupertinoIcons.creditcard_fill,
-          label: 'Card',
-          gradientColors: isDark
-              ? [const Color(0xFF4527A0), const Color(0xFF7B1FA2)]
-              : [const Color(0xFF5E35B1), const Color(0xFF9C27B0)],
+          assetPath: assetPath,
+          label: brandLabel,
+          accentColor: accentColor,
+          gradientColors: cardGradients,
         );
       case 'bank':
         return _WalletMeta(
           icon: CupertinoIcons.building_2_fill,
-          label: 'Bank Account',
-          gradientColors: isDark
-              ? [const Color(0xFF1A237E), const Color(0xFF0D47A1)]
-              : [const Color(0xFF1565C0), const Color(0xFF1976D2)],
+          assetPath: assetPath,
+          label: brandLabel,
+          accentColor: accentColor,
+          gradientColors: cardGradients,
         );
       default:
         return _WalletMeta(
           icon: CupertinoIcons.device_phone_portrait,
-          label: 'Mobile / Other',
-          gradientColors: isDark
-              ? [const Color(0xFF1B5E20), const Color(0xFF2E7D32)]
-              : [const Color(0xFF2E7D32), const Color(0xFF388E3C)],
+          assetPath: assetPath,
+          label: brandLabel,
+          accentColor: accentColor,
+          gradientColors: cardGradients,
         );
     }
   }
@@ -87,155 +488,268 @@ class WalletItemTile extends StatelessWidget {
     final isNegative = wallet.balance < 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: isDark
-            ? LinearGradient(
-                colors: [
-                  const Color(0xFF2A273A).withOpacity(0.9),
-                  const Color(0xFF1E1B29).withOpacity(0.9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [
-                  Colors.white,
-                  const Color(0xFFF8F9FA),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+        gradient: LinearGradient(
+          colors: meta.gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.12)
-              : Colors.black.withOpacity(0.08),
-          width: 1.2,
+              ? meta.accentColor.withOpacity(0.3)
+              : meta.accentColor.withOpacity(0.2),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
-            blurRadius: 20,
+            color: meta.accentColor.withOpacity(isDark ? 0.25 : 0.12),
+            blurRadius: 22,
+            spreadRadius: -4,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                // Icon block
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: meta.gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: meta.gradientColors.first.withOpacity(0.4),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(meta.icon, color: Colors.white, size: 20),
+        child: Stack(
+          children: [
+            // Background glowing accent orb for futuristic mesh effect
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: meta.accentColor.withOpacity(isDark ? 0.25 : 0.15),
                 ),
-                const SizedBox(width: 12),
-
-                // Name & Type
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        wallet.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        meta.label,
-                        style: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.black54,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.visible,
-                      ),
-                    ],
-                  ),
+              ),
+            ),
+            Positioned(
+              left: -40,
+              bottom: -40,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: meta.accentColor.withOpacity(isDark ? 0.15 : 0.08),
                 ),
-                const SizedBox(width: 10),
+              ),
+            ),
 
-                // Balance display
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Text(
-                      CurrencyService.format(
-                        wallet.balance,
-                        currencyCode,
+                    // Clean White Glass Container for Brand Logo
+                    Container(
+                      width: 50,
+                      height: 50,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        letterSpacing: -0.2,
-                        color: isNegative
-                            ? const Color(0xFFFF6B6B)
-                            : (isDark ? const Color(0xFF4ADE80) : Colors.black87),
+                      child: meta.assetPath != null
+                          ? Image.asset(
+                              meta.assetPath!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Icon(
+                                meta.icon,
+                                color: meta.accentColor,
+                                size: 24,
+                              ),
+                            )
+                          : Icon(meta.icon, color: meta.accentColor, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Name & Subtitle (Compact)
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            wallet.name.replaceAll('••', '').replaceAll('•', '').trim(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            meta.label,
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : meta.accentColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Builder(
+                            builder: (context) {
+                              final cardNum = (wallet.details['card_number'] ?? wallet.details['account_number'] ?? wallet.details['phone']) as String?;
+                              final last4 = cardNum != null && cardNum.length > 4
+                                  ? '•••• ${cardNum.substring(cardNum.length - 4)}'
+                                  : (cardNum != null && cardNum.isNotEmpty ? '•••• $cardNum' : null);
+                              if (last4 == null) return const SizedBox.shrink();
+
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  last4,
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Balance',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                    const SizedBox(width: 6),
+
+                    // Balance Display (Prominent & Large)
+                    Expanded(
+                      flex: 6,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Balance Column
+                          Flexible(
+                            child: GestureDetector(
+                              onTap: () => _showEditDialog(context),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      CurrencyService.format(
+                                        wallet.balance,
+                                        currencyCode,
+                                      ),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 18,
+                                        letterSpacing: -0.4,
+                                        color: isNegative
+                                            ? const Color(0xFFFF5252)
+                                            : (isDark
+                                                ? const Color(0xFF4ADE80)
+                                                : const Color(0xFF16A34A)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          CupertinoIcons.pencil_circle_fill,
+                                          size: 10,
+                                          color: meta.accentColor,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'Balance',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Edit Button
+                          GestureDetector(
+                            onTap: () => _showEditDialog(context),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: meta.accentColor.withOpacity(
+                                  isDark ? 0.2 : 0.12,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                CupertinoIcons.pencil,
+                                color: isDark
+                                    ? Colors.white
+                                    : meta.accentColor,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Delete Button
+                          GestureDetector(
+                            onTap: () => _confirmDelete(context),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.systemRed.withOpacity(
+                                  isDark ? 0.2 : 0.12,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.trash,
+                                color: CupertinoColors.systemRed,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(width: 10),
-
-                // Cupertino Delete Icon button
-                GestureDetector(
-                  onTap: () => _confirmDelete(context),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemRed.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.trash,
-                      color: CupertinoColors.systemRed,
-                      size: 16,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -244,12 +758,16 @@ class WalletItemTile extends StatelessWidget {
 
 class _WalletMeta {
   final IconData icon;
+  final String? assetPath;
   final String label;
+  final Color accentColor;
   final List<Color> gradientColors;
 
   const _WalletMeta({
     required this.icon,
+    this.assetPath,
     required this.label,
+    required this.accentColor,
     required this.gradientColors,
   });
 }

@@ -17,6 +17,7 @@ import 'package:expense_tracker/features/auth/presentation/widgets/profile_heade
 import 'package:expense_tracker/features/auth/presentation/widgets/invite_friends_sheet.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_theme_selector.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_color_selector.dart';
+import 'package:expense_tracker/features/auth/presentation/widgets/profile_section_header.dart';
 import 'package:expense_tracker/core/common/utils/theme_service.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/glass_currency_selector.dart';
@@ -96,21 +97,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 14, right: 14, top: 22, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
-          color: isDark ? Colors.white54 : Colors.grey.shade600,
-        ),
-      ),
-    );
-  }
-
   void _showAvatarPicker(
     BuildContext context,
     String? currentAvatar,
@@ -187,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      _buildSectionHeader('COMMUNITY & REWARDS', isDark),
+                      ProfileSectionHeader(title: 'COMMUNITY & REWARDS', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.sparkles,
                         title: 'Invite Friends',
@@ -205,7 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
 
-                      _buildSectionHeader('ACCOUNT & SECURITY', isDark),
+                      ProfileSectionHeader(title: 'ACCOUNT & SECURITY', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.person_crop_circle,
                         title: 'Account Info',
@@ -248,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
 
-                      _buildSectionHeader('REPORTS & STATEMENTS', isDark),
+                      ProfileSectionHeader(title: 'REPORTS & STATEMENTS', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.doc_text_fill,
                         title: 'Expense Reports',
@@ -284,7 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
 
-                      _buildSectionHeader('PREFERENCES & APPEARANCE', isDark),
+                      ProfileSectionHeader(title: 'PREFERENCES & APPEARANCE', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.money_dollar_circle,
                         title: 'Preferred Currency',
@@ -380,7 +366,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
 
-                      _buildSectionHeader('DATA INTEGRATION & SYNC', isDark),
+                      ProfileSectionHeader(title: 'DATA INTEGRATION & SYNC', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.doc_text_viewfinder,
                         title: 'Paste & Parse Bank SMS',
@@ -406,8 +392,53 @@ class _ProfilePageState extends State<ProfilePage> {
                           );
                         },
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.trash_circle,
+                        title: 'Clear Transaction History',
+                        subtitle: 'Delete all logged transactions',
+                        iconColor: Colors.redAccent,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Clear All Transactions?'),
+                              content: const Text(
+                                'This will permanently remove all your transactions, update wallet balances, and refresh graphs in real time.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    context.read<ExpenseBloc>().add(
+                                          ExpenseClearTransactions(
+                                            userId: user.id,
+                                            type: 'all',
+                                            dateFilterMode: 'all',
+                                          ),
+                                        );
+                                  },
+                                  child: const Text(
+                                    'Clear All',
+                                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
 
-                      _buildSectionHeader('AUDIO & HAPTICS', isDark),
+                      ProfileSectionHeader(title: 'AUDIO & HAPTICS', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.speaker_2,
                         title: 'Sound Effects',
@@ -461,7 +492,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
 
-                      _buildSectionHeader('SUPPORT & LEGAL', isDark),
+                      ProfileSectionHeader(title: 'SUPPORT & LEGAL', isDark: isDark),
                       ProfileOptionTile(
                         icon: CupertinoIcons.doc_plaintext,
                         title: 'Privacy Policy',
@@ -543,3 +574,4 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
+

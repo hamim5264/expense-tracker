@@ -486,10 +486,11 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
                           value: _selectedWalletId,
                           dropdownColor: isDark ? Colors.grey.shade900 : Colors.white,
                           items: widget.wallets.map((wallet) {
+                            final cleanName = wallet.name.replaceAll('••', '').replaceAll('•', '').trim();
                             return DropdownMenuItem<String>(
                               value: wallet.id,
                               child: Text(
-                                wallet.name,
+                                cleanName,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13,

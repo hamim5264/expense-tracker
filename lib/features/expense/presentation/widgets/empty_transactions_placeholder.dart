@@ -5,27 +5,49 @@ class EmptyTransactionsPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
+    return Center(
       child: Padding(
-        padding: EdgeInsets.only(top: 40, bottom: 40),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryColor.withOpacity(0.12),
+                border: Border.all(
+                  color: primaryColor.withOpacity(0.25),
+                  width: 1.5,
+                ),
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                size: 38,
+                color: primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
               'No Transactions Yet',
               style: TextStyle(
-                color: Colors.grey,
-                fontSize: 18,
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'Start tracking your expenses by\nadding your first transaction.',
+              'Start tracking your finances by\nadding your first income or expense!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              style: TextStyle(
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
+                fontSize: 13,
+              ),
             ),
           ],
         ),

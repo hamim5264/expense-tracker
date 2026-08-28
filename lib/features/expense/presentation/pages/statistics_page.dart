@@ -1,15 +1,16 @@
-import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
-
 import 'package:expense_tracker/features/expense/presentation/widgets/statistics_shimmer_loading.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/statistics_chart.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/category_bubble_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/statistics_summary_card.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/period_selector_bar.dart';
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
@@ -84,10 +85,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
               typedTransactions,
               _selectedPeriod,
             );
-
-            final totalAmount = _selectedType == 'income'
-                ? totalIncome
-                : totalExpenses;
 
             final sortedTransactions = List<Expense>.from(typedTransactions)
               ..sort((a, b) => b.amount.compareTo(a.amount));
@@ -215,57 +212,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       ),
                     ),
 
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white10 : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: ['Day', 'Week', 'Month', 'Year'].map((
-                          period,
-                        ) {
-                          final isSelected = _selectedPeriod == period;
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedPeriod = period;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? theme.primaryColor
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  period,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : (isDark
-                                              ? Colors.white60
-                                              : Colors.grey.shade600),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                    PeriodSelectorBar(
+                      selectedPeriod: _selectedPeriod,
+                      isDark: isDark,
+                      primaryColor: theme.primaryColor,
+                      onPeriodSelected: (p) => setState(() => _selectedPeriod = p),
                     ),
 
                     Expanded(
@@ -274,387 +225,88 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         children: [
                           const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withAlpha(20)
-                                      : Colors.white.withAlpha(200),
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withAlpha(35)
-                                        : Colors.white.withAlpha(220),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isDark
-                                          ? Colors.black.withAlpha(60)
-                                          : Colors.black.withAlpha(15),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _selectedType = 'income';
-                                              });
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: _selectedType == 'income'
-                                                    ? const Color(
-                                                        0xFF22C55E,
-                                                      ).withOpacity(0.1)
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color:
-                                                      _selectedType == 'income'
-                                                      ? const Color(
-                                                          0xFF22C55E,
-                                                        ).withOpacity(0.3)
-                                                      : Colors.transparent,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Container(
-                                                        width: 10,
-                                                        height: 10,
-                                                        decoration:
-                                                            const BoxDecoration(
-                                                              color: Color(
-                                                                0xFF4ADE80,
-                                                              ),
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                            ),
-                                                      ),
-                                                      const SizedBox(width: 6),
-                                                      Text(
-                                                        'Income',
-                                                        style: TextStyle(
-                                                          color: isDark
-                                                              ? Colors.white70
-                                                              : Colors.black54,
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              _selectedType ==
-                                                                  'income'
-                                                              ? FontWeight.bold
-                                                              : FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: Text(
-                                                      CurrencyService.format(
-                                                        totalIncome,
-                                                        user.currency,
-                                                      ),
-                                                      style: const TextStyle(
-                                                        color: Color(
-                                                          0xFF22C55E,
-                                                        ),
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 1,
-                                          height: 44,
-                                          color: isDark
-                                              ? Colors.white24
-                                              : Colors.grey.shade300,
-                                          margin: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _selectedType = 'expense';
-                                              });
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    _selectedType == 'expense'
-                                                    ? const Color(
-                                                        0xFFEF4444,
-                                                      ).withOpacity(0.1)
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color:
-                                                      _selectedType == 'expense'
-                                                      ? const Color(
-                                                          0xFFEF4444,
-                                                        ).withOpacity(0.3)
-                                                      : Colors.transparent,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Container(
-                                                        width: 10,
-                                                        height: 10,
-                                                        decoration:
-                                                            const BoxDecoration(
-                                                              color: Color(
-                                                                0xFFFF6B6B,
-                                                              ),
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                            ),
-                                                      ),
-                                                      const SizedBox(width: 6),
-                                                      Text(
-                                                        'Expenses',
-                                                        style: TextStyle(
-                                                          color: isDark
-                                                              ? Colors.white70
-                                                              : Colors.black54,
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              _selectedType ==
-                                                                  'expense'
-                                                              ? FontWeight.bold
-                                                              : FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    child: Text(
-                                                      CurrencyService.format(
-                                                        totalExpenses,
-                                                        user.currency,
-                                                      ),
-                                                      style: const TextStyle(
-                                                        color: Color(
-                                                          0xFFEF4444,
-                                                        ),
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Divider(
-                                      color: isDark
-                                          ? Colors.white24
-                                          : Colors.grey.shade200,
-                                      height: 1,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Total ${_selectedType == 'expense' ? 'Spendings' : 'Earnings'}',
-                                                style: TextStyle(
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.black54,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  CurrencyService.format(
-                                                    totalAmount,
-                                                    user.currency,
-                                                  ),
-                                                  style: TextStyle(
-                                                    color:
-                                                        _selectedType ==
-                                                            'income'
-                                                        ? const Color(
-                                                            0xFF22C55E,
-                                                          )
-                                                        : const Color(
-                                                            0xFFEF4444,
-                                                          ),
-                                                    fontSize: 28,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Builder(
-                                          builder: (context) {
-                                            final net =
-                                                totalIncome - totalExpenses;
-                                            final isPositive = net >= 0;
-                                            return Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 8,
-                                                  ),
-                                              constraints: const BoxConstraints(
-                                                maxWidth: 150,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    (isPositive
-                                                            ? const Color(
-                                                                0xFF22C55E,
-                                                              )
-                                                            : const Color(
-                                                                0xFFEF4444,
-                                                              ))
-                                                        .withOpacity(0.08),
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color:
-                                                      (isPositive
-                                                              ? const Color(
-                                                                  0xFF22C55E,
-                                                                )
-                                                              : const Color(
-                                                                  0xFFEF4444,
-                                                                ))
-                                                          .withOpacity(0.3),
-                                                  width: 1.2,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    'Net Balance',
-                                                    style: TextStyle(
-                                                      color: isDark
-                                                          ? Colors.white60
-                                                          : Colors.black54,
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    alignment:
-                                                        Alignment.centerRight,
-                                                    child: Text(
-                                                      CurrencyService.format(
-                                                        net,
-                                                        user.currency,
-                                                      ),
-                                                      style: TextStyle(
-                                                        color: isPositive
-                                                            ? const Color(
-                                                                0xFF22C55E,
-                                                              )
-                                                            : const Color(
-                                                                0xFFEF4444,
-                                                              ),
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          StatisticsSummaryCard(
+                            selectedType: _selectedType,
+                            totalIncome: totalIncome,
+                            totalExpenses: totalExpenses,
+                            currencyCode: user.currency,
+                            isDark: isDark,
+                            onTypeChanged: (t) => setState(() => _selectedType = t),
                           ),
                           const SizedBox(height: 32),
+
+                          // Category Bubble Cloud Section
+                          Builder(
+                            builder: (context) {
+                              final typeTx = allPeriodTransactions.where((t) => t.type == _selectedType).toList();
+                              final double periodTotal = typeTx.fold(0.0, (s, t) => s + t.amount);
+
+                              if (periodTotal == 0 || typeTx.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final Map<String, double> categorySums = {};
+                              for (var tx in typeTx) {
+                                categorySums[tx.category] = (categorySums[tx.category] ?? 0.0) + tx.amount;
+                              }
+
+                              IconData getCupertinoIconForCat(String cat) {
+                                final l = cat.toLowerCase();
+                                if (l.contains('food') || l.contains('grocer')) return CupertinoIcons.cart_fill;
+                                if (l.contains('dine') || l.contains('cafe') || l.contains('rest')) return CupertinoIcons.heart_fill;
+                                if (l.contains('health') || l.contains('medical') || l.contains('doctor')) return CupertinoIcons.heart_fill;
+                                if (l.contains('cloth') || l.contains('shoe') || l.contains('wear') || l.contains('shop')) return CupertinoIcons.bag_fill;
+                                if (l.contains('sport') || l.contains('gym') || l.contains('fit')) return CupertinoIcons.sportscourt;
+                                if (l.contains('travel') || l.contains('trip') || l.contains('agency') || l.contains('flight')) return CupertinoIcons.airplane;
+                                if (l.contains('bill') || l.contains('phone') || l.contains('utilit')) return CupertinoIcons.device_phone_portrait;
+                                if (l.contains('ent') || l.contains('mov') || l.contains('game')) return CupertinoIcons.tv_fill;
+                                if (l.contains('salary') || l.contains('income') || l.contains('pay')) return CupertinoIcons.money_dollar;
+                                return CupertinoIcons.circle_grid_hex;
+                              }
+
+                              Color getColorForIndex(int idx) {
+                                const colors = [
+                                  Color(0xFF2563EB),
+                                  Color(0xFF0D9488),
+                                  Color(0xFF7C3AED),
+                                  Color(0xFFE11D48),
+                                  Color(0xFFD97706),
+                                  Color(0xFF059669),
+                                  Color(0xFF0284C7),
+                                  Color(0xFFBE185D),
+                                ];
+                                return colors[idx % colors.length];
+                              }
+
+                              int colorIdx = 0;
+                              final bubbleDataList = categorySums.entries.map((entry) {
+                                final pct = (entry.value / periodTotal) * 100;
+                                return CategoryBubbleData(
+                                  category: entry.key,
+                                  amount: entry.value,
+                                  percentage: pct,
+                                  icon: getCupertinoIconForCat(entry.key),
+                                  color: getColorForIndex(colorIdx++),
+                                );
+                              }).toList();
+
+                              return Column(
+                                children: [
+                                  CategoryBubbleCloudSection(
+                                    categoryData: bubbleDataList,
+                                    isDark: isDark,
+                                  ),
+                                  const SizedBox(height: 32),
+                                ],
+                              );
+                            },
+                          ),
 
                           StatisticsChart(
                             points: chartData,
                             selectedPeriod: _selectedPeriod,
                             isDark: isDark,
                           ),
-
-                          const SizedBox(height: 32),
 
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -781,3 +433,4 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return sortedKeys.map((k) => ChartPoint(k.toDouble(), map[k]!)).toList();
   }
 }
+

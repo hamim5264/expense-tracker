@@ -171,6 +171,8 @@ class _ClearTransactionHistorySheetState
         final subTextColor = isDark ? Colors.white60 : Colors.black54;
         final containerBg = isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade100;
 
+        final bottomPadding = MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 28;
+
         return Container(
           decoration: BoxDecoration(
             color: cardBg,
@@ -184,7 +186,7 @@ class _ClearTransactionHistorySheetState
             top: 20,
             left: 20,
             right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: bottomPadding,
           ),
           child: SingleChildScrollView(
             child: Column(

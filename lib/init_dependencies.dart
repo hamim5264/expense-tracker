@@ -21,6 +21,7 @@ import 'package:expense_tracker/features/expense/domain/usecases/get_all_expense
 import 'package:expense_tracker/features/expense/domain/usecases/add_expense.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/get_wallets.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/add_wallet.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/update_wallet.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/delete_wallet.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/app_config.dart';
@@ -129,6 +130,7 @@ void _initExpense() {
     ..registerFactory(() => AddExpense(serviceLocator()))
     ..registerFactory(() => GetWallets(serviceLocator()))
     ..registerFactory(() => AddWallet(serviceLocator()))
+    ..registerFactory(() => UpdateWallet(serviceLocator()))
     ..registerFactory(() => DeleteWallet(serviceLocator()))
     ..registerLazySingleton(
       () => ExpenseBloc(
@@ -136,6 +138,7 @@ void _initExpense() {
         addExpense: serviceLocator(),
         getWallets: serviceLocator(),
         addWallet: serviceLocator(),
+        updateWallet: serviceLocator(),
         deleteWallet: serviceLocator(),
         expenseRepository: serviceLocator(),
       ),

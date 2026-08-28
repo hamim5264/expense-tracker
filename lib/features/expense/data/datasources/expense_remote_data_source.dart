@@ -12,6 +12,8 @@ abstract interface class ExpenseRemoteDataSource {
 
   Future<WalletModel> addWallet(WalletModel wallet);
 
+  Future<WalletModel> updateWallet(WalletModel wallet);
+
   Future<void> deleteWallet(String walletId);
 
   Future<void> clearTransactions({
@@ -84,6 +86,25 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       final response = await supabaseClient
           .from('wallets')
           .insert(json)
+          .select()
+          .single();
+
+      return WalletModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Failure(e.message);
+    } catch (e) {
+      throw Failure(e.toString());
+    }
+  }
+
+  @override
+  Future<WalletModel> updateWallet(WalletModel wallet) async {
+    try {
+      final json = wallet.toJson();
+      final response = await supabaseClient
+          .from('wallets')
+          .update(json)
+          .eq('id', wallet.id)
           .select()
           .single();
 

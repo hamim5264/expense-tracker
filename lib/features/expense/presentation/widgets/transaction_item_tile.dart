@@ -165,11 +165,11 @@ class TransactionItemTile extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.08)
@@ -179,19 +179,19 @@ class TransactionItemTile extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+                ? Colors.black.withOpacity(0.25)
+                : Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            padding: const EdgeInsets.all(6),
+            width: 30,
+            height: 30,
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
               shape: BoxShape.circle,
@@ -203,12 +203,12 @@ class TransactionItemTile extends StatelessWidget {
                 return Icon(
                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                   color: isIncome ? Colors.green : Colors.red,
-                  size: 18,
+                  size: 15,
                 );
               },
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,48 +220,47 @@ class TransactionItemTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
+                    fontSize: 12,
                     color: textColor,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isDark ? Colors.white60 : Colors.grey.shade600,
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                   ),
                 ),
+                if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    'Note: ${transaction.notes}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      fontSize: 9,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
+          const SizedBox(width: 6),
+          Text(
+            (isIncome ? '+ ' : '- ') +
+                CurrencyService.format(transaction.amount, currencyCode),
+            style: TextStyle(
               color: isIncome
-                  ? const Color(0xFF22C55E).withOpacity(0.1)
-                  : const Color(0xFFEF4444).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isIncome
-                    ? const Color(0xFF22C55E).withOpacity(0.6)
-                    : const Color(0xFFEF4444).withOpacity(0.6),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              (isIncome ? '+ ' : '- ') +
-                  CurrencyService.format(transaction.amount, currencyCode),
-              style: TextStyle(
-                color: isIncome
-                    ? const Color(0xFF22C55E)
-                    : const Color(0xFFEF4444),
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-              ),
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFEF4444),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
             ),
           ),
         ],

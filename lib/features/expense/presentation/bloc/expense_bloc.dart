@@ -6,6 +6,7 @@ import 'package:expense_tracker/features/expense/domain/usecases/get_all_expense
 import 'package:expense_tracker/features/expense/domain/usecases/add_expense.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/get_wallets.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/add_wallet.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/update_wallet.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/delete_wallet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,6 +22,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   final AddExpense _addExpense;
   final GetWallets _getWallets;
   final AddWallet _addWallet;
+  final UpdateWallet _updateWallet;
   final DeleteWallet _deleteWallet;
   final ExpenseRepository _expenseRepository;
 
@@ -29,18 +31,21 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     required AddExpense addExpense,
     required GetWallets getWallets,
     required AddWallet addWallet,
+    required UpdateWallet updateWallet,
     required DeleteWallet deleteWallet,
     required ExpenseRepository expenseRepository,
   }) : _getAllExpenses = getAllExpenses,
        _addExpense = addExpense,
        _getWallets = getWallets,
        _addWallet = addWallet,
+       _updateWallet = updateWallet,
        _deleteWallet = deleteWallet,
        _expenseRepository = expenseRepository,
        super(ExpenseInitial()) {
     on<ExpenseFetchAll>(_onFetchAll);
     on<ExpenseAddTransaction>(_onAddTransaction);
     on<ExpenseAddWalletCard>(_onAddWalletCard);
+    on<ExpenseUpdateWallet>(_onUpdateWallet);
     on<ExpenseDeleteWallet>(_onDeleteWallet);
     on<ExpenseClearTransactions>(_onClearTransactions);
   }
@@ -92,6 +97,23 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
       NotificationService().addNotification(
         title: 'Wallet Added',
         message: 'Wallet "${event.wallet.name}" created successfully.',
+        type: 'success',
+      );
+      add(ExpenseFetchAll());
+    });
+  }
+
+  void _onUpdateWallet(
+    ExpenseUpdateWallet event,
+    Emitter<ExpenseState> emit,
+  ) async {
+    emit(ExpenseLoading());
+    final res = await _updateWallet(event.wallet);
+
+    res.fold((l) => emit(ExpenseFailure(l.message)), (_) {
+      NotificationService().addNotification(
+        title: 'Wallet Updated',
+        message: 'Wallet "${event.wallet.name}" updated successfully.',
         type: 'success',
       );
       add(ExpenseFetchAll());

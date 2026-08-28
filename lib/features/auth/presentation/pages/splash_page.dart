@@ -164,45 +164,51 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   ),
                 ),
                 Positioned(
-                  bottom: 40,
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  child: FadeTransition(
-                    opacity: _logoOpacity,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'powered by',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 12,
-                            letterSpacing: 1.0,
-                          ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: FadeTransition(
+                        opacity: _logoOpacity,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Crafted by',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
+                                fontSize: 12,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Image.asset(
+                              'assets/images/components/dev_logo.png',
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.code_rounded,
+                                  color: Colors.white70,
+                                  size: 28,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'TheDevHamim',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Image.asset(
-                          'assets/images/logos/brand_logo.png',
-                          height: 32,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.business,
-                              color: Colors.white70,
-                              size: 28,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'TheDevHamim',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

@@ -64,10 +64,10 @@ class _LoginPageState extends State<LoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 16),
                           Center(
                             child: Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: theme.brightness == Brightness.dark
@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                                     : const Color(0xFF4F378A).withAlpha(15),
                               ),
                               child: Container(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: theme.brightness == Brightness.dark
@@ -84,27 +84,35 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 child: Image.asset(
                                   'assets/images/logos/app_final_splash_logo.png',
-                                  height: 80,
+                                  height: 64,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 16),
                           Text(
-                            'Welcome back! Glad\nto see you, Again!',
+                            'Master Your Money.',
                             style: GoogleFonts.inter(
-                              fontSize: 28,
+                              fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: onSurface,
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Track expenses & take control of your financial freedom.',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFF6A707C),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           AuthField(
                             hintText: 'Enter your email',
                             controller: emailController,
                             keyboardType: TextInputType.emailAddress,
                           ),
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 12),
                           AuthField(
                             hintText: 'Enter your password',
                             controller: passwordController,
@@ -141,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 10),
                           ElevatedButton(
                             onPressed: () {
                               if (formKey.currentState!.validate()) {
@@ -155,7 +163,7 @@ class _LoginPageState extends State<LoginPage> {
                             },
                             child: const Text('Login'),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 14),
                           Center(
                             child: Text(
                               'Or Login with',
@@ -166,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               SocialButton(
@@ -194,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 14),
                           Center(
                             child: GestureDetector(
                               onTap: () {
@@ -220,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 14),
                         ],
                       ),
                     ),

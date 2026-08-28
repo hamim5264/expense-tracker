@@ -13,14 +13,13 @@ class HeaderPainter extends CustomPainter {
       ..color = effectiveColor
       ..style = PaintingStyle.fill;
 
+    const double cornerRadius = 32.0;
     Path path = Path();
-    path.lineTo(0, size.height - 40);
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height + 40,
-      size.width,
-      size.height - 40,
-    );
+    path.moveTo(0, 0);
+    path.lineTo(0, size.height - cornerRadius);
+    path.quadraticBezierTo(0, size.height, cornerRadius, size.height);
+    path.lineTo(size.width - cornerRadius, size.height);
+    path.quadraticBezierTo(size.width, size.height, size.width, size.height - cornerRadius);
     path.lineTo(size.width, 0);
     path.close();
 

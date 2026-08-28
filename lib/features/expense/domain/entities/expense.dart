@@ -7,6 +7,7 @@ class Expense {
   final String type;
   final String category;
   final String? walletId;
+  final String? notes;
 
   Expense({
     required this.id,
@@ -17,5 +18,6 @@ class Expense {
     required this.type,
     this.category = 'Others',
     this.walletId,
+    this.notes,
   });
 }

@@ -35,7 +35,20 @@ class StatisticsChart extends StatelessWidget {
     }
 
     final primaryColor = Theme.of(context).primaryColor;
-    final gradientColors = [primaryColor, primaryColor.withOpacity(0.7)];
+    final lineGradient = LinearGradient(
+      colors: isDark
+          ? [
+              const Color(0xFF818CF8), // Indigo Glow
+              const Color(0xFFC084FC), // Purple Glow
+              primaryColor,
+            ]
+          : [
+              primaryColor,
+              primaryColor.withOpacity(0.8),
+              const Color(0xFF6366F1),
+            ],
+    );
+
     final spots = points.map((p) => FlSpot(p.x, p.y)).toList();
 
     double maxY = 100;
@@ -54,8 +67,11 @@ class StatisticsChart extends StatelessWidget {
             horizontalInterval: maxY / 4,
             getDrawingHorizontalLine: (value) {
               return FlLine(
-                color: isDark ? Colors.white10 : Colors.grey.shade300,
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : Colors.black.withOpacity(0.04),
                 strokeWidth: 1,
+                dashArray: [4, 4],
               );
             },
           ),
@@ -67,13 +83,38 @@ class StatisticsChart extends StatelessWidget {
             topTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false),
             ),
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 42,
+                interval: maxY / 3,
+                getTitlesWidget: (value, meta) {
+                  if (value == 0) return const SizedBox.shrink();
+                  String formatted;
+                  if (value >= 1000) {
+                    formatted = '${(value / 1000).toStringAsFixed(1)}k';
+                  } else {
+                    formatted = value.toStringAsFixed(0);
+                  }
+                  return SideTitleWidget(
+                    meta: meta,
+                    space: 6,
+                    child: Text(
+                      formatted,
+                      style: TextStyle(
+                        color: isDark ? Colors.white38 : Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 9.5,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 30,
+                reservedSize: 28,
                 interval: selectedPeriod == 'Day' ? 4 : 1,
                 getTitlesWidget: (value, meta) {
                   String text = '';
@@ -81,7 +122,8 @@ class StatisticsChart extends StatelessWidget {
                   if (selectedPeriod == 'Day') {
                     text = '$valInt:00';
                   } else if (selectedPeriod == 'Week') {
-                    text = '$valInt';
+                    final days = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                    text = (valInt >= 0 && valInt < days.length) ? days[valInt] : '$valInt';
                   } else if (selectedPeriod == 'Month') {
                     text = 'Wk $valInt';
                   } else {
@@ -108,13 +150,13 @@ class StatisticsChart extends StatelessWidget {
                   }
                   return SideTitleWidget(
                     meta: meta,
-                    space: 8,
+                    space: 6,
                     child: Text(
                       text,
                       style: TextStyle(
                         color: isDark ? Colors.white60 : Colors.grey.shade600,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10.5,
                       ),
                     ),
                   );
@@ -122,7 +164,23 @@ class StatisticsChart extends StatelessWidget {
               ),
             ),
           ),
-          borderData: FlBorderData(show: false),
+          borderData: FlBorderData(
+            show: true,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark
+                    ? Colors.white.withOpacity(0.12)
+                    : Colors.black.withOpacity(0.08),
+                width: 1,
+              ),
+              left: BorderSide(
+                color: isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.black.withOpacity(0.05),
+                width: 1,
+              ),
+            ),
+          ),
           minX: points.first.x,
           maxX: points.last.x,
           minY: 0,
@@ -130,14 +188,17 @@ class StatisticsChart extends StatelessWidget {
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
               getTooltipColor: (LineBarSpot touchedSpot) =>
-                  primaryColor,
+                  isDark ? const Color(0xFF2D2A3E) : const Color(0xFF1E1B29),
+              tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              tooltipMargin: 8,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
                   return LineTooltipItem(
-                    '\$${spot.y.toStringAsFixed(0)}',
+                    '\$${spot.y.toStringAsFixed(2)}',
                     const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   );
                 }).toList();
@@ -149,27 +210,32 @@ class StatisticsChart extends StatelessWidget {
             LineChartBarData(
               spots: spots,
               isCurved: true,
-              gradient: LinearGradient(colors: gradientColors),
-              barWidth: 4,
+              curveSmoothness: 0.35,
+              preventCurveOverShooting: true,
+              gradient: lineGradient,
+              barWidth: 3.5,
               isStrokeCapRound: true,
               dotData: FlDotData(
                 show: true,
                 getDotPainter: (spot, percent, barData, index) =>
                     FlDotCirclePainter(
-                      radius: 6,
-                      color: primaryColor,
-                      strokeWidth: 2,
-                      strokeColor: Colors.white,
+                      radius: 4.5,
+                      color: isDark ? const Color(0xFFC084FC) : primaryColor,
+                      strokeWidth: 2.5,
+                      strokeColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
                     ),
               ),
               belowBarData: BarAreaData(
                 show: true,
                 gradient: LinearGradient(
-                  colors: gradientColors
-                      .map((color) => color.withAlpha(50))
-                      .toList(),
+                  colors: [
+                    (isDark ? const Color(0xFF818CF8) : primaryColor).withOpacity(0.35),
+                    (isDark ? const Color(0xFFC084FC) : primaryColor).withOpacity(0.08),
+                    Colors.transparent,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.6, 1.0],
                 ),
               ),
             ),

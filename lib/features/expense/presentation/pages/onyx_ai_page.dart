@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/core/common/utils/onyx_ai_engine.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/onyx_avatar_section.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/animated_insight_card.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 
@@ -115,30 +115,6 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     super.dispose();
   }
 
-  Color _getInsightColor(String type, BuildContext context) {
-    switch (type) {
-      case 'success':
-        return const Color(0xFF22C55E);
-      case 'warning':
-        return const Color(0xFFFF6B6B);
-      case 'info':
-      default:
-        return Theme.of(context).primaryColor;
-    }
-  }
-
-  IconData _getInsightIcon(String type) {
-    switch (type) {
-      case 'success':
-        return CupertinoIcons.sparkles;
-      case 'warning':
-        return CupertinoIcons.exclamationmark_triangle_fill;
-      case 'info':
-      default:
-        return CupertinoIcons.lightbulb_fill;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -228,150 +204,16 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                         ),
                         children: [
                           const SizedBox(height: 10),
-                          Center(
-                            child: SizedBox(
-                              width: 200,
-                              height: 170,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  RepaintBoundary(
-                                    child: AnimatedBuilder(
-                                      animation: _pulseController,
-                                      builder: (context, child) {
-                                        return Container(
-                                          width: 150,
-                                          height: 150,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: primaryColor.withOpacity(
-                                                  0.28 + 0.15 * _pulseController.value,
-                                                ),
-                                                blurRadius: 28,
-                                                spreadRadius:
-                                                    5 + 4 * _pulseController.value,
-                                              ),
-                                              BoxShadow(
-                                                color: glowAccentColor.withOpacity(
-                                                  0.22 + 0.12 * _pulseController.value,
-                                                ),
-                                                blurRadius: 16,
-                                                spreadRadius: 3,
-                                              ),
-                                            ],
-                                          ),
-                                          child: child,
-                                        );
-                                      },
-                                      child: Lottie.asset(
-                                        'assets/animations/onyx_ai.json',
-                                        fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return CircleAvatar(
-                                            backgroundColor: primaryColor
-                                                .withOpacity(0.1),
-                                            child: Icon(
-                                              CupertinoIcons.sparkles,
-                                              size: 64,
-                                              color: primaryColor,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 0,
-                                    right: 4,
-                                    child: AnimatedBuilder(
-                                      animation: _speechController,
-                                      builder: (context, child) {
-                                        return Opacity(
-                                          opacity: _speechFade.value,
-                                          child: Transform.scale(
-                                            scale: _speechScale.value,
-                                            alignment: Alignment.bottomLeft,
-                                            child: child,
-                                          ),
-                                        );
-                                      },
-                                      child: ClipRRect(
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(16),
-                                          topRight: Radius.circular(16),
-                                          bottomRight: Radius.circular(16),
-                                          bottomLeft: Radius.circular(4),
-                                        ),
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(
-                                            sigmaX: 12,
-                                            sigmaY: 12,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? Colors.white.withOpacity(0.12)
-                                                  : Colors.white.withOpacity(0.25),
-                                              borderRadius:
-                                                  const BorderRadius.only(
-                                                    topLeft: Radius.circular(16),
-                                                    topRight: Radius.circular(
-                                                      16,
-                                                    ),
-                                                    bottomRight: Radius.circular(
-                                                      16,
-                                                    ),
-                                                    bottomLeft: Radius.circular(
-                                                      4,
-                                                    ),
-                                                  ),
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.35,
-                                                ),
-                                                width: 1.2,
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(
-                                                        isDark ? 0.2 : 0.05,
-                                                      ),
-                                                  blurRadius: 16,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
-                                            child: ValueListenableBuilder<int>(
-                                              valueListenable: _greetingIndexNotifier,
-                                              builder: (context, greetingIdx, _) {
-                                                return Text(
-                                                  _botGreetings[greetingIdx],
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: isDark
-                                                        ? Colors.white
-                                                        : Colors.black87,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          OnyxAvatarSection(
+                            pulseController: _pulseController,
+                            speechController: _speechController,
+                            speechScale: _speechScale,
+                            speechFade: _speechFade,
+                            greetingIndexNotifier: _greetingIndexNotifier,
+                            botGreetings: _botGreetings,
+                            primaryColor: primaryColor,
+                            glowAccentColor: glowAccentColor,
+                            isDark: isDark,
                           ),
                           const SizedBox(height: 18),
                           Center(
@@ -430,9 +272,6 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                 cardBg: cardBg,
                                 textColor: textColor,
                                 isDark: isDark,
-                                getInsightColor: (type) =>
-                                    _getInsightColor(type, context),
-                                getInsightIcon: _getInsightIcon,
                               ),
                             );
                           }),
@@ -451,202 +290,3 @@ class _OnyxAiPageState extends State<OnyxAiPage>
   }
 }
 
-class AnimatedInsightCard extends StatefulWidget {
-  final AiInsight insight;
-  final int index;
-  final Color cardBg;
-  final Color textColor;
-  final bool isDark;
-  final Color Function(String) getInsightColor;
-  final IconData Function(String) getInsightIcon;
-
-  const AnimatedInsightCard({
-    super.key,
-    required this.insight,
-    required this.index,
-    required this.cardBg,
-    required this.textColor,
-    required this.isDark,
-    required this.getInsightColor,
-    required this.getInsightIcon,
-  });
-
-  @override
-  State<AnimatedInsightCard> createState() => _AnimatedInsightCardState();
-}
-
-class _AnimatedInsightCardState extends State<AnimatedInsightCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    Future.delayed(Duration(milliseconds: widget.index * 150), () {
-      if (mounted) {
-        _controller.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = widget.getInsightColor(widget.insight.type);
-    final icon = widget.getInsightIcon(widget.insight.type);
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: FractionalTranslation(
-            translation: _slideAnimation.value,
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: widget.isDark
-              ? LinearGradient(
-                  colors: [
-                    const Color(0xFF2A273A).withOpacity(0.9),
-                    const Color(0xFF1E1B29).withOpacity(0.9),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : LinearGradient(
-                  colors: [
-                    Colors.white,
-                    const Color(0xFFF8F9FA),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-          border: Border.all(
-            color: color.withOpacity(widget.isDark ? 0.35 : 0.2),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, color: color, size: 17),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          widget.insight.title,
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.1,
-                            color: widget.textColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 9),
-                  Text(
-                    widget.insight.message,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      color: widget.isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: widget.isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.amber.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.amber.shade700.withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          CupertinoIcons.lightbulb_fill,
-                          color: Colors.amber.shade600,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            widget.insight.recommendation,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              height: 1.35,
-                              fontWeight: FontWeight.w500,
-                              color: widget.isDark
-                                  ? Colors.white70
-                                  : Colors.grey.shade800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
