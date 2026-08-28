@@ -1,10 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:expense_tracker/core/common/entities/user.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/balance_card.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/connect_wallet_page.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/onyx_ai_page.dart';
+import 'package:expense_tracker/core/routing/app_router.dart';
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 
 class HomeTopHeaderWidget extends StatelessWidget {
@@ -65,7 +69,6 @@ class HomeTopHeaderWidget extends StatelessWidget {
     }
     final isIncrease = pctChange >= 0;
     final pctString = '${pctChange.abs().toStringAsFixed(1)}% this month';
-    final cardLabel = activeWallet != null ? activeWallet.name : 'Balance';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,38 +134,103 @@ class HomeTopHeaderWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(context, OnyxAiPage.route());
+                  },
                   child: Container(
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.25),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          CupertinoIcons.sparkles,
-                          color: Color(0xFFFDE047),
-                          size: 14,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.35),
+                          blurRadius: 16,
+                          spreadRadius: 2,
                         ),
-                        SizedBox(width: 5),
-                        Text(
-                          'Onyx AI',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        BoxShadow(
+                          color: Theme.of(context).primaryColor.withOpacity(0.4),
+                          blurRadius: 10,
+                          spreadRadius: 1,
                         ),
                       ],
                     ),
+                    child: Lottie.asset(
+                      'assets/animations/onyx_ai.json',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.sparkles,
+                            color: Color(0xFFFDE047),
+                            size: 20,
+                          ),
+                        );
+                      },
+                    ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                AnimatedBuilder(
+                  animation: NotificationService(),
+                  builder: (context, _) {
+                    final unread = NotificationService().unreadCount;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRouter.notifications,
+                        );
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(6.0),
+                            child: Icon(
+                              CupertinoIcons.bell,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          if (unread > 0)
+                            Positioned(
+                              right: 2,
+                              top: 2,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).primaryColor,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  unread > 9 ? '9+' : '$unread',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -174,15 +242,6 @@ class HomeTopHeaderWidget extends StatelessWidget {
         Center(
           child: Column(
             children: [
-              Text(
-                cardLabel,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
               Text(
                 formattedBal,
                 style: const TextStyle(
@@ -233,7 +292,7 @@ class HomeTopHeaderWidget extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 36),
 
         BalanceCard(
           cardWallets: wallets,

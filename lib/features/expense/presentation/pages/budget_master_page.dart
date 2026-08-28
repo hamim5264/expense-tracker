@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/core/common/utils/budget_storage_service.dart';
+import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:expense_tracker/core/routing/app_router.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
@@ -144,6 +146,7 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     icon: Icon(
@@ -169,7 +172,63 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  AnimatedBuilder(
+                    animation: NotificationService(),
+                    builder: (context, _) {
+                      final unread = NotificationService().unreadCount;
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.notifications,
+                          );
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Icon(
+                                CupertinoIcons.bell,
+                                color: isDark ? Colors.white : Colors.black87,
+                                size: 24,
+                              ),
+                            ),
+                            if (unread > 0)
+                              Positioned(
+                                right: 4,
+                                top: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFF121212) : const Color(0xFFF9F9FB),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    unread > 9 ? '9+' : '$unread',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
