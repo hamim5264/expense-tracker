@@ -61,4 +61,10 @@ class SoundService {
       HapticFeedback.heavyImpact();
     }
   }
+
+  static Future<void> playDelete() async {
+    if (_vibrateEnabled) {
+      HapticFeedback.mediumImpact();
+    }
+  }
 }

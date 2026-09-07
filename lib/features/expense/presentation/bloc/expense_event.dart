@@ -11,10 +11,23 @@ final class ExpenseAddTransaction extends ExpenseEvent {
   ExpenseAddTransaction(this.expense);
 }
 
+final class ExpenseUpdateTransaction extends ExpenseEvent {
+  final Expense expense;
+
+  ExpenseUpdateTransaction(this.expense);
+}
+
+final class ExpenseDeleteTransaction extends ExpenseEvent {
+  final String transactionId;
+
+  ExpenseDeleteTransaction(this.transactionId);
+}
+
 final class ExpenseAddWalletCard extends ExpenseEvent {
   final Wallet wallet;
+  final bool recordAsIncome;
 
-  ExpenseAddWalletCard(this.wallet);
+  ExpenseAddWalletCard(this.wallet, {this.recordAsIncome = false});
 }
 
 final class ExpenseUpdateWallet extends ExpenseEvent {

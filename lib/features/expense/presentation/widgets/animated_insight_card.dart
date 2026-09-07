@@ -127,9 +127,9 @@ class _AnimatedInsightCardState extends State<AnimatedInsightCard>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(widget.isDark ? 0.38 : 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 5),
             ),
           ],
         ),

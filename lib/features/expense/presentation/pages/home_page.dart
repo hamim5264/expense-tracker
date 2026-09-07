@@ -362,218 +362,252 @@ class _HomePageState extends State<HomePage> {
                   transactionList.sort((a, b) => b.date.compareTo(a.date));
                 }
 
-                return Stack(
-                  children: [
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: CustomPaint(
-                        size: Size(MediaQuery.of(context).size.width, 358),
-                        painter: HeaderPainter(color: theme.primaryColor),
-                      ),
-                    ),
-                    Positioned(
-                      top: -30,
-                      left: -30,
-                      child: Opacity(
-                        opacity: 1.0,
-                        child: Image.asset(
-                          'assets/images/components/background_design.png',
-                          width: 320,
-                          fit: BoxFit.contain,
-                          color: Colors.white.withOpacity(0.45),
-                          colorBlendMode: BlendMode.srcATop,
-                        ),
-                      ),
-                    ),
-                    SafeArea(
-                      child: isLoading
-                          ? const HomeShimmerLoading()
-                          : Column(
+                return isLoading
+                    ? Stack(
+                        children: [
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: CustomPaint(
+                              size: Size(MediaQuery.of(context).size.width, 358),
+                              painter: HeaderPainter(color: theme.primaryColor),
+                            ),
+                          ),
+                          Positioned(
+                            top: -30,
+                            left: -30,
+                            child: Opacity(
+                              opacity: 1.0,
+                              child: Image.asset(
+                                'assets/images/components/background_design.png',
+                                width: 320,
+                                fit: BoxFit.contain,
+                                color: Colors.white.withOpacity(0.45),
+                                colorBlendMode: BlendMode.srcATop,
+                              ),
+                            ),
+                          ),
+                          const SafeArea(child: HomeShimmerLoading()),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          // Header with purple background that wraps content naturally
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor,
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(20),
+                                bottomRight: Radius.circular(20),
+                              ),
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                                  child: HomeTopHeaderWidget(
-                                    user: user,
-                                    wallets: expenseState is ExpenseSuccess ? expenseState.wallets : [],
-                                    allExpenses: transactionList,
-                                    activeCardIndex: _activeCardIndex,
-                                    isOffline: _isOffline,
-                                    isDark: isDark,
-                                    greetingText: _getDynamicDailyGreeting(),
-                                    onPageChanged: (idx) => setState(() => _activeCardIndex = idx),
+                                Positioned(
+                                  top: -30,
+                                  left: -30,
+                                  child: IgnorePointer(
+                                    child: Opacity(
+                                      opacity: 1.0,
+                                      child: Image.asset(
+                                        'assets/images/components/background_design.png',
+                                        width: 320,
+                                        fit: BoxFit.contain,
+                                        color: Colors.white.withOpacity(0.45),
+                                        colorBlendMode: BlendMode.srcATop,
+                                      ),
+                                    ),
                                   ),
                                 ),
-
-                                Expanded(
-                                  child: RefreshIndicator(
-                                    onRefresh: () async {
-                                      context.read<ExpenseBloc>().add(ExpenseFetchAll());
-                                      await _checkForSmsExpenses();
-                                    },
-                                    child: SingleChildScrollView(
-                                      controller: _scrollController,
-                                      physics: const BouncingScrollPhysics(),
-                                      padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 100),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 24),
-                                          QuickAddExpenseButtons(
-                                            isDark: isDark,
-                                            onAddExpense: () {
-                                              final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
-                                              if (wallets.isEmpty) {
-                                                showToast('Please add a card or wallet first.', isError: true, context: context);
-                                                return;
-                                              }
-                                              Navigator.push(
-                                                context,
-                                                AddExpensePage.route(initialType: 'expense'),
-                                              );
-                                            },
-                                            onAddIncome: () {
-                                              final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
-                                              if (wallets.isEmpty) {
-                                                showToast('Please add a card or wallet first.', isError: true, context: context);
-                                                return;
-                                              }
-                                              Navigator.push(
-                                                context,
-                                                AddExpensePage.route(initialType: 'income'),
-                                              );
-                                            },
-                                          ),
-                                          const SizedBox(height: 18),
-
-                                          HomeSpendingSummaryCard(
-                                            allExpenses: transactionList,
-                                            currencyCode: user.currency,
-                                            isDark: isDark,
-                                          ),
-                                          const SizedBox(height: 16),
-
-                                          if (user.smsSyncEnabled && _detectedSmsExpenses.isNotEmpty) ...[
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Detected from SMS (${_detectedSmsExpenses.length})',
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                                ),
-                                                GestureDetector(
-                                                  onTap: _syncAllSmsExpenses,
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: theme.primaryColor,
-                                                      borderRadius: BorderRadius.circular(16),
-                                                    ),
-                                                    child: const Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(CupertinoIcons.arrow_2_circlepath, size: 11, color: Colors.white),
-                                                        SizedBox(width: 4),
-                                                        Text('Sync All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 10),
-                                            SizedBox(
-                                              height: 96,
-                                              child: ListView.builder(
-                                                scrollDirection: Axis.horizontal,
-                                                itemCount: _detectedSmsExpenses.length,
-                                                itemBuilder: (context, index) {
-                                                  final item = _detectedSmsExpenses[index];
-                                                  return SmsDetectedCard(
-                                                    item: item,
-                                                    currencyCode: user.currency,
-                                                    isDark: isDark,
-                                                    onSync: () => _syncSmsExpense(item),
-                                                    onDiscard: () => _discardSmsExpense(item.id),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                          ],
-
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('Recent Transactions', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold)),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  showModalBottomSheet(
-                                                    context: context,
-                                                    backgroundColor: Colors.transparent,
-                                                    isScrollControlled: true,
-                                                    barrierColor: Colors.black.withAlpha(80),
-                                                    builder: (sheetContext) => AllTransactionsSheet(
-                                                      transactions: transactionList,
-                                                      currencyCode: user.currency,
-                                                    ),
-                                                  );
-                                                },
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: theme.primaryColor,
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    'See All',
-                                                    style: TextStyle(
-                                                      fontSize: 11.5,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: theme.primaryColor.computeLuminance() > 0.45 ? Colors.black87 : Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-
-                                          if (transactionList.isEmpty)
-                                            const EmptyTransactionsPlaceholder()
-                                          else
-                                            ...transactionList.take(5).map((tx) => TransactionItemTile(
-                                                  transaction: tx,
-                                                  currencyCode: user.currency,
-                                                  isDark: isDark,
-                                                )),
-                                          const SizedBox(height: 16),
-
-                                          Text(
-                                            'Money Flow Analytics',
-                                            style: TextStyle(
-                                              fontSize: 15.5,
-                                              fontWeight: FontWeight.bold,
-                                              color: isDark ? Colors.white : Colors.black87,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          MoneyFlowChart(
-                                            transactions: transactionList,
-                                            currencyCode: user.currency,
-                                            isDark: isDark,
-                                          ),
-                                        ],
-                                      ),
+                                SafeArea(
+                                  bottom: false,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 24, right: 24, bottom: 8),
+                                    child: HomeTopHeaderWidget(
+                                      user: user,
+                                      wallets: expenseState is ExpenseSuccess ? expenseState.wallets : [],
+                                      allExpenses: transactionList,
+                                      activeCardIndex: _activeCardIndex,
+                                      isOffline: _isOffline,
+                                      isDark: isDark,
+                                      greetingText: _getDynamicDailyGreeting(),
+                                      onPageChanged: (idx) => setState(() => _activeCardIndex = idx),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                    ),
-                  ],
-                );
+                          ),
+
+                          // Scrollable content below header
+                          Expanded(
+                            child: RefreshIndicator(
+                              onRefresh: () async {
+                                context.read<ExpenseBloc>().add(ExpenseFetchAll());
+                                await _checkForSmsExpenses();
+                              },
+                              child: SingleChildScrollView(
+                                controller: _scrollController,
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 100),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 24),
+                                    QuickAddExpenseButtons(
+                                      isDark: isDark,
+                                      onAddExpense: () {
+                                        final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
+                                        if (wallets.isEmpty) {
+                                          showToast('Please add a card or wallet first.', isError: true, context: context);
+                                          return;
+                                        }
+                                        Navigator.push(
+                                          context,
+                                          AddExpensePage.route(initialType: 'expense'),
+                                        );
+                                      },
+                                      onAddIncome: () {
+                                        final wallets = expenseState is ExpenseSuccess ? expenseState.wallets : [];
+                                        if (wallets.isEmpty) {
+                                          showToast('Please add a card or wallet first.', isError: true, context: context);
+                                          return;
+                                        }
+                                        Navigator.push(
+                                          context,
+                                          AddExpensePage.route(initialType: 'income'),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 18),
+
+                                    HomeSpendingSummaryCard(
+                                      allExpenses: transactionList,
+                                      currencyCode: user.currency,
+                                      isDark: isDark,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    if (user.smsSyncEnabled && _detectedSmsExpenses.isNotEmpty) ...[
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Detected from SMS (${_detectedSmsExpenses.length})',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                          ),
+                                          GestureDetector(
+                                            onTap: _syncAllSmsExpenses,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: theme.primaryColor,
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(CupertinoIcons.arrow_2_circlepath, size: 11, color: Colors.white),
+                                                  SizedBox(width: 4),
+                                                  Text('Sync All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        height: 96,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: _detectedSmsExpenses.length,
+                                          itemBuilder: (context, index) {
+                                            final item = _detectedSmsExpenses[index];
+                                            return SmsDetectedCard(
+                                              item: item,
+                                              currencyCode: user.currency,
+                                              isDark: isDark,
+                                              onSync: () => _syncSmsExpense(item),
+                                              onDiscard: () => _discardSmsExpense(item.id),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Recent Transactions', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold)),
+                                        GestureDetector(
+                                          onTap: () {
+                                            showModalBottomSheet(
+                                              context: context,
+                                              backgroundColor: Colors.transparent,
+                                              isScrollControlled: true,
+                                              barrierColor: Colors.black.withAlpha(80),
+                                              builder: (sheetContext) => AllTransactionsSheet(
+                                                transactions: transactionList,
+                                                currencyCode: user.currency,
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: theme.primaryColor,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'See All',
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.primaryColor.computeLuminance() > 0.45 ? Colors.black87 : Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    if (transactionList.isEmpty)
+                                      const EmptyTransactionsPlaceholder()
+                                    else
+                                      ...transactionList.take(5).map((tx) => TransactionItemTile(
+                                            transaction: tx,
+                                            currencyCode: user.currency,
+                                            isDark: isDark,
+                                          )),
+                                    const SizedBox(height: 16),
+
+                                    Text(
+                                      'Money Flow Analytics',
+                                      style: TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    MoneyFlowChart(
+                                      transactions: transactionList,
+                                      currencyCode: user.currency,
+                                      isDark: isDark,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
               },
             ),
           );

@@ -18,18 +18,76 @@ class HomeSpendingSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    final todayTotal = allExpenses.where((e) {
-      return e.type == 'expense' &&
-          e.date.year == now.year &&
-          e.date.month == now.month &&
-          e.date.day == now.day;
-    }).fold<double>(0.0, (sum, e) => sum + e.amount);
+    final todayTransactions = allExpenses.where((e) {
+      final d = e.date.toLocal();
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).toList();
 
-    final monthTotal = allExpenses.where((e) {
-      return e.type == 'expense' &&
-          e.date.year == now.year &&
-          e.date.month == now.month;
-    }).fold<double>(0.0, (sum, e) => sum + e.amount);
+    final todayExpense = todayTransactions
+        .where((e) => e.type == 'expense')
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    final todayIncome = todayTransactions
+        .where((e) => e.type == 'income')
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    final monthTransactions = allExpenses.where((e) {
+      final d = e.date.toLocal();
+      return d.year == now.year && d.month == now.month;
+    }).toList();
+
+    final monthExpense = monthTransactions
+        .where((e) => e.type == 'expense')
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    final monthIncome = monthTransactions
+        .where((e) => e.type == 'income')
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    final bool hasTodayExpense = todayExpense > 0;
+    final bool hasTodayIncome = todayIncome > 0;
+
+    String todayDisplayText;
+    Color todayTextColor;
+    double todayRingValue;
+    Color todayRingColor;
+    String todayLabel = 'Today';
+
+    if (hasTodayExpense && hasTodayIncome) {
+      todayDisplayText = CurrencyService.format(todayExpense, currencyCode);
+      todayTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+      todayRingValue = monthExpense > 0
+          ? (todayExpense / monthExpense).clamp(0.05, 1.0)
+          : 0.5;
+      todayRingColor = const Color(0xFF10B981);
+    } else if (hasTodayExpense) {
+      todayDisplayText = CurrencyService.format(todayExpense, currencyCode);
+      todayTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+      todayRingValue = monthExpense > 0
+          ? (todayExpense / monthExpense).clamp(0.05, 1.0)
+          : 0.5;
+      todayRingColor = const Color(0xFF10B981);
+    } else if (hasTodayIncome) {
+      todayDisplayText = '+ ${CurrencyService.format(todayIncome, currencyCode)}';
+      todayTextColor = const Color(0xFF10B981);
+      todayRingValue = 1.0;
+      todayRingColor = const Color(0xFF10B981);
+      todayLabel = 'Today (Income)';
+    } else {
+      todayDisplayText = CurrencyService.format(0.0, currencyCode);
+      todayTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+      todayRingValue = 0.0;
+      todayRingColor = const Color(0xFF10B981);
+    }
+
+    final String monthDisplayText = monthExpense > 0
+        ? CurrencyService.format(monthExpense, currencyCode)
+        : (monthIncome > 0
+            ? '+ ${CurrencyService.format(monthIncome, currencyCode)}'
+            : CurrencyService.format(0.0, currencyCode));
+    final Color monthTextColor = (monthExpense == 0 && monthIncome > 0)
+        ? const Color(0xFF10B981)
+        : (isDark ? Colors.white : const Color(0xFF0F172A));
 
     final monthName = [
       'January',
@@ -67,7 +125,7 @@ class HomeSpendingSummaryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Today's Spending
+          // Today's Spending / Activity
           Expanded(
             child: Row(
               children: [
@@ -75,16 +133,12 @@ class HomeSpendingSummaryCard extends StatelessWidget {
                   width: 38,
                   height: 38,
                   child: CircularProgressIndicator(
-                    value: todayTotal <= 0
-                        ? 0.0
-                        : (monthTotal > 0
-                            ? (todayTotal / monthTotal).clamp(0.05, 1.0)
-                            : 0.0),
+                    value: todayRingValue,
                     strokeWidth: 4,
                     backgroundColor: isDark
                         ? const Color(0xFF2A2640)
                         : const Color(0xFFE2E8F0),
-                    color: const Color(0xFF10B981),
+                    color: todayRingColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -94,7 +148,7 @@ class HomeSpendingSummaryCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Today',
+                        todayLabel,
                         style: TextStyle(
                           color: isDark ? Colors.white60 : Colors.black54,
                           fontSize: 12,
@@ -106,14 +160,25 @@ class HomeSpendingSummaryCard extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          CurrencyService.format(todayTotal, currencyCode),
+                          todayDisplayText,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: todayTextColor,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                      if (hasTodayExpense && hasTodayIncome) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          '+${CurrencyService.format(todayIncome, currencyCode)} in',
+                          style: const TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -131,7 +196,7 @@ class HomeSpendingSummaryCard extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 12),
           ),
 
-          // Current Month's Total Spending
+          // Current Month's Total
           Expanded(
             child: Row(
               children: [
@@ -139,7 +204,7 @@ class HomeSpendingSummaryCard extends StatelessWidget {
                   width: 38,
                   height: 38,
                   child: CircularProgressIndicator(
-                    value: monthTotal <= 0 ? 0.0 : 0.75,
+                    value: monthExpense <= 0 ? (monthIncome > 0 ? 1.0 : 0.0) : 0.75,
                     strokeWidth: 4,
                     backgroundColor: isDark
                         ? const Color(0xFF2A2640)
@@ -166,9 +231,9 @@ class HomeSpendingSummaryCard extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          CurrencyService.format(monthTotal, currencyCode),
+                          monthDisplayText,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: monthTextColor,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

@@ -1,17 +1,25 @@
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
+import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/transaction_action_sheet.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TransactionItemTile extends StatelessWidget {
   final Expense transaction;
   final String currencyCode;
   final bool isDark;
+  final VoidCallback? onTap;
+  final List<Wallet>? wallets;
 
   const TransactionItemTile({
     super.key,
     required this.transaction,
     required this.currencyCode,
     required this.isDark,
+    this.onTap,
+    this.wallets,
   });
 
   String _getCategoryIcon(String category, String title) {
@@ -164,106 +172,127 @@ class TransactionItemTile extends StatelessWidget {
     final iconPath = _getCategoryIcon(transaction.category, transaction.title);
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
+    return GestureDetector(
+      onTap: () {
+        if (onTap != null) {
+          onTap!();
+        } else {
+          List<Wallet> currentWallets = wallets ?? [];
+          if (currentWallets.isEmpty) {
+            final state = context.read<ExpenseBloc>().state;
+            if (state is ExpenseSuccess) {
+              currentWallets = state.wallets;
+            }
+          }
+          TransactionActionSheet.show(
+            context: context,
+            transaction: transaction,
+            currencyCode: currencyCode,
+            wallets: currentWallets,
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1C2A) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
             color: isDark
-                ? Colors.black.withOpacity(0.25)
-                : Colors.black.withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.05),
+            width: 1,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
-              shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.25)
+                  : Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-            child: Image.asset(
-              iconPath,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                  color: isIncome ? Colors.green : Colors.red,
-                  size: 15,
-                );
-              },
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                iconPath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                    color: isIncome ? Colors.green : Colors.red,
+                    size: 15,
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  transaction.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.grey.shade600,
-                    fontSize: 9.5,
-                  ),
-                ),
-                if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 1),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    'Note: ${transaction.notes}',
+                    transaction.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                      fontSize: 9,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: textColor,
                     ),
                   ),
+                  const SizedBox(height: 1),
+                  Text(
+                    '${transaction.category} • ${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                      fontSize: 9.5,
+                    ),
+                  ),
+                  if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      'Note: ${transaction.notes}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        fontSize: 9,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            (isIncome ? '+ ' : '- ') +
-                CurrencyService.format(transaction.amount, currencyCode),
-            style: TextStyle(
-              color: isIncome
-                  ? const Color(0xFF22C55E)
-                  : const Color(0xFFEF4444),
-              fontWeight: FontWeight.bold,
-              fontSize: 11.5,
+            const SizedBox(width: 6),
+            Text(
+              (isIncome ? '+ ' : '- ') +
+                  CurrencyService.format(transaction.amount, currencyCode),
+              style: TextStyle(
+                color: isIncome
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFFEF4444),
+                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

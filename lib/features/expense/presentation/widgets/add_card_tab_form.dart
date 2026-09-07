@@ -1,3 +1,4 @@
+import 'package:expense_tracker/features/expense/presentation/widgets/record_income_toggle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/premium_credit_card.dart';
@@ -13,6 +14,8 @@ class AddCardTabForm extends StatelessWidget {
   final VoidCallback onChanged;
   final Function(String userId) onSaveCard;
   final String userId;
+  final bool recordAsIncome;
+  final ValueChanged<bool> onToggleRecordAsIncome;
 
   const AddCardTabForm({
     super.key,
@@ -26,6 +29,8 @@ class AddCardTabForm extends StatelessWidget {
     required this.onChanged,
     required this.onSaveCard,
     required this.userId,
+    required this.recordAsIncome,
+    required this.onToggleRecordAsIncome,
   });
 
   Widget _fieldLabel(String text) => Text(
@@ -142,7 +147,13 @@ class AddCardTabForm extends StatelessWidget {
               return null;
             },
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+          RecordIncomeToggle(
+            value: recordAsIncome,
+            onChanged: onToggleRecordAsIncome,
+            isDark: Theme.of(context).brightness == Brightness.dark,
+          ),
+          const SizedBox(height: 28),
 
           Container(
             height: 52,

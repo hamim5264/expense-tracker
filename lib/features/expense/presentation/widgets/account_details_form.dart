@@ -1,3 +1,4 @@
+import 'package:expense_tracker/features/expense/presentation/widgets/record_income_toggle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,6 +20,8 @@ class AccountDetailsForm extends StatelessWidget {
   final bool isDark;
   final String displayName;
   final String userId;
+  final bool recordAsIncome;
+  final ValueChanged<bool> onToggleRecordAsIncome;
   final VoidCallback onChanged;
   final Function(String userId) onSaveBankWallet;
 
@@ -41,6 +44,8 @@ class AccountDetailsForm extends StatelessWidget {
     required this.isDark,
     required this.displayName,
     required this.userId,
+    required this.recordAsIncome,
+    required this.onToggleRecordAsIncome,
     required this.onChanged,
     required this.onSaveBankWallet,
   });
@@ -86,6 +91,7 @@ class AccountDetailsForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
 
+    final isCash = selectedBankType == 'Cash in Hand';
     final isBank = selectedBankType == 'Bank Link';
     final isPaypal = selectedBankType == 'Paypal';
     final isMobile = selectedBankType == 'Mobile Banking';
@@ -101,16 +107,18 @@ class AccountDetailsForm extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: primaryColor.withAlpha(20),
+                color: (isCash ? const Color(0xFF10B981) : primaryColor).withAlpha(25),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isBank
-                    ? Icons.account_balance_rounded
-                    : isPaypal
-                        ? Icons.payment_rounded
-                        : Icons.phone_android_rounded,
-                color: primaryColor,
+                isCash
+                    ? Icons.payments_rounded
+                    : isBank
+                        ? Icons.account_balance_rounded
+                        : isPaypal
+                            ? Icons.payment_rounded
+                            : Icons.phone_android_rounded,
+                color: isCash ? const Color(0xFF10B981) : primaryColor,
                 size: 36,
               ),
             ),
@@ -118,159 +126,176 @@ class AccountDetailsForm extends StatelessWidget {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              isBank
-                  ? 'Link Bank Account'
-                  : isPaypal
-                      ? 'Link PayPal'
-                      : 'Link Mobile Wallet',
+              isCash
+                  ? 'Cash in Hand'
+                  : isBank
+                      ? 'Link Bank Account'
+                      : isPaypal
+                          ? 'Link PayPal'
+                          : 'Link Mobile Wallet',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 24),
 
-          if (isBank) ...[
-            _fieldLabel('BANK NAME'),
+          if (isCash) ...[
+            _fieldLabel('WALLET NAME'),
             const SizedBox(height: 8),
             TextFormField(
               controller: bankNameController,
               focusNode: bankNameFocusNode,
-              decoration: _inputDeco(context, 'e.g. Chase Bank'),
+              decoration: _inputDeco(context, 'e.g. Cash in Hand'),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: popularBanks.map((bank) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ActionChip(
-                      label: Text(
-                        bank,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                      backgroundColor: isDark
-                          ? Colors.white10
-                          : Colors.grey.shade100,
-                      onPressed: () {
-                        bankNameController.text = bank;
-                        onChanged();
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(accountBalanceFocusNode),
             ),
             const SizedBox(height: 16),
-          ],
+          ] else ...[
+            if (isBank) ...[
+              _fieldLabel('BANK NAME'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: bankNameController,
+                focusNode: bankNameFocusNode,
+                decoration: _inputDeco(context, 'e.g. Chase Bank'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: popularBanks.map((bank) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: Text(
+                          bank,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        backgroundColor: isDark
+                            ? Colors.white10
+                            : Colors.grey.shade100,
+                        onPressed: () {
+                          bankNameController.text = bank;
+                          onChanged();
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
-          if (isMobile) ...[
-            _fieldLabel('MOBILE PROVIDER'),
+            if (isMobile) ...[
+              _fieldLabel('MOBILE PROVIDER'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: mobileProviderController,
+                focusNode: mobileProviderFocusNode,
+                decoration: _inputDeco(context, 'e.g. Venmo'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: popularMobileProviders.map((prov) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: Text(
+                          prov,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        backgroundColor: isDark
+                            ? Colors.white10
+                            : Colors.grey.shade100,
+                        onPressed: () {
+                          mobileProviderController.text = prov;
+                          onChanged();
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            _fieldLabel(isBank ? 'ACCOUNT HOLDER NAME' : 'YOUR NAME / ALIAS'),
             const SizedBox(height: 8),
             TextFormField(
-              controller: mobileProviderController,
-              focusNode: mobileProviderFocusNode,
-              decoration: _inputDeco(context, 'e.g. Venmo'),
+              controller: accountNameController,
+              focusNode: accountNameFocusNode,
+              decoration: _inputDeco(context, 'e.g. JOHN DOE'),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Required' : null,
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(accountNumberFocusNode),
+            ),
+            const SizedBox(height: 16),
+
+            _fieldLabel(
+              isBank
+                  ? 'ACCOUNT NUMBER (LAST 4 DIGITS)'
+                  : isPaypal
+                      ? 'PAYPAL EMAIL ADDRESS'
+                      : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS)',
             ),
             const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: popularMobileProviders.map((prov) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ActionChip(
-                      label: Text(
-                        prov,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                      backgroundColor: isDark
-                          ? Colors.white10
-                          : Colors.grey.shade100,
-                      onPressed: () {
-                        mobileProviderController.text = prov;
-                        onChanged();
-                      },
-                    ),
-                  );
-                }).toList(),
+            TextFormField(
+              controller: accountNumberController,
+              focusNode: accountNumberFocusNode,
+              keyboardType: isPaypal
+                  ? TextInputType.emailAddress
+                  : TextInputType.number,
+              inputFormatters: !isPaypal
+                  ? [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ]
+                  : null,
+              onChanged: (val) {
+                if (!isPaypal && val.length == 4) {
+                  FocusScope.of(context).requestFocus(accountBalanceFocusNode);
+                }
+              },
+              decoration: _inputDeco(
+                context,
+                isBank
+                    ? 'e.g. 7890'
+                    : isPaypal
+                        ? 'name@example.com'
+                        : 'e.g. 4321',
               ),
+              validator: (v) {
+                final val = v?.trim() ?? '';
+                if (val.isEmpty) return 'Required';
+                if (isPaypal && !val.contains('@')) return 'Enter a valid email';
+                if (!isPaypal && val.length < 4) {
+                  return 'Must be exactly 4 digits';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(accountBalanceFocusNode),
             ),
             const SizedBox(height: 16),
           ],
 
-          _fieldLabel(isBank ? 'ACCOUNT HOLDER NAME' : 'YOUR NAME / ALIAS'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: accountNameController,
-            focusNode: accountNameFocusNode,
-            decoration: _inputDeco(context, 'e.g. JOHN DOE'),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(accountNumberFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel(
-            isBank
-                ? 'ACCOUNT NUMBER (LAST 4 DIGITS)'
-                : isPaypal
-                    ? 'PAYPAL EMAIL ADDRESS'
-                    : 'REGISTERED PHONE NUMBER (LAST 4 DIGITS)',
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: accountNumberController,
-            focusNode: accountNumberFocusNode,
-            keyboardType: isPaypal
-                ? TextInputType.emailAddress
-                : TextInputType.number,
-            inputFormatters: !isPaypal
-                ? [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ]
-                : null,
-            onChanged: (val) {
-              if (!isPaypal && val.length == 4) {
-                FocusScope.of(context).requestFocus(accountBalanceFocusNode);
-              }
-            },
-            decoration: _inputDeco(
-              context,
-              isBank
-                  ? 'e.g. 7890'
-                  : isPaypal
-                      ? 'name@example.com'
-                      : 'e.g. 4321',
-            ),
-            validator: (v) {
-              final val = v?.trim() ?? '';
-              if (val.isEmpty) return 'Required';
-              if (isPaypal && !val.contains('@')) return 'Enter a valid email';
-              if (!isPaypal && val.length < 4) {
-                return 'Must be exactly 4 digits';
-              }
-              return null;
-            },
-            onFieldSubmitted: (_) =>
-                FocusScope.of(context).requestFocus(accountBalanceFocusNode),
-          ),
-          const SizedBox(height: 16),
-
-          _fieldLabel('INITIAL BALANCE'),
+          _fieldLabel(isCash ? 'CURRENT CASH AMOUNT' : 'INITIAL BALANCE'),
           const SizedBox(height: 8),
           TextFormField(
             controller: accountBalanceController,
@@ -286,22 +311,28 @@ class AccountDetailsForm extends StatelessWidget {
             },
             onFieldSubmitted: (_) => onSaveBankWallet(userId),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+          RecordIncomeToggle(
+            value: recordAsIncome,
+            onChanged: onToggleRecordAsIncome,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 28),
 
           SizedBox(
             height: 52,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: isCash ? const Color(0xFF10B981) : primaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
               onPressed: () => onSaveBankWallet(userId),
-              child: const Text(
-                'Link Account',
-                style: TextStyle(
+              child: Text(
+                isCash ? 'Save Cash Wallet' : 'Link Account',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

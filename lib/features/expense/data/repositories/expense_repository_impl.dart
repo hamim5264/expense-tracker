@@ -79,6 +79,59 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updateExpense(Expense expense) async {
+    try {
+      final expenseModel = ExpenseModel(
+        id: expense.id,
+        userId: expense.userId,
+        title: expense.title,
+        amount: expense.amount,
+        date: expense.date,
+        type: expense.type,
+        category: expense.category,
+        walletId: expense.walletId,
+        notes: expense.notes,
+      );
+
+      final currentCache = await cacheService.getCachedExpenses();
+      final index = currentCache.indexWhere((e) => e['id'] == expense.id);
+      if (index != -1) {
+        currentCache[index] = expenseModel.toJson();
+      } else {
+        currentCache.insert(0, expenseModel.toJson());
+      }
+      await cacheService.cacheExpenses(currentCache);
+
+      if (await networkInfo.isConnected) {
+        await remoteDataSource.updateExpense(expenseModel);
+      }
+      return right(null);
+    } on Failure catch (e) {
+      return left(e);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteExpense(String expenseId) async {
+    try {
+      final currentCache = await cacheService.getCachedExpenses();
+      currentCache.removeWhere((e) => e['id'] == expenseId);
+      await cacheService.cacheExpenses(currentCache);
+
+      if (await networkInfo.isConnected) {
+        await remoteDataSource.deleteExpense(expenseId);
+      }
+      return right(null);
+    } on Failure catch (e) {
+      return left(e);
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Wallet>>> getWallets() async {
     try {
       List<WalletModel> wallets;

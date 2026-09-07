@@ -33,7 +33,7 @@ class ExpenseModel extends Expense {
       userId: map['user_id'] as String,
       title: map['title'] as String,
       amount: (map['amount'] as num).toDouble(),
-      date: DateTime.parse(map['date'] as String),
+      date: DateTime.parse(map['date'] as String).toLocal(),
       type: map['type'] as String,
       category: map['category'] as String? ?? 'Others',
       walletId: map['wallet_id'] as String?,
@@ -41,6 +41,7 @@ class ExpenseModel extends Expense {
     );
   }
 
+  @override
   ExpenseModel copyWith({
     String? id,
     String? userId,

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/common/utils/category_prediction_service.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
@@ -7,6 +8,7 @@ import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/category_selector.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sliding_segment_control.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_form_card.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -14,11 +16,24 @@ import 'package:expense_tracker/core/common/utils/sound_service.dart';
 
 class AddExpensePage extends StatefulWidget {
   final String initialType;
+  final Expense? expenseToEdit;
 
-  static Route route({String initialType = 'expense'}) =>
-      MaterialPageRoute(builder: (context) => AddExpensePage(initialType: initialType));
+  static Route route({
+    String initialType = 'expense',
+    Expense? expenseToEdit,
+  }) =>
+      MaterialPageRoute(
+        builder: (context) => AddExpensePage(
+          initialType: initialType,
+          expenseToEdit: expenseToEdit,
+        ),
+      );
 
-  const AddExpensePage({super.key, this.initialType = 'expense'});
+  const AddExpensePage({
+    super.key,
+    this.initialType = 'expense',
+    this.expenseToEdit,
+  });
 
   @override
   State<AddExpensePage> createState() => _AddExpensePageState();
@@ -32,15 +47,61 @@ class _AddExpensePageState extends State<AddExpensePage> {
   String _selectedCategory = 'Entertainment';
   String? _selectedWalletId;
   late String _transactionType;
+  bool _isCategoryManuallySelected = false;
+  bool _isCategoryAutoDetected = false;
 
   @override
   void initState() {
     super.initState();
-    _transactionType = widget.initialType;
+    if (widget.expenseToEdit != null) {
+      final e = widget.expenseToEdit!;
+      _transactionType = e.type;
+      _nameController.text = e.title;
+      _amountController.text = e.amount.truncateToDouble() == e.amount
+          ? e.amount.toInt().toString()
+          : e.amount.toString();
+      _selectedDate = e.date;
+      _selectedCategory = e.category;
+      _selectedWalletId = e.walletId;
+      _notesController.text = e.notes ?? '';
+      _isCategoryManuallySelected = true;
+    } else {
+      _transactionType = widget.initialType;
+    }
+    _nameController.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    final text = _nameController.text.trim();
+    if (text.isEmpty) {
+      setState(() {
+        _isCategoryAutoDetected = false;
+        _isCategoryManuallySelected = false;
+      });
+      return;
+    }
+
+    if (_isCategoryManuallySelected) return;
+
+    final predicted = CategoryPredictionService.predictCategory(
+      text,
+      _transactionType,
+    );
+    if (predicted != null) {
+      setState(() {
+        _selectedCategory = predicted;
+        _isCategoryAutoDetected = true;
+      });
+    } else if (_isCategoryAutoDetected) {
+      setState(() {
+        _isCategoryAutoDetected = false;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     _amountController.dispose();
     _notesController.dispose();
@@ -84,6 +145,71 @@ class _AddExpensePageState extends State<AddExpensePage> {
     }
   }
 
+  void _confirmDelete() {
+    if (widget.expenseToEdit == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(CupertinoIcons.trash, color: Colors.red, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Delete Transaction',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.expenseToEdit!.title}"? Your wallet balance and calculations will update instantly.',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black87,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? Colors.white60 : Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              context.read<ExpenseBloc>().add(ExpenseDeleteTransaction(widget.expenseToEdit!.id));
+              SoundService.playDelete();
+              Navigator.pop(context);
+              Fluttertoast.showToast(msg: 'Transaction deleted');
+            },
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _submitExpense(String userId) {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
@@ -98,22 +224,38 @@ class _AddExpensePageState extends State<AddExpensePage> {
       return;
     }
 
-    final expense = Expense(
-      id: '',
-      userId: userId,
-      title: name,
-      amount: amount,
-      date: _selectedDate,
-      type: _transactionType,
-      category: _selectedCategory,
-      walletId: _selectedWalletId,
-      notes: notes.isNotEmpty ? notes : null,
-    );
+    if (widget.expenseToEdit != null) {
+      final updated = widget.expenseToEdit!.copyWith(
+        title: name,
+        amount: amount,
+        date: _selectedDate,
+        type: _transactionType,
+        category: _selectedCategory,
+        walletId: _selectedWalletId,
+        notes: notes.isNotEmpty ? notes : null,
+      );
+      context.read<ExpenseBloc>().add(ExpenseUpdateTransaction(updated));
+      SoundService.playSuccess();
+      Navigator.pop(context);
+      Fluttertoast.showToast(msg: 'Transaction updated successfully!');
+    } else {
+      final expense = Expense(
+        id: '',
+        userId: userId,
+        title: name,
+        amount: amount,
+        date: _selectedDate,
+        type: _transactionType,
+        category: _selectedCategory,
+        walletId: _selectedWalletId,
+        notes: notes.isNotEmpty ? notes : null,
+      );
 
-    context.read<ExpenseBloc>().add(ExpenseAddTransaction(expense));
-    SoundService.playSuccess();
-    Navigator.pop(context);
-    Fluttertoast.showToast(msg: 'Transaction added successfully!');
+      context.read<ExpenseBloc>().add(ExpenseAddTransaction(expense));
+      SoundService.playSuccess();
+      Navigator.pop(context);
+      Fluttertoast.showToast(msg: 'Transaction added successfully!');
+    }
   }
 
   @override
@@ -133,15 +275,23 @@ class _AddExpensePageState extends State<AddExpensePage> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Add Transaction',
-          style: TextStyle(
+        title: Text(
+          widget.expenseToEdit != null ? 'Edit Transaction' : 'Add Transaction',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         centerTitle: true,
+        actions: [
+          if (widget.expenseToEdit != null)
+            IconButton(
+              icon: const Icon(CupertinoIcons.trash, color: Colors.white, size: 21),
+              tooltip: 'Delete Transaction',
+              onPressed: _confirmDelete,
+            ),
+        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
@@ -156,8 +306,12 @@ class _AddExpensePageState extends State<AddExpensePage> {
               List<Wallet> wallets = [];
               if (expenseState is ExpenseSuccess) {
                 wallets = expenseState.wallets;
-                if (_selectedWalletId == null && wallets.isNotEmpty) {
-                  _selectedWalletId = wallets.first.id;
+                if (wallets.isNotEmpty) {
+                  if (_selectedWalletId == null) {
+                    _selectedWalletId = widget.expenseToEdit?.walletId ?? wallets.first.id;
+                  } else if (!wallets.any((w) => w.id == _selectedWalletId)) {
+                    _selectedWalletId = wallets.first.id;
+                  }
                 }
               }
 
@@ -185,9 +339,20 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           onChanged: (val) {
                             setState(() {
                               _transactionType = val;
-                              _selectedCategory = val == 'income'
-                                  ? 'Salary'
-                                  : 'Food';
+                              _isCategoryManuallySelected = false;
+                              _isCategoryAutoDetected = false;
+                              final predicted = CategoryPredictionService.predictCategory(
+                                _nameController.text,
+                                val,
+                              );
+                              if (predicted != null) {
+                                _selectedCategory = predicted;
+                                _isCategoryAutoDetected = true;
+                              } else {
+                                _selectedCategory = val == 'income'
+                                    ? 'Salary'
+                                    : 'Food';
+                              }
                             });
                           },
                           isDark: isDark,
@@ -233,7 +398,12 @@ class _AddExpensePageState extends State<AddExpensePage> {
                               CategorySelector(
                                 selectedCategory: _selectedCategory,
                                 transactionType: _transactionType,
-                                onCategorySelected: (cat) => setState(() => _selectedCategory = cat),
+                                isAutoDetected: _isCategoryAutoDetected,
+                                onCategorySelected: (cat) => setState(() {
+                                  _selectedCategory = cat;
+                                  _isCategoryManuallySelected = true;
+                                  _isCategoryAutoDetected = false;
+                                }),
                               ),
                             ],
                           ),
@@ -309,17 +479,20 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryColor,
+                              foregroundColor: theme.colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               elevation: 2,
-                              shadowColor: primaryColor.withOpacity(0.4),
+                              shadowColor: primaryColor.withOpacity(0.35),
                             ),
                             onPressed: () => _submitExpense(user.id),
-                            child: const Text(
-                              'Save Transaction',
+                            child: Text(
+                              widget.expenseToEdit != null
+                                  ? 'Save Changes'
+                                  : 'Save Transaction',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: theme.colorScheme.onPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.2,
@@ -327,6 +500,42 @@ class _AddExpensePageState extends State<AddExpensePage> {
                             ),
                           ),
                         ),
+                        if (widget.expenseToEdit != null) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                backgroundColor: isDark
+                                    ? const Color(0xFFEF4444).withOpacity(0.14)
+                                    : const Color(0xFFFEE2E2),
+                                foregroundColor: isDark
+                                    ? const Color(0xFFF87171)
+                                    : const Color(0xFFDC2626),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFFEF4444).withOpacity(0.28)
+                                        : const Color(0xFFFCA5A5),
+                                    width: 1.2,
+                                  ),
+                                ),
+                              ),
+                              onPressed: _confirmDelete,
+                              icon: const Icon(CupertinoIcons.trash, size: 20),
+                              label: const Text(
+                                'Delete Transaction',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 20),
                       ],
                     ),

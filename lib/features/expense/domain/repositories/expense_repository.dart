@@ -8,6 +8,10 @@ abstract interface class ExpenseRepository {
 
   Future<Either<Failure, void>> addExpense(Expense expense);
 
+  Future<Either<Failure, void>> updateExpense(Expense expense);
+
+  Future<Either<Failure, void>> deleteExpense(String expenseId);
+
   Future<Either<Failure, List<Wallet>>> getWallets();
 
   Future<Either<Failure, Wallet>> addWallet(Wallet wallet);

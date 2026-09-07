@@ -1,4 +1,5 @@
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/connect_wallet_page.dart';
 import 'package:flutter/material.dart';
 
 class TransactionFormCard extends StatelessWidget {
@@ -199,19 +200,43 @@ class TransactionFormCard extends StatelessWidget {
                 ),
               ),
 
+              const SizedBox(width: 12),
               if (wallets.isNotEmpty) ...[
-                const SizedBox(width: 12),
                 // WALLET DROPDOWN
                 Expanded(
                   flex: 6,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('PAYMENT WALLET', style: labelStyle),
+                      Row(
+                        children: [
+                          Icon(
+                            transactionType == 'expense'
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            size: 12,
+                            color: transactionType == 'expense'
+                                ? Colors.redAccent
+                                : const Color(0xFF10B981),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            transactionType == 'expense'
+                                ? 'PAID FROM'
+                                : 'DEPOSIT TO',
+                            style: labelStyle.copyWith(
+                              color: transactionType == 'expense'
+                                  ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
+                                  : (isDark ? const Color(0xFF34D399) : Colors.green.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedWalletId,
                         isDense: true,
+                        isExpanded: true,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -220,11 +245,32 @@ class TransactionFormCard extends StatelessWidget {
                         dropdownColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
                         items: wallets.map((wallet) {
                           final cleanName = wallet.name.replaceAll('••', '').replaceAll('•', '').trim();
+                          final isCash = (wallet.details['is_cash'] == true) ||
+                              wallet.name.toLowerCase().contains('cash');
+                          final isCard = wallet.type == 'card';
                           return DropdownMenuItem<String>(
                             value: wallet.id,
-                            child: Text(
-                              cleanName,
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isCash
+                                      ? Icons.payments_rounded
+                                      : isCard
+                                          ? Icons.credit_card_rounded
+                                          : Icons.account_balance_rounded,
+                                  size: 15,
+                                  color: isCash
+                                      ? const Color(0xFF10B981)
+                                      : (isDark ? Colors.white70 : Colors.black54),
+                                ),
+                                const SizedBox(width: 7),
+                                Expanded(
+                                  child: Text(
+                                    cleanName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         }).toList(),
@@ -245,6 +291,57 @@ class TransactionFormCard extends StatelessWidget {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: primaryColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Fallback button to connect a wallet or cash
+                Expanded(
+                  flex: 6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transactionType == 'expense' ? 'PAID FROM' : 'DEPOSIT TO',
+                        style: labelStyle,
+                      ),
+                      const SizedBox(height: 6),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ConnectWalletPage(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: primaryColor.withOpacity(0.4),
+                            ),
+                            color: primaryColor.withOpacity(0.08),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_circle_outline_rounded, size: 15, color: primaryColor),
+                              const SizedBox(width: 5),
+                              Text(
+                                '+ Add Wallet',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

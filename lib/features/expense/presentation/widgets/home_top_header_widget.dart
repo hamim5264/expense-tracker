@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -53,20 +55,23 @@ class HomeTopHeaderWidget extends StatelessWidget {
           e.date.month == now.month;
     }).fold<double>(0.0, (sum, e) => sum + e.amount);
 
-    final lastMonth = DateTime(now.year, now.month - 1);
+    // Properly handle year rollover (e.g. January -> December of previous year)
+    final lastMonthDate = DateTime(now.year, now.month - 1, 1);
     final lastMonthExpenses = allExpenses.where((e) {
       return e.type == 'expense' &&
           (activeWallet == null || e.walletId == activeWallet.id) &&
-          e.date.year == lastMonth.year &&
-          e.date.month == lastMonth.month;
+          e.date.year == lastMonthDate.year &&
+          e.date.month == lastMonthDate.month;
     }).fold<double>(0.0, (sum, e) => sum + e.amount);
 
     double pctChange = 0.0;
     if (lastMonthExpenses > 0) {
       pctChange = ((thisMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100;
     } else if (thisMonthExpenses > 0) {
+      // Only show 100% if there are actual expenses this month with none last month
       pctChange = 100.0;
     }
+    // If both months have zero expenses, pctChange stays 0.0
     final isIncrease = pctChange >= 0;
     final pctString = '${pctChange.abs().toStringAsFixed(1)}% this month';
 
@@ -133,46 +138,10 @@ class HomeTopHeaderWidget extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GestureDetector(
+                OnyxAiHeaderButton(
                   onTap: () {
                     Navigator.push(context, OnyxAiPage.route());
                   },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.35),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                        BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.4),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: Lottie.asset(
-                      'assets/animations/onyx_ai.json',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.sparkles,
-                            color: Color(0xFFFDE047),
-                            size: 20,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 12),
                 AnimatedBuilder(
@@ -304,6 +273,148 @@ class HomeTopHeaderWidget extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class OnyxAiHeaderButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const OnyxAiHeaderButton({super.key, required this.onTap});
+
+  @override
+  State<OnyxAiHeaderButton> createState() => _OnyxAiHeaderButtonState();
+}
+
+class _OnyxAiHeaderButtonState extends State<OnyxAiHeaderButton> {
+  int _greetingIndex = 0;
+  Timer? _timer;
+  final List<String> _greetings = const [
+    'Hi ✨',
+    'Hello 👋',
+    "Let's talk 💬",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _greetingIndex = (_greetingIndex + 1) % _greetings.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          // Bot Icon Container
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.35),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withOpacity(0.4),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Lottie.asset(
+              'assets/animations/onyx_ai.json',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.sparkles,
+                    color: Color(0xFFFDE047),
+                    size: 20,
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Speech Bubble Floating at Top Corner
+          Positioned(
+            top: -10,
+            right: -2,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.7, end: 1.0).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                    ),
+                    alignment: Alignment.bottomRight,
+                    child: child,
+                  ),
+                );
+              },
+              child: ClipRRect(
+                key: ValueKey<int>(_greetingIndex),
+                borderRadius: BorderRadius.circular(10),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.22),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.55),
+                        width: 0.8,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.16),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _greetings[_greetingIndex],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

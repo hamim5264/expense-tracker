@@ -288,6 +288,11 @@ class _BalanceCardState extends State<BalanceCard> {
     final expDate = wallet.details['expiry'] as String? ?? '08/32';
     final cardType = _detectCardType(cardNum, wallet.type, wallet.name);
 
+    // Deeper cards get lower opacity to blend into the purple header
+    final double fillOpacity = depth == 2 ? 0.12 : 0.20;
+    final double borderOpacity = depth == 2 ? 0.18 : 0.30;
+    final double textOpacity = depth == 2 ? 0.55 : 0.75;
+
     Widget backCardBody = ClipRRect(
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(24),
@@ -301,18 +306,11 @@ class _BalanceCardState extends State<BalanceCard> {
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
-          color: Colors.white.withOpacity(0.35),
+          color: Colors.white.withOpacity(fillOpacity),
           border: Border.all(
-            color: Colors.white.withOpacity(0.50),
-            width: 1.2,
+            color: Colors.white.withOpacity(borderOpacity),
+            width: 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
@@ -326,8 +324,8 @@ class _BalanceCardState extends State<BalanceCard> {
                   children: [
                     Text(
                       '•••• $last4',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(textOpacity),
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8,
@@ -337,7 +335,7 @@ class _BalanceCardState extends State<BalanceCard> {
                     Text(
                       expDate,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withOpacity(textOpacity * 0.8),
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -346,8 +344,8 @@ class _BalanceCardState extends State<BalanceCard> {
                 ),
                 Text(
                   cardType,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(textOpacity),
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                     fontStyle: FontStyle.italic,
@@ -398,6 +396,8 @@ class _BalanceCardState extends State<BalanceCard> {
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(24),
         topRight: Radius.circular(24),
+        bottomLeft: Radius.circular(16),
+        bottomRight: Radius.circular(16),
       ),
       child: Container(
         height: 60,
@@ -406,6 +406,8 @@ class _BalanceCardState extends State<BalanceCard> {
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
           ),
           color: Colors.white.withOpacity(0.40),
           border: Border.all(
@@ -452,15 +454,15 @@ class _BalanceCardState extends State<BalanceCard> {
         cardStackWidgets.add(
           AnimatedPositioned(
             key: ValueKey(wallet.id),
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOutCubic,
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOutCubic,
             top: topOffset,
             left: 0,
             right: 0,
             child: AnimatedScale(
               scale: scaleVal,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeInOutCubic,
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
               alignment: Alignment.topCenter,
               child: childWidget,
             ),

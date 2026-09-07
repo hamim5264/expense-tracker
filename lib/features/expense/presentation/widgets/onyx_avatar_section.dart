@@ -48,17 +48,17 @@ class OnyxAvatarSection extends StatelessWidget {
                       boxShadow: [
                         BoxShadow(
                           color: primaryColor.withOpacity(
-                            0.28 + 0.15 * pulseController.value,
+                            isDark
+                                ? (0.22 + 0.08 * pulseController.value)
+                                : 0.10,
                           ),
-                          blurRadius: 28,
-                          spreadRadius: 5 + 4 * pulseController.value,
+                          blurRadius: 36,
+                          spreadRadius: 4,
                         ),
                         BoxShadow(
-                          color: glowAccentColor.withOpacity(
-                            0.22 + 0.12 * pulseController.value,
-                          ),
-                          blurRadius: 16,
-                          spreadRadius: 3,
+                          color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
+                          blurRadius: 18,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),

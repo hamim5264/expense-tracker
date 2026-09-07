@@ -19,6 +19,8 @@ import 'package:expense_tracker/features/expense/data/repositories/expense_repos
 import 'package:expense_tracker/features/expense/domain/repositories/expense_repository.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/get_all_expenses.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/add_expense.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/update_expense.dart';
+import 'package:expense_tracker/features/expense/domain/usecases/delete_expense.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/get_wallets.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/add_wallet.dart';
 import 'package:expense_tracker/features/expense/domain/usecases/update_wallet.dart';
@@ -128,6 +130,8 @@ void _initExpense() {
     )
     ..registerFactory(() => GetAllExpenses(serviceLocator()))
     ..registerFactory(() => AddExpense(serviceLocator()))
+    ..registerFactory(() => UpdateExpense(serviceLocator()))
+    ..registerFactory(() => DeleteExpense(serviceLocator()))
     ..registerFactory(() => GetWallets(serviceLocator()))
     ..registerFactory(() => AddWallet(serviceLocator()))
     ..registerFactory(() => UpdateWallet(serviceLocator()))
@@ -136,6 +140,8 @@ void _initExpense() {
       () => ExpenseBloc(
         getAllExpenses: serviceLocator(),
         addExpense: serviceLocator(),
+        updateExpense: serviceLocator(),
+        deleteExpense: serviceLocator(),
         getWallets: serviceLocator(),
         addWallet: serviceLocator(),
         updateWallet: serviceLocator(),

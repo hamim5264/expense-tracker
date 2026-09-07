@@ -44,6 +44,7 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
   bool _showAccountDetailsForm = false;
   String _selectedBankType = 'Bank Link';
+  bool _recordAsIncome = true;
 
   final _accountFormKey = GlobalKey<FormState>();
   final _accountNameController = TextEditingController();
@@ -141,7 +142,9 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
       _isSaving = true;
       _pendingToast = 'Card added successfully!';
     });
-    context.read<ExpenseBloc>().add(ExpenseAddWalletCard(wallet));
+    context.read<ExpenseBloc>().add(
+      ExpenseAddWalletCard(wallet, recordAsIncome: _recordAsIncome),
+    );
   }
 
   void _saveBankWallet(String userId) {
@@ -153,7 +156,16 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
     String type = 'bank';
     Map<String, dynamic> details = {};
 
-    if (_selectedBankType == 'Bank Link') {
+    if (_selectedBankType == 'Cash in Hand') {
+      name = _bankNameController.text.trim().isNotEmpty
+          ? _bankNameController.text.trim()
+          : 'Cash in Hand';
+      type = 'others';
+      details = {
+        'is_cash': true,
+        'wallet_category': 'cash',
+      };
+    } else if (_selectedBankType == 'Bank Link') {
       final accNum = _accountNumberController.text.trim();
       final hidden = accNum.length > 4
           ? accNum.substring(accNum.length - 4)
@@ -196,9 +208,13 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
 
     setState(() {
       _isSaving = true;
-      _pendingToast = 'Account linked successfully!';
+      _pendingToast = _selectedBankType == 'Cash in Hand'
+          ? 'Cash wallet saved successfully!'
+          : 'Account linked successfully!';
     });
-    context.read<ExpenseBloc>().add(ExpenseAddWalletCard(wallet));
+    context.read<ExpenseBloc>().add(
+      ExpenseAddWalletCard(wallet, recordAsIncome: _recordAsIncome),
+    );
   }
 
   @override
@@ -345,6 +361,8 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
                                 isDark: isDark,
                                 displayName: displayName,
                                 userId: user.id,
+                                recordAsIncome: _recordAsIncome,
+                                onToggleRecordAsIncome: (val) => setState(() => _recordAsIncome = val),
                                 onChanged: () => setState(() {}),
                                 onSaveBankWallet: _saveBankWallet,
                               )
@@ -359,6 +377,8 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
                                     nameFocusNode: _cardNameFocusNode,
                                     numberFocusNode: _cardNumberFocusNode,
                                     balanceFocusNode: _cardBalanceFocusNode,
+                                    recordAsIncome: _recordAsIncome,
+                                    onToggleRecordAsIncome: (val) => setState(() => _recordAsIncome = val),
                                     onChanged: () => setState(() {}),
                                     onSaveCard: _saveCardWallet,
                                     userId: user.id,
@@ -396,6 +416,18 @@ class _ConnectWalletPageState extends State<ConnectWalletPage>
           style: TextStyle(fontSize: 13, color: Colors.grey),
         ),
         const SizedBox(height: 16),
+        AccountOptionTile(
+          title: 'Cash in Hand',
+          subtitle: 'Track physical cash and pocket expenses',
+          icon: Icons.payments_rounded,
+          iconColor: const Color(0xFF10B981),
+          isSelected: _selectedBankType == 'Cash in Hand',
+          onTap: () => setState(() {
+            _selectedBankType = 'Cash in Hand';
+            _bankNameController.text = 'Cash in Hand';
+          }),
+        ),
+        const SizedBox(height: 14),
         AccountOptionTile(
           title: 'Bank Link',
           subtitle: 'Connect your bank account directly',

@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 class CategorySelector extends StatelessWidget {
   final String selectedCategory;
   final String transactionType;
+  final bool isAutoDetected;
   final ValueChanged<String> onCategorySelected;
 
   const CategorySelector({
     super.key,
     required this.selectedCategory,
     required this.transactionType,
+    this.isAutoDetected = false,
     required this.onCategorySelected,
   });
 
@@ -66,18 +68,56 @@ class CategorySelector extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    selectedCategory,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          selectedCategory,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isAutoDetected) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: catColor.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: catColor.withOpacity(0.4), width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.bolt_rounded, size: 11, color: catColor),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Auto',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: catColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Tap to change category',
-                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  Text(
+                    isAutoDetected
+                        ? 'Auto-selected based on name • Tap to change'
+                        : 'Tap to change category',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
