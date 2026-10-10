@@ -47,7 +47,7 @@ class PdfReportService {
     pw.MemoryImage? logoImage;
     try {
       final logoBytes = await rootBundle.load(
-        'assets/images/logos/app_final_splash_logo.png',
+        'assets/images/logos/Onyx _new_logo_2026.png',
       );
       logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
     } catch (_) {}

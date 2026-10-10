@@ -82,6 +82,7 @@ class _MoneyFlowChartState extends State<MoneyFlowChart> {
                 child: Row(
                   children: [
                     _buildFilterTab('7D', '7 Days', primaryColor, isDark),
+                    _buildFilterTab('14D', '14 Days', primaryColor, isDark),
                     _buildFilterTab('30D', '30 Days', primaryColor, isDark),
                     _buildFilterTab('1Y', '1 Year', primaryColor, isDark),
                   ],
@@ -292,7 +293,7 @@ class _MoneyFlowChartState extends State<MoneyFlowChart> {
       onTap: () => setState(() => _selectedFilter = code),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
         decoration: BoxDecoration(
           color: isSelected ? primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -300,7 +301,7 @@ class _MoneyFlowChartState extends State<MoneyFlowChart> {
         child: Text(
           code,
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: 10,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
             color: isSelected
                 ? (primaryColor.computeLuminance() > 0.45 ? Colors.black87 : Colors.white)
@@ -313,7 +314,7 @@ class _MoneyFlowChartState extends State<MoneyFlowChart> {
 
   double _calculateBottomInterval(int length) {
     if (length <= 7) return 1.0;
-    if (length <= 12) return 1.0;
+    if (length <= 14) return 2.0;
     if (length <= 30) return 5.0;
     return (length / 6).floorToDouble();
   }
@@ -343,6 +344,30 @@ class _MoneyFlowChartState extends State<MoneyFlowChart> {
           }
         }
         points.add(_ChartPoint(label: dayName, income: dayIncome, expense: dayExpense));
+      }
+      return points;
+    } else if (_selectedFilter == '14D') {
+      // Last 14 Days
+      final List<_ChartPoint> points = [];
+      for (int i = 13; i >= 0; i--) {
+        final dayDate = DateTime(now.year, now.month, now.day - i);
+        final label = '${dayDate.day}/${dayDate.month}';
+
+        double dayIncome = 0.0;
+        double dayExpense = 0.0;
+
+        for (var tx in widget.transactions) {
+          if (tx.date.year == dayDate.year &&
+              tx.date.month == dayDate.month &&
+              tx.date.day == dayDate.day) {
+            if (tx.type == 'income') {
+              dayIncome += tx.amount;
+            } else {
+              dayExpense += tx.amount;
+            }
+          }
+        }
+        points.add(_ChartPoint(label: label, income: dayIncome, expense: dayExpense));
       }
       return points;
     } else if (_selectedFilter == '30D') {

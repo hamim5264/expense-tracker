@@ -281,14 +281,14 @@ class _BalanceCardState extends State<BalanceCard> {
     return 'CARD';
   }
 
-  Widget _buildBackCardWidget(bool isDark, Wallet wallet, int index, int depth) {
+  Widget _buildBackCardWidget(bool isDark, bool isLightHeader, Wallet wallet, int index, int depth) {
     final cardNum = wallet.details['card_number'] as String? ?? '0000';
     final last4 = cardNum.length > 4 ? cardNum.substring(cardNum.length - 4) : cardNum;
 
     final expDate = wallet.details['expiry'] as String? ?? '08/32';
     final cardType = _detectCardType(cardNum, wallet.type, wallet.name);
 
-    // Deeper cards get lower opacity to blend into the purple header
+    // Deeper cards get lower opacity to blend into the header
     final double fillOpacity = depth == 2 ? 0.12 : 0.20;
     final double borderOpacity = depth == 2 ? 0.18 : 0.30;
     final double textOpacity = depth == 2 ? 0.55 : 0.75;
@@ -306,9 +306,13 @@ class _BalanceCardState extends State<BalanceCard> {
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
-          color: Colors.white.withOpacity(fillOpacity),
+          color: isLightHeader
+              ? Colors.black.withOpacity(fillOpacity * 0.35)
+              : Colors.white.withOpacity(fillOpacity),
           border: Border.all(
-            color: Colors.white.withOpacity(borderOpacity),
+            color: isLightHeader
+                ? Colors.black.withOpacity(borderOpacity * 0.35)
+                : Colors.white.withOpacity(borderOpacity),
             width: 1.0,
           ),
         ),
@@ -325,7 +329,9 @@ class _BalanceCardState extends State<BalanceCard> {
                     Text(
                       '•••• $last4',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(textOpacity),
+                        color: isLightHeader
+                            ? Colors.black87.withOpacity(textOpacity)
+                            : Colors.white.withOpacity(textOpacity),
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8,
@@ -335,7 +341,9 @@ class _BalanceCardState extends State<BalanceCard> {
                     Text(
                       expDate,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(textOpacity * 0.8),
+                        color: isLightHeader
+                            ? Colors.black54.withOpacity(textOpacity)
+                            : Colors.white.withOpacity(textOpacity * 0.8),
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -345,7 +353,9 @@ class _BalanceCardState extends State<BalanceCard> {
                 Text(
                   cardType,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(textOpacity),
+                    color: isLightHeader
+                        ? Colors.black87.withOpacity(textOpacity)
+                        : Colors.white.withOpacity(textOpacity),
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                     fontStyle: FontStyle.italic,
@@ -370,6 +380,7 @@ class _BalanceCardState extends State<BalanceCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isLightHeader = theme.primaryColor.computeLuminance() > 0.45;
     final config = _getStyleConfig(isDark);
 
     final activeWallet = widget.cardWallets.isNotEmpty ? widget.cardWallets[_activeIndex < widget.cardWallets.length ? _activeIndex : 0] : null;
@@ -390,8 +401,6 @@ class _BalanceCardState extends State<BalanceCard> {
 
     Widget cardBody;
 
-
-
     cardBody = ClipRRect(
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(24),
@@ -409,14 +418,18 @@ class _BalanceCardState extends State<BalanceCard> {
             bottomLeft: Radius.circular(16),
             bottomRight: Radius.circular(16),
           ),
-          color: Colors.white.withOpacity(0.40),
+          color: isLightHeader
+              ? Colors.black.withOpacity(0.06)
+              : Colors.white.withOpacity(0.40),
           border: Border.all(
-            color: Colors.white.withOpacity(0.55),
+            color: isLightHeader
+                ? Colors.black.withOpacity(0.12)
+                : Colors.white.withOpacity(0.55),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withOpacity(isLightHeader ? 0.06 : 0.15),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -426,7 +439,7 @@ class _BalanceCardState extends State<BalanceCard> {
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-            child: _buildCardContent(config, isDark, activeBalance, activeIncome, activeExpenses),
+            child: _buildCardContent(config, isDark, isLightHeader, activeBalance, activeIncome, activeExpenses),
           ),
         ),
       ),
@@ -448,7 +461,7 @@ class _BalanceCardState extends State<BalanceCard> {
         if (d == 0) {
           childWidget = cardBody;
         } else {
-          childWidget = _buildBackCardWidget(isDark, wallet, walletIdx, d);
+          childWidget = _buildBackCardWidget(isDark, isLightHeader, wallet, walletIdx, d);
         }
         
         cardStackWidgets.add(
@@ -498,9 +511,13 @@ class _BalanceCardState extends State<BalanceCard> {
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
               ),
-              color: Colors.white.withOpacity(0.35),
+              color: isLightHeader
+                  ? Colors.black.withOpacity(0.06)
+                  : Colors.white.withOpacity(0.35),
               border: Border.all(
-                color: Colors.white.withOpacity(0.50),
+                color: isLightHeader
+                    ? Colors.black.withOpacity(0.12)
+                    : Colors.white.withOpacity(0.50),
                 width: 1.2,
               ),
             ),
@@ -510,12 +527,16 @@ class _BalanceCardState extends State<BalanceCard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.credit_card_off_rounded, color: Colors.white, size: 18),
+                    Icon(
+                      Icons.credit_card_off_rounded,
+                      color: isLightHeader ? const Color(0xFF1F2937) : Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Please add your wallet or card',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isLightHeader ? const Color(0xFF1F2937) : Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.3,
@@ -544,6 +565,7 @@ class _BalanceCardState extends State<BalanceCard> {
   Widget _buildCardContent(
     Map<String, dynamic> config,
     bool isDark,
+    bool isLightHeader,
     double activeBalance,
     double activeIncome,
     double activeExpenses,
@@ -568,8 +590,8 @@ class _BalanceCardState extends State<BalanceCard> {
             children: [
               Text(
                 '•••• $last4',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: isLightHeader ? const Color(0xFF1F2937) : Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
@@ -579,7 +601,9 @@ class _BalanceCardState extends State<BalanceCard> {
               Text(
                 expDate,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
+                  color: isLightHeader
+                      ? const Color(0xFF4B5563)
+                      : Colors.white.withOpacity(0.85),
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -588,8 +612,8 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           Text(
             cardType,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isLightHeader ? const Color(0xFF1F2937) : Colors.white,
               fontSize: 13,
               fontWeight: FontWeight.w900,
               fontStyle: FontStyle.italic,

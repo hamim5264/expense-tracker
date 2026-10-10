@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1037238755517",
+    "project_id": "onyx-production-a2549",
+    "storage_bucket": "onyx-production-a2549.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1037238755517:android:558f4058c53afd0b59d7d4",
+        "android_client_info": {
+          "package_name": "com.thedevhamim.onyx"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMxsx_4czqr5dMq76EkPP7za8kNhdA5ew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

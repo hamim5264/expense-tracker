@@ -18,6 +18,8 @@ class FloatingNavBarWidget extends StatelessWidget {
   Widget _buildNavItem(IconData icon, int index) {
     bool isSelected = selectedIndex == index;
 
+    final isLightPrimary = primaryColor.computeLuminance() > 0.55;
+
     return GestureDetector(
       onTap: () => onTabSelected(index),
       behavior: HitTestBehavior.opaque,
@@ -25,7 +27,9 @@ class FloatingNavBarWidget extends StatelessWidget {
         child: Icon(
           icon,
           color: isSelected
-              ? (isDark ? Colors.white : primaryColor)
+              ? (isDark
+                  ? Colors.white
+                  : (isLightPrimary ? const Color(0xFF333333) : primaryColor))
               : (isDark ? Colors.white38 : Colors.grey.shade600),
           size: isSelected ? 20 : 18,
         ),
@@ -37,6 +41,7 @@ class FloatingNavBarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     const double barWidth = 320;
     const double barHeight = 54;
+    final isLightPrimary = primaryColor.computeLuminance() > 0.55;
 
     return Positioned(
       bottom: 0,
@@ -92,11 +97,15 @@ class FloatingNavBarWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100),
                             color: isDark
                                 ? Colors.white.withOpacity(0.20)
-                                : primaryColor.withOpacity(0.16),
+                                : (isLightPrimary
+                                    ? primaryColor.withOpacity(0.60)
+                                    : primaryColor.withOpacity(0.16)),
                             border: Border.all(
                               color: isDark
                                   ? Colors.white.withOpacity(0.15)
-                                  : primaryColor.withOpacity(0.30),
+                                  : (isLightPrimary
+                                      ? Colors.black.withOpacity(0.15)
+                                      : primaryColor.withOpacity(0.30)),
                               width: 1.0,
                             ),
                           ),

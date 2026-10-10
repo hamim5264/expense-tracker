@@ -10,6 +10,8 @@ class DataDeletionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLight = theme.primaryColor.computeLuminance() > 0.45;
+    final headerTextColor = isLight ? const Color(0xFF1F2937) : Colors.white;
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
@@ -47,9 +49,9 @@ class DataDeletionPage extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_back_ios_new,
-                          color: Colors.white,
+                          color: headerTextColor,
                         ),
                       ),
                       const Expanded(

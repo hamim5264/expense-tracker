@@ -8,6 +8,7 @@ import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.
 import 'package:expense_tracker/features/expense/presentation/widgets/add_edit_budget_sheet.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/budget_goal_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/budget_master_overview_card.dart';
+import 'package:expense_tracker/features/loan/presentation/pages/loan_master_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,6 +26,7 @@ class BudgetMasterPage extends StatefulWidget {
 
 class _BudgetMasterPageState extends State<BudgetMasterPage> {
   String _selectedPeriodFilter = 'monthly'; // 'monthly' or 'yearly'
+  int _selectedMasterTab = 0; // 0: Budgets & Caps, 1: Loans & Debt
   List<BudgetPlan> _budgetPlans = [];
   bool _isLoading = true;
 
@@ -163,7 +165,7 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Budget Master',
+                          _selectedMasterTab == 0 ? 'Budget Master' : 'Loan Master',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -171,7 +173,9 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                           ),
                         ),
                         Text(
-                          'Targets & Spending Caps',
+                          _selectedMasterTab == 0
+                              ? 'Targets & Spending Caps'
+                              : 'Loans, Debts & EMI Tracking',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark ? Colors.white38 : Colors.grey.shade500,
@@ -182,47 +186,159 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Single Primary Add Button in Top Bar
-                  GestureDetector(
-                    onTap: () => _showAddEditBudgetModal(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryColor.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            CupertinoIcons.plus,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'Target',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.bold,
+                  // Single Primary Add Button in Top Bar (Shown for Budgets)
+                  if (_selectedMasterTab == 0)
+                    GestureDetector(
+                      onTap: () => _showAddEditBudgetModal(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              CupertinoIcons.plus,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              'Target',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
+              ),
+            ),
+
+            // Master Section Switcher (Budgets vs Loans)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedMasterTab = 0),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          decoration: BoxDecoration(
+                            color: _selectedMasterTab == 0
+                                ? (isDark ? const Color(0xFF242238) : Colors.white)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _selectedMasterTab == 0
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.chart_pie_fill,
+                                size: 15,
+                                color: _selectedMasterTab == 0
+                                    ? primaryColor
+                                    : (isDark ? Colors.white54 : Colors.grey.shade600),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Budgets & Caps',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: _selectedMasterTab == 0 ? FontWeight.bold : FontWeight.w600,
+                                  color: _selectedMasterTab == 0
+                                      ? (isDark ? Colors.white : Colors.black87)
+                                      : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedMasterTab = 1),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          decoration: BoxDecoration(
+                            color: _selectedMasterTab == 1
+                                ? (isDark ? const Color(0xFF242238) : Colors.white)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _selectedMasterTab == 1
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.building_2_fill,
+                                size: 15,
+                                color: _selectedMasterTab == 1
+                                    ? primaryColor
+                                    : (isDark ? Colors.white54 : Colors.grey.shade600),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Loans & Debts',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: _selectedMasterTab == 1 ? FontWeight.bold : FontWeight.w600,
+                                  color: _selectedMasterTab == 1
+                                      ? (isDark ? Colors.white : Colors.black87)
+                                      : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -234,6 +350,15 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final user = authState.user;
+
+                  if (_selectedMasterTab == 1) {
+                    return LoanMasterView(
+                      userId: user.id,
+                      currency: user.currency,
+                      isDark: isDark,
+                      primaryColor: primaryColor,
+                    );
+                  }
 
                   return BlocBuilder<ExpenseBloc, ExpenseState>(
                     builder: (context, expenseState) {

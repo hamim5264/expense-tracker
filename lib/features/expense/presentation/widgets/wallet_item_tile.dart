@@ -1,8 +1,10 @@
 import 'dart:ui';
 
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/add_expense_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,8 +27,36 @@ class WalletItemTile extends StatelessWidget {
     final bloc = context.read<ExpenseBloc>();
     final cleanWalletName = wallet.name.replaceAll('••', '').replaceAll('•', '').trim();
     final nameController = TextEditingController(text: cleanWalletName);
+
+    // Calculate transactions net for this wallet
+    List<Expense> walletExpenses = [];
+    final state = bloc.state;
+    if (state is ExpenseSuccess) {
+      walletExpenses = state.expenses.where((e) => e.walletId == wallet.id).toList();
+    }
+    double totalIncome = 0.0;
+    double totalExpense = 0.0;
+    for (final tx in walletExpenses) {
+      if (tx.type == 'income') {
+        totalIncome += tx.amount;
+      } else {
+        totalExpense += tx.amount;
+      }
+    }
+    final netTx = totalIncome - totalExpense;
+
+    double initialBalance = (wallet.details['initial_balance'] as num?)?.toDouble() ?? (wallet.balance - netTx);
+    // Legacy auto-heal check if previously corrupted by buggy update:
+    if (wallet.details['version'] == null &&
+        netTx != 0 &&
+        wallet.details['initial_balance'] != null &&
+        (initialBalance - wallet.balance).abs() > 0.01 &&
+        (initialBalance - (wallet.balance - netTx)).abs() < 0.01) {
+      initialBalance = wallet.balance;
+    }
+
     final balanceController = TextEditingController(
-      text: wallet.balance.toStringAsFixed(2),
+      text: initialBalance.toStringAsFixed(2),
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -34,299 +64,484 @@ class WalletItemTile extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => ValueListenableBuilder<Color>(
-        valueListenable: ThemeService.primaryColorNotifier,
-        builder: (context, primaryColor, _) {
-          final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
-          final textColor = isDark ? Colors.white : Colors.black87;
-          final subTextColor = isDark ? Colors.white60 : Colors.black54;
-          final fieldBg = isDark ? const Color(0xFF2A273A) : Colors.grey.shade100;
-          final inputTextColor = isDark ? Colors.white : Colors.black87;
-          final balanceTextColor = isDark ? const Color(0xFF4ADE80) : primaryColor;
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setModalState) {
+          final enteredInitial = double.tryParse(balanceController.text.trim()) ?? 0.0;
+          final calculatedBalance = enteredInitial + netTx;
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
-                  width: 1,
+          return ValueListenableBuilder<Color>(
+            valueListenable: ThemeService.primaryColorNotifier,
+            builder: (context, primaryColor, _) {
+              final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
+              final textColor = isDark ? Colors.white : Colors.black87;
+              final subTextColor = isDark ? Colors.white60 : Colors.black54;
+              final fieldBg = isDark ? const Color(0xFF2A273A) : Colors.grey.shade100;
+              final inputTextColor = isDark ? Colors.white : Colors.black87;
+              final balanceTextColor = isDark ? const Color(0xFF4ADE80) : primaryColor;
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, -10),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white24 : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                      width: 1,
                     ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Title Header with Icon
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          CupertinoIcons.pencil_outline,
-                          color: primaryColor,
-                          size: 20,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
+                        blurRadius: 30,
+                        offset: const Offset(0, -10),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Handle bar
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white24 : Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Title Header with Icon
+                        Row(
                           children: [
-                            Text(
-                              'Edit Wallet / Card',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                CupertinoIcons.pencil_outline,
+                                color: primaryColor,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Edit Wallet / Funds',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Update wallet name or base starting balance',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: subTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Name Field
+                        Text(
+                          'Wallet / Card Name',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: nameController,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: inputTextColor,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              CupertinoIcons.creditcard,
+                              color: isDark ? Colors.white54 : Colors.grey.shade600,
+                              size: 18,
+                            ),
+                            hintText: 'Wallet Name',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                            ),
+                            filled: true,
+                            fillColor: fieldBg,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: primaryColor, width: 1.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Starting Balance Field
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Text(
-                              'Update your card name or current balance',
+                              'Starting / Base Balance ($currencyCode)',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Initial funds before transactions',
+                              style: TextStyle(
+                                fontSize: 11,
                                 color: subTextColor,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: balanceController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (_) => setModalState(() {}),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: balanceTextColor,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    CurrencyService.getSymbol(currencyCode),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: balanceTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 0,
+                            ),
+                            hintText: '0.00',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                            ),
+                            filled: true,
+                            fillColor: fieldBg,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: primaryColor, width: 1.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
-                  // Name Field
-                  Text(
-                    'Wallet / Card Name',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: nameController,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: inputTextColor,
-                    ),
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(
-                        CupertinoIcons.creditcard,
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                        size: 18,
-                      ),
-                      hintText: 'Wallet Name',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.white38 : Colors.black38,
-                      ),
-                      filled: true,
-                      fillColor: fieldBg,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+                        // Live Dynamic Breakdown Preview
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.04)
+                                : primaryColor.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.08)
+                                  : primaryColor.withOpacity(0.12),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Base Starting Funds',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white70 : Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    CurrencyService.format(enteredInitial, currencyCode),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Incomes Recorded',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white70 : Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    '+${CurrencyService.format(totalIncome, currencyCode)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Expenses Recorded',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white70 : Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    '-${CurrencyService.format(totalExpense, currencyCode)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Divider(
+                                  height: 1,
+                                  color: isDark ? Colors.white12 : Colors.grey.shade300,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Resulting Balance',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    CurrencyService.format(calculatedBalance, currencyCode),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: calculatedBalance < 0
+                                          ? const Color(0xFFFF5252)
+                                          : (isDark
+                                              ? const Color(0xFF4ADE80)
+                                              : const Color(0xFF16A34A)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
 
-                  // Balance Field
-                  Text(
-                    'Current Balance ($currencyCode)',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: balanceController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: balanceTextColor,
-                    ),
-                    decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        // Quick Deposit / Add Funds Shortcut
+                        InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              AddExpensePage.route(
+                                initialType: 'income',
+                              ),
+                            ).then((_) => bloc.add(ExpenseFetchAll()));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFF10B981).withOpacity(0.25),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  CupertinoIcons.plus_circle_fill,
+                                  size: 16,
+                                  color: Color(0xFF10B981),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Deposit / Add Funds as Income',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Action buttons (Cancel & Save)
+                        Row(
                           children: [
-                            Text(
-                              CurrencyService.getSymbol(currencyCode),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: balanceTextColor,
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  side: BorderSide(
+                                    color: isDark
+                                        ? Colors.white24
+                                        : Colors.grey.shade300,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                onPressed: () => Navigator.pop(ctx),
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      primaryColor,
+                                      primaryColor.withOpacity(0.85),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: primaryColor.withOpacity(0.35),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final newName = nameController.text.trim();
+                                    final newStartingBalance =
+                                        double.tryParse(balanceController.text.trim()) ??
+                                            initialBalance;
+
+                                    if (newName.isEmpty) return;
+
+                                    final detailsCopy = Map<String, dynamic>.from(wallet.details);
+                                    detailsCopy['initial_balance'] = newStartingBalance;
+                                    detailsCopy['version'] = 2;
+
+                                    final updatedWallet = Wallet(
+                                      id: wallet.id,
+                                      userId: wallet.userId,
+                                      name: newName,
+                                      type: wallet.type,
+                                      balance: newStartingBalance,
+                                      details: detailsCopy,
+                                      createdAt: wallet.createdAt,
+                                    );
+
+                                    SoundService.playSuccess();
+                                    bloc.add(ExpenseUpdateWallet(updatedWallet));
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: const Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 0,
-                      ),
-                      hintText: '0.00',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.white38 : Colors.black38,
-                      ),
-                      filled: true,
-                      fillColor: fieldBg,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor, width: 1.5),
-                      ),
+                        const SizedBox(height: 10),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 26),
-
-                  // Action buttons (Cancel & Save)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(
-                              color: isDark
-                                  ? Colors.white24
-                                  : Colors.grey.shade300,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                primaryColor,
-                                primaryColor.withOpacity(0.85),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryColor.withOpacity(0.35),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            onPressed: () {
-                              final newName = nameController.text.trim();
-                              final newBalance =
-                                  double.tryParse(balanceController.text.trim()) ??
-                                      wallet.balance;
-
-                              if (newName.isEmpty) return;
-
-                              final updatedWallet = Wallet(
-                                id: wallet.id,
-                                userId: wallet.userId,
-                                name: newName,
-                                type: wallet.type,
-                                balance: newBalance,
-                                details: wallet.details,
-                                createdAt: wallet.createdAt,
-                              );
-
-                              SoundService.playSuccess();
-                              bloc.add(ExpenseUpdateWallet(updatedWallet));
-                              Navigator.pop(ctx);
-                            },
-                            child: const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:expense_tracker/core/services/firebase_notification_service.dart';
 
 class AppNotification {
   final String id;
@@ -86,8 +88,21 @@ class NotificationService extends ChangeNotifier {
     _box = await Hive.openBox(_boxName);
     await sanitizeDuplicates();
     await _loadPreferences();
+
+    // Check actual OS permission status
+    try {
+      final status = await Permission.notification.status;
+      if (status.isDenied || status.isPermanentlyDenied) {
+        _isNotificationsEnabled = false;
+        notifyListeners();
+      }
+    } catch (_) {}
+
     if (_isNotificationsEnabled) {
+      await FirebaseNotificationService.instance.subscribeToAnnouncements();
       fetchRemoteAnnouncements();
+    } else {
+      await FirebaseNotificationService.instance.unsubscribeFromAnnouncements();
     }
   }
 
@@ -99,7 +114,26 @@ class NotificationService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> setNotificationsEnabled(bool enabled) async {
+  Future<bool> setNotificationsEnabled(bool enabled) async {
+    if (enabled) {
+      try {
+        final status = await Permission.notification.status;
+        if (!status.isGranted) {
+          final requested = await Permission.notification.request();
+          if (!requested.isGranted) {
+            if (requested.isPermanentlyDenied) {
+              await openAppSettings();
+            }
+            _isNotificationsEnabled = false;
+            notifyListeners();
+            return false;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error checking notification permission: $e');
+      }
+    }
+
     _isNotificationsEnabled = enabled;
     notifyListeners();
     try {
@@ -107,8 +141,12 @@ class NotificationService extends ChangeNotifier {
       await prefs.setBool(_keyNotificationsEnabled, enabled);
     } catch (_) {}
     if (enabled) {
+      await FirebaseNotificationService.instance.subscribeToAnnouncements();
       fetchRemoteAnnouncements();
+    } else {
+      await FirebaseNotificationService.instance.unsubscribeFromAnnouncements();
     }
+    return true;
   }
 
   Future<void> fetchRemoteAnnouncements() async {

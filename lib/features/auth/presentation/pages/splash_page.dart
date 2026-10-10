@@ -79,7 +79,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    const logoAsset = 'assets/images/logos/app_final_splash_logo.png';
+    const logoAsset = 'assets/images/logos/Onyx _new_logo_2026.png';
 
     return ValueListenableBuilder<Color>(
       valueListenable: ThemeService.primaryColorNotifier,

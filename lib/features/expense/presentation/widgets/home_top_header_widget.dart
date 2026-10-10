@@ -75,6 +75,10 @@ class HomeTopHeaderWidget extends StatelessWidget {
     final isIncrease = pctChange >= 0;
     final pctString = '${pctChange.abs().toStringAsFixed(1)}% this month';
 
+    final isLightHeader = Theme.of(context).primaryColor.computeLuminance() > 0.45;
+    final headerTextColor = isLightHeader ? const Color(0xFF1F2937) : Colors.white;
+    final headerSubtextColor = isLightHeader ? const Color(0xFF4B5563) : Colors.white70;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -113,8 +117,8 @@ class HomeTopHeaderWidget extends StatelessWidget {
                 children: [
                   Text(
                     greetingText,
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: headerSubtextColor,
                       fontSize: 12,
                       letterSpacing: 0.2,
                     ),
@@ -123,8 +127,8 @@ class HomeTopHeaderWidget extends StatelessWidget {
                     user.username?.isNotEmpty == true
                         ? user.username!
                         : user.name,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: headerTextColor,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -159,11 +163,11 @@ class HomeTopHeaderWidget extends StatelessWidget {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.all(6.0),
+                          Padding(
+                            padding: const EdgeInsets.all(6.0),
                             child: Icon(
                               CupertinoIcons.bell,
-                              color: Colors.white,
+                              color: headerTextColor,
                               size: 24,
                             ),
                           ),
@@ -184,7 +188,7 @@ class HomeTopHeaderWidget extends StatelessWidget {
                                 constraints: const BoxConstraints(
                                   minWidth: 16,
                                   minHeight: 16,
-                                ),
+                                  ),
                                 child: Text(
                                   unread > 9 ? '9+' : '$unread',
                                   style: const TextStyle(
@@ -213,8 +217,8 @@ class HomeTopHeaderWidget extends StatelessWidget {
             children: [
               Text(
                 formattedBal,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: headerTextColor,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -227,10 +231,14 @@ class HomeTopHeaderWidget extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: isLightHeader
+                      ? Colors.black.withOpacity(0.06)
+                      : Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
+                    color: isLightHeader
+                        ? Colors.black.withOpacity(0.12)
+                        : Colors.white.withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -243,16 +251,18 @@ class HomeTopHeaderWidget extends StatelessWidget {
                           : Icons.south_east_rounded,
                       color: isIncrease
                           ? const Color(0xFFEF4444)
-                          : const Color(0xFF4ADE80),
+                          : (isLightHeader
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF4ADE80)),
                       size: 13,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       pctString,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: headerTextColor,
                         fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -377,39 +387,48 @@ class _OnyxAiHeaderButtonState extends State<OnyxAiHeaderButton> {
                   ),
                 );
               },
-              child: ClipRRect(
-                key: ValueKey<int>(_greetingIndex),
-                borderRadius: BorderRadius.circular(10),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.22),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.55),
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.16),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
+              child: Builder(
+                builder: (context) {
+                  final isLightHeader = Theme.of(context).primaryColor.computeLuminance() > 0.45;
+                  return ClipRRect(
+                    key: ValueKey<int>(_greetingIndex),
+                    borderRadius: BorderRadius.circular(10),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isLightHeader
+                              ? Colors.white.withOpacity(0.85)
+                              : Colors.white.withOpacity(0.22),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isLightHeader
+                                ? Colors.black.withOpacity(0.12)
+                                : Colors.white.withOpacity(0.55),
+                            width: 0.8,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isLightHeader ? 0.08 : 0.16),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      _greetings[_greetingIndex],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
+                        child: Text(
+                          _greetings[_greetingIndex],
+                          style: TextStyle(
+                            color: isLightHeader ? const Color(0xFF1F2937) : Colors.white,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ),

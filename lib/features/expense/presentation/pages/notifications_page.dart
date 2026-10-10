@@ -32,6 +32,8 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLight = theme.primaryColor.computeLuminance() > 0.45;
+    final headerTextColor = isLight ? const Color(0xFF1F2937) : Colors.white;
     final isDark = theme.brightness == Brightness.dark;
     final service = NotificationService();
 
@@ -74,18 +76,18 @@ class NotificationsPage extends StatelessWidget {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               CupertinoIcons.back,
-                              color: Colors.white,
+                              color: headerTextColor,
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Center(
                               child: Text(
                                 'Notifications',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: headerTextColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
@@ -95,9 +97,9 @@ class NotificationsPage extends StatelessWidget {
                           if (list.isNotEmpty) ...[
                             IconButton(
                               tooltip: 'Mark all as read',
-                              icon: const Icon(
+                              icon: Icon(
                                 CupertinoIcons.checkmark_seal_fill,
-                                color: Colors.white,
+                                color: headerTextColor,
                                 size: 22,
                               ),
                               onPressed: () async {
@@ -106,9 +108,9 @@ class NotificationsPage extends StatelessWidget {
                             ),
                             IconButton(
                               tooltip: 'Clear all',
-                              icon: const Icon(
+                              icon: Icon(
                                 CupertinoIcons.trash,
-                                color: Colors.white,
+                                color: headerTextColor,
                                 size: 20,
                               ),
                               onPressed: () async {

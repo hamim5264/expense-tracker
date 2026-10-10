@@ -362,6 +362,8 @@ class _HomePageState extends State<HomePage> {
                   transactionList.sort((a, b) => b.date.compareTo(a.date));
                 }
 
+                final isLightPrimary = theme.primaryColor.computeLuminance() > 0.45;
+
                 return isLoading
                     ? Stack(
                         children: [
@@ -383,7 +385,9 @@ class _HomePageState extends State<HomePage> {
                                 'assets/images/components/background_design.png',
                                 width: 320,
                                 fit: BoxFit.contain,
-                                color: Colors.white.withOpacity(0.45),
+                                color: isLightPrimary
+                                    ? Colors.black.withOpacity(0.04)
+                                    : Colors.white.withOpacity(0.45),
                                 colorBlendMode: BlendMode.srcATop,
                               ),
                             ),
@@ -416,7 +420,9 @@ class _HomePageState extends State<HomePage> {
                                         'assets/images/components/background_design.png',
                                         width: 320,
                                         fit: BoxFit.contain,
-                                        color: Colors.white.withOpacity(0.45),
+                                        color: isLightPrimary
+                                            ? Colors.black.withOpacity(0.04)
+                                            : Colors.white.withOpacity(0.45),
                                         colorBlendMode: BlendMode.srcATop,
                                       ),
                                     ),
@@ -507,12 +513,12 @@ class _HomePageState extends State<HomePage> {
                                                 color: theme.primaryColor,
                                                 borderRadius: BorderRadius.circular(16),
                                               ),
-                                              child: const Row(
+                                              child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(CupertinoIcons.arrow_2_circlepath, size: 11, color: Colors.white),
-                                                  SizedBox(width: 4),
-                                                  Text('Sync All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                  Icon(CupertinoIcons.arrow_2_circlepath, size: 11, color: isLightPrimary ? Colors.black87 : Colors.white),
+                                                  const SizedBox(width: 4),
+                                                  Text('Sync All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isLightPrimary ? Colors.black87 : Colors.white)),
                                                 ],
                                               ),
                                             ),

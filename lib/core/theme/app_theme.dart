@@ -28,6 +28,8 @@ class AppTheme {
     required Color primaryColor,
   }) {
     final isDark = brightness == Brightness.dark;
+    final isLightPrimary = primaryColor.computeLuminance() > 0.45;
+    final onPrimaryColor = isLightPrimary ? Colors.black87 : Colors.white;
 
     return ThemeData(
       useMaterial3: true,
@@ -38,7 +40,7 @@ class AppTheme {
         seedColor: primaryColor,
         brightness: brightness,
         primary: primaryColor,
-        onPrimary: Colors.white,
+        onPrimary: onPrimaryColor,
         surface: backgroundColor,
       ),
       textTheme: GoogleFonts.interTextTheme(
@@ -47,7 +49,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimaryColor,
           minimumSize: const Size(double.infinity, 56),
           textStyle: GoogleFonts.inter(
             fontSize: 16,

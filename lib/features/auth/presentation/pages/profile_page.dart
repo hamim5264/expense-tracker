@@ -28,6 +28,9 @@ import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/onyx_ai_key_dialog.dart';
 
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
 
@@ -73,9 +76,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _getColorName(Color color) {
     if (color.value == const Color(0xFF4F378A).value) return 'Amethyst Purple';
+    if (color.value == const Color(0xFFFFFAD3).value) return 'Vanilla Cream';
     if (color.value == const Color(0xFF0F9B0F).value) return 'Emerald Green';
     if (color.value == const Color(0xFF0083B0).value) return 'Ocean Blue';
     if (color.value == const Color(0xFFFF5858).value) return 'Sunset Crimson';
+    if (color.value == const Color(0xFFEC4899).value) return 'Rose Quartz';
+    if (color.value == const Color(0xFF06B6D4).value) return 'Sky Cyan';
     if (color.value == const Color(0xFF232526).value) return 'Obsidian Dark';
     if (color.value == const Color(0xFFD4AF37).value) return 'Golden Amber';
     return 'Custom Color';
@@ -355,13 +361,32 @@ class _ProfilePageState extends State<ProfilePage> {
                             trailing: CupertinoSwitch(
                               value: isEnabled,
                               activeColor: Theme.of(context).primaryColor,
-                              onChanged: (val) {
-                                NotificationService().setNotificationsEnabled(val);
+                              onChanged: (val) async {
+                                await NotificationService().setNotificationsEnabled(val);
                               },
                             ),
-                            onTap: () {
-                              NotificationService().setNotificationsEnabled(!isEnabled);
+                            onTap: () async {
+                              await NotificationService().setNotificationsEnabled(!isEnabled);
                             },
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.sparkles,
+                        title: 'Onyx AI Settings',
+                        subtitle: 'Free OpenRouter AI models & key setup',
+                        iconColor: Colors.deepPurpleAccent,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          OnyxAiKeyDialog.show(
+                            context,
+                            isDark: isDark,
+                            primaryColor: Theme.of(context).primaryColor,
                           );
                         },
                       ),
@@ -547,6 +572,49 @@ class _ProfilePageState extends State<ProfilePage> {
                         showTrailingArrow: true,
                         onTap: () {
                           Navigator.push(context, ReportIssuePage.route());
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Divider(height: 1, color: dividerColor),
+                      ),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.compass,
+                        title: 'Visit Onyx Website',
+                        subtitle: 'hamim5264.github.io/onyx-policy',
+                        iconColor: iconColor,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () async {
+                          final uri = Uri.parse('https://hamim5264.github.io/onyx-policy/index.html');
+                          try {
+                            final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!ok) {
+                              await launchUrl(uri, mode: LaunchMode.platformDefault);
+                            }
+                          } catch (_) {
+                            try {
+                              await launchUrl(uri, mode: LaunchMode.platformDefault);
+                            } catch (e) {
+                              debugPrint('Error launching website: $e');
+                            }
+                          }
+                        },
+                      ),
+
+                      ProfileSectionHeader(title: 'UPCOMING', isDark: isDark),
+                      ProfileOptionTile(
+                        icon: CupertinoIcons.globe,
+                        title: 'Languages',
+                        subtitle: 'Multi-language translation support',
+                        iconColor: iconColor,
+                        showBackgroundBox: true,
+                        showTrailingArrow: true,
+                        onTap: () {
+                          Fluttertoast.showToast(
+                            msg: 'Coming in upcoming release',
+                            toastLength: Toast.LENGTH_SHORT,
+                          );
                         },
                       ),
 

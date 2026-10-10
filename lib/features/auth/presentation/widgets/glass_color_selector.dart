@@ -31,6 +31,11 @@ class GlassColorSelector extends StatelessWidget {
         'subtitle': 'Classic royalty and elegance',
       },
       {
+        'color': const Color(0xFFFFFAD3),
+        'title': 'Vanilla Cream',
+        'subtitle': 'Soft, warm, and radiant cream',
+      },
+      {
         'color': const Color(0xFF0083B0),
         'title': 'Ocean Blue',
         'subtitle': 'Calm, trust, and clarity',
@@ -106,6 +111,7 @@ class GlassColorSelector extends StatelessWidget {
                 final isSelected = color.value == selectedColor.value;
                 final title = opt['title'] as String;
                 final subtitle = opt['subtitle'] as String;
+                final isLight = color.computeLuminance() > 0.55;
 
                 return Container(
                   margin: const EdgeInsets.symmetric(
@@ -114,11 +120,17 @@ class GlassColorSelector extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? color.withAlpha(30)
+                        ? (isLight
+                            ? color.withAlpha(isDark ? 60 : 120)
+                            : color.withAlpha(30))
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? color : Colors.transparent,
+                      color: isSelected
+                          ? (isLight
+                              ? (isDark ? Colors.white54 : Colors.black38)
+                              : color)
+                          : Colors.transparent,
                       width: 1,
                     ),
                   ),
@@ -135,18 +147,26 @@ class GlassColorSelector extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: color,
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isLight
+                                ? (isDark ? Colors.white38 : Colors.black26)
+                                : Colors.transparent,
+                            width: 1,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: color.withOpacity(0.4),
+                              color: isLight
+                                  ? Colors.black.withOpacity(0.08)
+                                  : color.withOpacity(0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
                           ],
                         ),
                         child: isSelected
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check,
-                                color: Colors.white,
+                                color: isLight ? Colors.black87 : Colors.white,
                                 size: 18,
                               )
                             : null,

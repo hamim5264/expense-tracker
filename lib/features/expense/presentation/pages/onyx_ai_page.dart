@@ -221,7 +221,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                             const Expanded(
                               child: Center(
                                 child: Text(
-                                  'Onyx Lumina AI',
+                                  'Onyx Nova AI',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -481,7 +481,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    'ONYX LUMINA v3.0',
+                                    'ONYX NOVA v6.0',
                                     style: TextStyle(
                                       color: primaryColor,
                                       fontSize: 10.5,
@@ -704,7 +704,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "What's New in Onyx Lumina",
+                            "What's New in Onyx Nova",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -713,7 +713,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Version 3.0 • Intelligent Financial Copilot',
+                            'Version 6.0 • Next-Gen AI Financial Intelligence',
                             style: TextStyle(
                               fontSize: 12,
                               color: primaryColor,
@@ -729,47 +729,47 @@ class _OnyxAiPageState extends State<OnyxAiPage>
 
                 // Features list
                 _buildFeatureItem(
-                  icon: CupertinoIcons.chat_bubble_2_fill,
-                  iconColor: const Color(0xFF0284C7),
-                  title: 'Ask Onyx Conversational Copilot',
-                  description:
-                      'Chat naturally about your money, balances, subscriptions, and spending trends with instant, zero-latency answers.',
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 14),
-                _buildFeatureItem(
-                  icon: CupertinoIcons.shield_lefthalf_fill,
-                  iconColor: const Color(0xFF10B981),
-                  title: 'Financial Health Score (0 - 100)',
-                  description:
-                      'A composite diagnostic evaluating your savings rate, spend stability, budget balance, and liquid cash runway.',
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 14),
-                _buildFeatureItem(
-                  icon: CupertinoIcons.graph_circle_fill,
-                  iconColor: const Color(0xFFF59E0B),
-                  title: 'Predictive Month-End Forecaster',
-                  description:
-                      'Calculates daily burn rates and projects month-end spending velocity to alert you before budget deficits occur.',
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 14),
-                _buildFeatureItem(
-                  icon: CupertinoIcons.cart_badge_plus,
+                  icon: CupertinoIcons.sparkles,
                   iconColor: const Color(0xFF8B5CF6),
-                  title: 'Purchase Affordability Simulator',
+                  title: 'Neural Financial Copilot (OpenRouter)',
                   description:
-                      'Simulates big-ticket purchases against your liquid reserves and projects buffer impact before you spend.',
+                      'Ultra-fast free neural LLM reasoning with auto rate-limit protection and instant on-device fallback.',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 14),
                 _buildFeatureItem(
-                  icon: CupertinoIcons.lock_shield_fill,
-                  iconColor: const Color(0xFF06B6D4),
-                  title: '100% Private & On-Device',
+                  icon: CupertinoIcons.creditcard_fill,
+                  iconColor: const Color(0xFF10B981),
+                  title: 'Interactive Loan & EMI Simulator',
                   description:
-                      'Zero external third-party subscriptions, zero latency, offline ready, and 100% private to your device.',
+                      'Track all loans, simulate prepayment schedules, calculate monthly EMIs, and monitor interest velocity.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildFeatureItem(
+                  icon: CupertinoIcons.chat_bubble_text_fill,
+                  iconColor: const Color(0xFF0284C7),
+                  title: 'Smart Bank SMS Auto-Parser',
+                  description:
+                      'Instant clipboard detection and parsing for bank and mobile money SMS alerts with one-tap entry.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildFeatureItem(
+                  icon: CupertinoIcons.bell_fill,
+                  iconColor: const Color(0xFFF59E0B),
+                  title: 'Cloud Announcements & Push Alerts',
+                  description:
+                      'Receive native foreground/background alerts, new release announcements, and Play Store update shortcuts.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildFeatureItem(
+                  icon: CupertinoIcons.gauge,
+                  iconColor: const Color(0xFF06B6D4),
+                  title: 'Multi-Currency & Health Score 2.0',
+                  description:
+                      '100% private financial health scoring, real-time burn-rate forecaster, and custom global currency symbols.',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 22),
@@ -781,7 +781,9 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                     onPressed: () => Navigator.pop(ctx),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: primaryColor.computeLuminance() > 0.45
+                          ? Colors.black87
+                          : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -789,7 +791,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
                       elevation: 0,
                     ),
                     child: const Text(
-                      'Explore Onyx Lumina',
+                      'Explore Onyx Nova',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,

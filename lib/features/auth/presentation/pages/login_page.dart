@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                                       : const Color(0xFF4F378A).withAlpha(35),
                                 ),
                                 child: Image.asset(
-                                  'assets/images/logos/app_final_splash_logo.png',
+                                  'assets/images/logos/Onyx _new_logo_2026.png',
                                   height: 64,
                                 ),
                               ),

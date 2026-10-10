@@ -67,4 +67,10 @@ class SoundService {
       HapticFeedback.mediumImpact();
     }
   }
+
+  static Future<void> playTap() async {
+    if (_vibrateEnabled) {
+      HapticFeedback.selectionClick();
+    }
+  }
 }

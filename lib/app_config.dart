@@ -12,4 +12,7 @@ class AppConfig {
 
   static String get googleAndroidClientId =>
       dotenv.get('GOOGLE_ANDROID_CLIENT_ID');
+
+  static String get openRouterApiKey =>
+      dotenv.maybeGet('OPENROUTER_API_KEY') ?? '';
 }

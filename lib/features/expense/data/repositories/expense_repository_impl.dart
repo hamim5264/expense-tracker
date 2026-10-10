@@ -149,16 +149,30 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       expRes.fold((_) {}, (r) => expenses = r);
 
       final updatedWallets = wallets.map((w) {
-        final initialBal = (w.details['initial_balance'] as num?)?.toDouble() ?? w.balance;
-        double currentBalance = initialBal;
         final walletTx = expenses.where((tx) => tx.walletId == w.id).toList();
+        double txSum = 0.0;
         for (var tx in walletTx) {
           if (tx.type == 'income') {
-            currentBalance += tx.amount;
+            txSum += tx.amount;
           } else {
-            currentBalance -= tx.amount;
+            txSum -= tx.amount;
           }
         }
+
+        double initialBal = (w.details['initial_balance'] as num?)?.toDouble() ?? w.balance;
+
+        // Auto-heal legacy wallets corrupted by the old formula (where details['version'] was not set
+        // and initial_balance was erroneously calculated as w.balance - txSum):
+        if (w.details['version'] == null &&
+            txSum != 0.0 &&
+            w.details['initial_balance'] != null &&
+            (initialBal - w.balance).abs() > 0.01 &&
+            (initialBal - (w.balance - txSum)).abs() < 0.01) {
+          initialBal = w.balance;
+          w.details['initial_balance'] = w.balance;
+        }
+
+        final currentBalance = initialBal + txSum;
         return Wallet(
           id: w.id,
           userId: w.userId,
@@ -199,6 +213,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       if (!detailsMap.containsKey('initial_balance')) {
         detailsMap['initial_balance'] = wallet.balance;
       }
+      detailsMap['version'] = 2;
 
       final walletModel = WalletModel(
         id: '',
@@ -263,18 +278,22 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         }
       }
 
-      // The new initial_balance is (Desired Target Balance - Net Transactions Sum)
-      final newInitialBalance = wallet.balance - txSum;
-
       final detailsMap = Map<String, dynamic>.from(wallet.details);
+      detailsMap['version'] = 2;
+
+      // The new initial/starting balance specified by the user:
+      final newInitialBalance = (detailsMap['initial_balance'] as num?)?.toDouble() ?? wallet.balance;
       detailsMap['initial_balance'] = newInitialBalance;
+
+      // Resulting current balance = Starting Balance + Net Transactions (income - expense)
+      final computedBalance = newInitialBalance + txSum;
 
       final walletModel = WalletModel(
         id: wallet.id,
         userId: wallet.userId,
         name: wallet.name,
         type: wallet.type,
-        balance: wallet.balance,
+        balance: computedBalance,
         details: detailsMap,
         createdAt: wallet.createdAt,
       );
@@ -295,13 +314,21 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           userId: updated.userId,
           name: updated.name,
           type: updated.type,
-          balance: wallet.balance,
+          balance: computedBalance,
           details: updated.details,
           createdAt: updated.createdAt,
         ));
       } else {
         await cacheService.addUnsyncedWallet(walletModel.toJson());
-        return right(wallet);
+        return right(Wallet(
+          id: wallet.id,
+          userId: wallet.userId,
+          name: wallet.name,
+          type: wallet.type,
+          balance: computedBalance,
+          details: detailsMap,
+          createdAt: wallet.createdAt,
+        ));
       }
     } on Failure catch (e) {
       return left(e);
