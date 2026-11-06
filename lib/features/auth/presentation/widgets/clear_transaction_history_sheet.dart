@@ -49,6 +49,14 @@ class _ClearTransactionHistorySheetState
 
   Future<void> _pickDateRange(BuildContext context, Color primaryColor) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rangeBgColor = isDark
+        ? primaryColor.withOpacity(0.35)
+        : const Color(0xFFEDE4FA);
+    final surfaceColor =
+        isDark ? const Color(0xFF1E1B29) : Colors.white;
+    final onSurfaceColor =
+        isDark ? Colors.white : const Color(0xFF211B38);
+
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),
@@ -57,21 +65,196 @@ class _ClearTransactionHistorySheetState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            dialogBackgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
-            scaffoldBackgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
-            colorScheme: isDark
-                ? ColorScheme.dark(
-                    primary: primaryColor,
-                    onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1B29),
-                    onSurface: Colors.white,
-                  )
-                : ColorScheme.light(
-                    primary: primaryColor,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: Colors.black87,
+            scaffoldBackgroundColor: surfaceColor,
+            appBarTheme: AppBarTheme(
+              backgroundColor: surfaceColor,
+              elevation: 0,
+              iconTheme: IconThemeData(
+                color: onSurfaceColor,
+                size: 20,
+              ),
+              actionsPadding: const EdgeInsets.only(right: 14),
+            ),
+            iconButtonTheme: IconButtonThemeData(
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.all(
+                  isDark ? const Color(0xFF2C243E) : const Color(0xFFF0EAF9),
+                ),
+                foregroundColor: WidgetStateProperty.all(
+                  isDark ? Colors.white : const Color(0xFF211B38),
+                ),
+                shape: WidgetStateProperty.all(
+                  const CircleBorder(),
+                ),
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.all(8),
+                ),
+                minimumSize: WidgetStateProperty.all(
+                  const Size(38, 38),
+                ),
+                fixedSize: WidgetStateProperty.all(
+                  const Size(38, 38),
+                ),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: ButtonStyle(
+                backgroundColor:
+                    WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return isDark
+                        ? const Color(0xFF2B263A)
+                        : const Color(0xFFEFEFF2);
+                  }
+                  return primaryColor;
+                }),
+                foregroundColor:
+                    WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return isDark ? Colors.white38 : const Color(0xFF9E9E9E);
+                  }
+                  return Colors.white;
+                }),
+                textStyle: WidgetStateProperty.resolveWith((states) {
+                  return TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: states.contains(WidgetState.disabled)
+                        ? (isDark ? Colors.white38 : const Color(0xFF9E9E9E))
+                        : Colors.white,
+                  );
+                }),
+                foregroundBuilder: (context, states, child) {
+                  final isDis = states.contains(WidgetState.disabled);
+                  final txtColor = isDis
+                      ? (isDark ? Colors.white38 : const Color(0xFF9E9E9E))
+                      : Colors.white;
+                  return DefaultTextStyle.merge(
+                    style: TextStyle(
+                      color: txtColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
+                shape: WidgetStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                ),
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              confirmButtonStyle: ButtonStyle(
+                backgroundColor:
+                    WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return isDark
+                        ? const Color(0xFF2B263A)
+                        : const Color(0xFFEFEFF2);
+                  }
+                  return primaryColor;
+                }),
+                foregroundColor:
+                    WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return isDark ? Colors.white38 : const Color(0xFF9E9E9E);
+                  }
+                  return Colors.white;
+                }),
+                textStyle: WidgetStateProperty.resolveWith((states) {
+                  return TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: states.contains(WidgetState.disabled)
+                        ? (isDark ? Colors.white38 : const Color(0xFF9E9E9E))
+                        : Colors.white,
+                  );
+                }),
+                foregroundBuilder: (context, states, child) {
+                  final isDis = states.contains(WidgetState.disabled);
+                  final txtColor = isDis
+                      ? (isDark ? Colors.white38 : const Color(0xFF9E9E9E))
+                      : Colors.white;
+                  return DefaultTextStyle.merge(
+                    style: TextStyle(
+                      color: txtColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
+                shape: WidgetStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+              rangeSelectionBackgroundColor: rangeBgColor,
+              rangeSelectionOverlayColor: WidgetStateProperty.all(
+                primaryColor.withOpacity(0.08),
+              ),
+              rangePickerBackgroundColor: surfaceColor,
+              rangePickerHeaderBackgroundColor: surfaceColor,
+              rangePickerHeaderForegroundColor: onSurfaceColor,
+              rangePickerHeaderHeadlineStyle: TextStyle(
+                color: onSurfaceColor,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+              rangePickerHeaderHelpStyle: TextStyle(
+                color: isDark
+                    ? const Color(0xFFA69EB8)
+                    : const Color(0xFF817A9B),
+                fontSize: 13,
+              ),
+              dayForegroundColor:
+                  WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                if (states.contains(WidgetState.disabled)) {
+                  return isDark ? Colors.white24 : Colors.grey.shade400;
+                }
+                return onSurfaceColor;
+              }),
+              dayBackgroundColor:
+                  WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return primaryColor;
+                }
+                return null;
+              }),
+              todayForegroundColor: WidgetStateProperty.all(primaryColor),
+              todayBorder: BorderSide(color: primaryColor, width: 1.5),
+            ),
+            colorScheme: (isDark
+                    ? const ColorScheme.dark()
+                    : const ColorScheme.light())
+                .copyWith(
+              primary: primaryColor,
+              onPrimary: Colors.white,
+              secondary: rangeBgColor,
+              onSecondary: primaryColor,
+              secondaryContainer: rangeBgColor,
+              onSecondaryContainer: primaryColor,
+              surface: surfaceColor,
+              onSurface: onSurfaceColor,
+            ),
           ),
           child: child!,
         );

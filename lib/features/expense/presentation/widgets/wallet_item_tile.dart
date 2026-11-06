@@ -45,14 +45,18 @@ class WalletItemTile extends StatelessWidget {
     }
     final netTx = totalIncome - totalExpense;
 
-    double initialBalance = (wallet.details['initial_balance'] as num?)?.toDouble() ?? (wallet.balance - netTx);
-    // Legacy auto-heal check if previously corrupted by buggy update:
-    if (wallet.details['version'] == null &&
-        netTx != 0 &&
-        wallet.details['initial_balance'] != null &&
-        (initialBalance - wallet.balance).abs() > 0.01 &&
-        (initialBalance - (wallet.balance - netTx)).abs() < 0.01) {
-      initialBalance = wallet.balance;
+    final currentBalance = wallet.balance;
+    final storedInitial = (wallet.details['initial_balance'] as num?)?.toDouble();
+
+    // Mathematically: currentBalance = initialBalance + netTx
+    // If storedInitial + netTx == currentBalance, it is valid.
+    // If storedInitial was corrupted (e.g. set equal to currentBalance while netTx != 0),
+    // then the true starting balance before transactions is (currentBalance - netTx):
+    double initialBalance;
+    if (storedInitial != null && (storedInitial + netTx - currentBalance).abs() < 0.01) {
+      initialBalance = storedInitial;
+    } else {
+      initialBalance = currentBalance - netTx;
     }
 
     final balanceController = TextEditingController(
@@ -232,6 +236,7 @@ class WalletItemTile extends StatelessWidget {
                           controller: balanceController,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
+                            signed: true,
                           ),
                           onChanged: (_) => setModalState(() {}),
                           style: TextStyle(
@@ -513,7 +518,7 @@ class WalletItemTile extends StatelessWidget {
                                       userId: wallet.userId,
                                       name: newName,
                                       type: wallet.type,
-                                      balance: newStartingBalance,
+                                      balance: newStartingBalance + netTx,
                                       details: detailsCopy,
                                       createdAt: wallet.createdAt,
                                     );

@@ -96,7 +96,7 @@ class WalletExportSheet extends StatelessWidget {
           Navigator.of(context, rootNavigator: true).pop();
           AnimationHelper.showSuccess(
             context,
-            'Report saved to Downloads & App Reports!',
+            'Report saved in App Reports.',
           );
         },
         onFailed: (err) {

@@ -1,11 +1,23 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
+import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
+import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
+import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
+import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/pdf_viewer_page.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/saved_report_item_tile.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/empty_reports_placeholder.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/reports_header_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/reports_filter_bar.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/report_card_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/reports_empty_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/generate_report_sheet.dart';
 
 class ExpenseReportsPage extends StatefulWidget {
   static Route route() =>
@@ -19,6 +31,7 @@ class ExpenseReportsPage extends StatefulWidget {
 
 class _ExpenseReportsPageState extends State<ExpenseReportsPage> {
   List<SavedReport> _reports = [];
+  String _selectedFilter = 'All';
 
   @override
   void initState() {
@@ -32,8 +45,34 @@ class _ExpenseReportsPageState extends State<ExpenseReportsPage> {
     });
   }
 
+  List<SavedReport> get _filteredReports {
+    if (_selectedFilter == 'All') return _reports;
+
+    final filterKey = _selectedFilter.toLowerCase();
+    return _reports.where((r) {
+      final period = r.period.toLowerCase();
+      final fileName = r.fileName.toLowerCase();
+      return period.contains(filterKey) || fileName.contains(filterKey);
+    }).toList();
+  }
+
   void _openPdf(SavedReport report) {
     Navigator.push(context, PdfViewerPage.route(report));
+  }
+
+  Future<void> _downloadAndOpenPdf(SavedReport report) async {
+    var path = report.filePath;
+    var file = File(path);
+    if (!await file.exists()) {
+      path = report.downloadsPath;
+      file = File(path);
+    }
+    if (!await file.exists()) {
+      Fluttertoast.showToast(msg: 'File not found on device.');
+      return;
+    }
+    Fluttertoast.showToast(msg: 'Opening in external viewer...');
+    await OpenFilex.open(path);
   }
 
   Future<void> _deleteReport(SavedReport report) async {
@@ -42,189 +81,317 @@ class _ExpenseReportsPageState extends State<ExpenseReportsPage> {
     Fluttertoast.showToast(msg: 'Report deleted.');
   }
 
-  Future<void> _clearAllReports() async {
-    final confirm = await showDialog<bool>(
+  Future<void> _confirmDeleteAll() async {
+    if (_reports.isEmpty) {
+      Fluttertoast.showToast(msg: 'No reports to delete.');
+      return;
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+      builder: (dialogCtx) {
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E1A2C) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
           ),
           title: Text(
-            'Clear All Reports',
+            'Delete all reports?',
             style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
+              color: isDark ? Colors.white : const Color(0xFF211B38),
               fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
           content: Text(
-            'Are you sure you want to delete all saved reports?',
+            'This will permanently remove all generated reports from your device storage. This action cannot be undone.',
             style: TextStyle(
-              color: isDark ? Colors.white70 : Colors.black54,
+              color: isDark ? const Color(0xFFA69EB8) : const Color(0xFF817A9B),
+              fontSize: 14,
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
             ),
             TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Clear All'),
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: const Text(
+                'Delete All',
+                style: TextStyle(
+                  color: Color(0xFFFF5263),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
       },
     );
 
-    if (confirm == true) {
+    if (confirmed == true) {
       await ReportStorageService.clearAll();
       _loadReports();
       Fluttertoast.showToast(msg: 'All reports cleared.');
     }
   }
 
-  String _formatDateTime(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final month = monthNames[dt.month - 1];
-    final year = dt.year;
-    final hourInt = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
-    final hour = hourInt.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
+  void _openGenerateReportSheet() {
+    GenerateReportSheet.show(
+      context,
+      onSelectReportType: (type, dateRange) {
+        _handleGenerateReport(type, dateRange);
+      },
+    );
+  }
 
-    return '$day $month $year, $hour:$minute $period';
+  Future<void> _handleGenerateReport(
+    String type, [
+    DateTimeRange? dateRange,
+  ]) async {
+    final expenseState = context.read<ExpenseBloc>().state;
+    if (expenseState is! ExpenseSuccess || expenseState.expenses.isEmpty) {
+      Fluttertoast.showToast(msg: 'No transactions found to generate report.');
+      return;
+    }
+
+    List<Expense> targetTransactions = [];
+    String periodLabel = '';
+    String reportType = '';
+    double totalAmount = 0;
+
+    if (type == 'expense') {
+      targetTransactions = expenseState.expenses
+          .where((tx) =>
+              tx.type.toLowerCase() == 'expense' &&
+              !TransactionTotals.isInternalTransfer(tx))
+          .toList();
+      periodLabel = 'Expense Report';
+      reportType = 'expense';
+      totalAmount = TransactionTotals.expenses(targetTransactions);
+    } else if (type == 'income') {
+      targetTransactions = expenseState.expenses
+          .where((tx) =>
+              tx.type.toLowerCase() == 'income' &&
+              !TransactionTotals.isInternalTransfer(tx))
+          .toList();
+      periodLabel = 'Income Report';
+      reportType = 'income';
+      totalAmount = TransactionTotals.income(targetTransactions);
+    } else if (type == 'custom' && dateRange != null) {
+      targetTransactions = expenseState.expenses.where((tx) {
+        if (TransactionTotals.isInternalTransfer(tx)) return false;
+        return tx.date.isAfter(dateRange.start.subtract(const Duration(seconds: 1))) &&
+            tx.date.isBefore(dateRange.end.add(const Duration(days: 1)));
+      }).toList();
+      final startStr = '${dateRange.start.day}/${dateRange.start.month}';
+      final endStr = '${dateRange.end.day}/${dateRange.end.month}';
+      periodLabel = '$startStr - $endStr Custom';
+      reportType = 'all';
+      totalAmount = TransactionTotals.income(targetTransactions) -
+          TransactionTotals.expenses(targetTransactions);
+    } else {
+      // All Transactions
+      targetTransactions =
+          TransactionTotals.externalTransactions(expenseState.expenses);
+      periodLabel = 'All Transactions';
+      reportType = 'all';
+      totalAmount = TransactionTotals.income(targetTransactions) -
+          TransactionTotals.expenses(targetTransactions);
+    }
+
+    if (targetTransactions.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'No transactions available for the selected type.',
+      );
+      return;
+    }
+
+    String userName = 'User';
+    String currency = 'USD';
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess) {
+      userName = authState.user.username?.isNotEmpty == true
+          ? authState.user.username!
+          : authState.user.name;
+      currency = authState.user.currency;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF563294)),
+      ),
+    );
+
+    await PdfReportService.generateAndSaveReport(
+      transactions: targetTransactions,
+      userName: userName,
+      currency: currency,
+      period: periodLabel,
+      type: reportType,
+      totalAmount: totalAmount,
+      onSuccess: (_) {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+          _loadReports();
+          Fluttertoast.showToast(msg: 'Report generated successfully!');
+        }
+      },
+      onFailed: (err) {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+          Fluttertoast.showToast(msg: 'Failed to generate report: $err');
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLight = theme.primaryColor.computeLuminance() > 0.45;
-    final headerTextColor = isLight ? const Color(0xFF1F2937) : Colors.white;
-    final isDark = theme.brightness == Brightness.dark;
-    final rawPrimary = theme.primaryColor;
-    final isDarkPrimary = rawPrimary.computeLuminance() < 0.25;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF13111C) : const Color(0xFFFAF8FE);
+    final filtered = _filteredReports;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    final effectiveAccentColor = (isDark && isDarkPrimary)
-        ? Colors.purpleAccent.shade100
-        : rawPrimary;
-
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
-    final textColor = isDark ? Colors.white : Colors.black87;
-
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: Stack(
-        children: [
-          CustomPaint(
-            size: Size(MediaQuery.of(context).size.width, 220),
-            painter: HeaderPainter(color: theme.primaryColor),
-          ),
-          Positioned(
-            top: -20,
-            left: -20,
-            child: Opacity(
-              opacity: 0.80,
-              child: Image.asset(
-                'assets/images/components/background_design.png',
-                width: 250,
-                fit: BoxFit.contain,
-              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: Column(
+          children: [
+            // Top Purple Gradient Header (extends fully behind status bar)
+            ReportsHeaderWidget(
+              reportsCount: _reports.length,
+              onBack: () => Navigator.pop(context),
+              onDeleteAll: _confirmDeleteAll,
             ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Row(
+
+            // Content Area with Filters, List & Floating Generate Button
+            Expanded(
+              child: Stack(
+                children: [
+                  Column(
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          CupertinoIcons.back,
-                          color: headerTextColor,
-                        ),
-                        onPressed: () => Navigator.pop(context),
+                      // Filter Chips Bar (All, Expense, Income, Custom)
+                      ReportsFilterBar(
+                        selectedFilter: _selectedFilter,
+                        onFilterSelected: (val) {
+                          setState(() {
+                            _selectedFilter = val;
+                          });
+                        },
                       ),
+
+                      // Reports List or Empty State
                       Expanded(
-                        child: Center(
-                          child: Text(
-                            'Expense Reports',
-                            style: TextStyle(
-                              color: headerTextColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
+                        child: filtered.isEmpty
+                            ? ReportsEmptyWidget(
+                                currentFilter: _selectedFilter,
+                                onGenerate: _openGenerateReportSheet,
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  110 + bottomInset,
+                                ),
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final report = filtered[index];
+                                  return ReportCardWidget(
+                                    report: report,
+                                    onPreview: () => _openPdf(report),
+                                    onDownload: () =>
+                                        _downloadAndOpenPdf(report),
+                                    onDelete: () => _deleteReport(report),
+                                  );
+                                },
+                              ),
                       ),
-                      if (_reports.isNotEmpty)
-                        IconButton(
-                          tooltip: 'Clear all reports',
-                          icon: Icon(
-                            CupertinoIcons.trash,
-                            color: headerTextColor,
-                            size: 20,
-                          ),
-                          onPressed: _clearAllReports,
-                        )
-                      else
-                        const SizedBox(width: 48),
                     ],
                   ),
-                ),
-                Expanded(
-                  child: _reports.isEmpty
-                      ? EmptyReportsPlaceholder(
-                          isDark: isDark,
-                          textColor: textColor,
-                          primaryColor: theme.primaryColor,
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _reports.length,
-                          itemBuilder: (context, index) {
-                            final report = _reports[index];
-                            return SavedReportItemTile(
-                              report: report,
-                              isDark: isDark,
-                              textColor: textColor,
-                              effectiveAccentColor: effectiveAccentColor,
-                              formattedDate: _formatDateTime(report.generatedAt),
-                              onTap: () => _openPdf(report),
-                              onDelete: () => _deleteReport(report),
-                            );
-                          },
-                        ),
-                ),
-              ],
+
+                  // Floating "+ Generate Report" Pill Button (positioned above native navigation bar)
+                  Positioned(
+                    right: 20,
+                    bottom: 24 + bottomInset,
+                    child: _buildGenerateButton(),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenerateButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openGenerateReportSheet,
+        borderRadius: BorderRadius.circular(40),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 16,
           ),
-        ],
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF8547CA),
+                Color(0xFF542B91),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF563294).withOpacity(0.32),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                CupertinoIcons.plus,
+                color: Colors.white,
+                size: 22,
+              ),
+              SizedBox(width: 9),
+              Text(
+                'Generate Report',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -79,7 +79,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    const logoAsset = 'assets/images/logos/Onyx _new_logo_2026.png';
+    const logoAsset = 'assets/images/logos/native_notification_icon.png';
 
     return ValueListenableBuilder<Color>(
       valueListenable: ThemeService.primaryColorNotifier,
@@ -128,7 +128,16 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                               shape: BoxShape.circle,
                               color: Colors.white.withAlpha(isDark ? 10 : 20),
                             ),
-                            child: Image.asset(logoAsset, width: 180),
+                            child: Image.asset(
+                              logoAsset,
+                              width: 140,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.account_balance_wallet_rounded,
+                                color: Colors.white,
+                                size: 96,
+                              ),
+                            ),
                           ),
                           Positioned(
                             bottom: -100,

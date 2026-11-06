@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -70,36 +69,6 @@ class ReportStorageService {
     final sanitizedPeriod = period.replaceAll(RegExp(r'[^\w\s\-]'), '_');
     final fileName = "Onyx_Report_${sanitizedPeriod}_$timestamp.pdf";
 
-    String downloadsFolderPath = '';
-    try {
-      if (!kIsWeb && Platform.isAndroid) {
-        final dDir = Directory('/storage/emulated/0/Download');
-        if (await dDir.exists()) {
-          downloadsFolderPath = dDir.path;
-        } else {
-          final extDir = await getExternalStorageDirectory();
-          downloadsFolderPath =
-              extDir?.path ?? (await getApplicationDocumentsDirectory()).path;
-        }
-      } else if (!kIsWeb) {
-        final dDir = await getDownloadsDirectory();
-        downloadsFolderPath =
-            dDir?.path ?? (await getApplicationDocumentsDirectory()).path;
-      } else {
-        downloadsFolderPath = (await getApplicationDocumentsDirectory()).path;
-      }
-    } catch (_) {
-      downloadsFolderPath = (await getApplicationDocumentsDirectory()).path;
-    }
-
-    String downloadsFilePath = "$downloadsFolderPath/$fileName";
-    try {
-      final downloadsFile = File(downloadsFilePath);
-      await downloadsFile.writeAsBytes(pdfBytes);
-    } catch (e) {
-      debugPrint('Failed writing to Downloads dir: $e');
-    }
-
     final appDocsDir = await getApplicationDocumentsDirectory();
     final reportsDir = Directory('${appDocsDir.path}/reports');
     if (!await reportsDir.exists()) {
@@ -107,13 +76,13 @@ class ReportStorageService {
     }
     final localCachePath = "${reportsDir.path}/$fileName";
     final localFile = File(localCachePath);
-    await localFile.writeAsBytes(pdfBytes);
+    await localFile.writeAsBytes(pdfBytes, flush: true);
 
     final report = SavedReport(
       id: const Uuid().v4(),
       fileName: fileName,
       filePath: localCachePath,
-      downloadsPath: downloadsFilePath,
+      downloadsPath: localCachePath,
       period: period,
       generatedAt: DateTime.now(),
       fileSizeBytes: pdfBytes.length,

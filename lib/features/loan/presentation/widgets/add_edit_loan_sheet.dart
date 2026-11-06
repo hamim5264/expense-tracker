@@ -315,7 +315,7 @@ class _AddEditLoanSheetState extends State<AddEditLoanSheet> {
                 controller: _titleController,
                 style: TextStyle(color: textColor, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: _selectedType == 'borrowed' ? 'e.g. Car Loan, Personal Debt' : 'e.g. Friendly Loan, Business Advance',
+                  hintText: _selectedType == 'borrowed' ? 'e.g. Car loan' : 'e.g. Friend loan',
                   hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 13),
                   filled: true,
                   fillColor: fieldBg,
@@ -335,7 +335,7 @@ class _AddEditLoanSheetState extends State<AddEditLoanSheet> {
                 controller: _counterpartyController,
                 style: TextStyle(color: textColor, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'e.g. John Doe, City Bank, BRAC',
+                  hintText: 'e.g. City Bank, John',
                   hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 13),
                   filled: true,
                   fillColor: fieldBg,

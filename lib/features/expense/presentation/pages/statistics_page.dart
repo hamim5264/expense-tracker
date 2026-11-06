@@ -14,6 +14,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/period_sel
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 
 class StatisticsPage extends StatefulWidget {
   final VoidCallback? onBackTap;
@@ -64,9 +65,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
               allTransactions = expenseState.expenses;
             }
 
-            final allPeriodTransactions = _filterByPeriod(
-              allTransactions,
-              _selectedPeriod,
+            final allPeriodTransactions = TransactionTotals.externalTransactions(
+              _filterByPeriod(allTransactions, _selectedPeriod),
             );
 
             final totalIncome = allPeriodTransactions
@@ -185,7 +185,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                                 Navigator.of(context, rootNavigator: true).pop();
                                                 AnimationHelper.showSuccess(
                                                   context,
-                                                  'Report saved to Downloads & App Reports!',
+                                                  'Report saved in App Reports.',
                                                 );
                                               }
                                             },

@@ -14,6 +14,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:expense_tracker/core/common/utils/budget_storage_service.dart';
+import 'package:expense_tracker/core/services/daily_notification_scheduler.dart';
 
 part 'expense_event.dart';
 
@@ -92,8 +94,37 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
             '${event.expense.title}: ${event.expense.amount.toStringAsFixed(2)} added successfully.',
         type: event.expense.type == 'income' ? 'success' : 'info',
       );
+      if (event.expense.type == 'expense') {
+        _checkBudgetAlerts(event.expense);
+      }
       add(ExpenseFetchAll());
     });
+  }
+
+  void _checkBudgetAlerts(Expense expense) async {
+    try {
+      final budgets = await BudgetStorageService.loadLocalCache(expense.userId);
+      final allExpensesRes = await _getAllExpenses(NoParams());
+      List<Expense> allExpenses = [];
+      allExpensesRes.fold((_) {}, (r) => allExpenses = r);
+      if (!allExpenses.any((e) => e.id == expense.id)) {
+        allExpenses.add(expense);
+      }
+      for (final plan in budgets) {
+        if (plan.matchesTransaction(expense)) {
+          final matching = plan.getMatchingTransactions(allExpenses);
+          final spent = matching.fold(0.0, (s, tx) => s + tx.amount);
+          if (spent >= plan.targetAmount) {
+            DailyNotificationScheduler.triggerBudgetAlert(
+              budgetName: plan.name,
+              spent: spent,
+              target: plan.targetAmount,
+              currency: '',
+            );
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   void _onUpdateTransaction(

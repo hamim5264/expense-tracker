@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
+import 'package:expense_tracker/core/services/onyx_invite_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class InviteFriendsSheet extends StatelessWidget {
@@ -102,17 +103,33 @@ class InviteFriendsSheet extends StatelessWidget {
           showToast('Could not launch sharing option.', isError: true);
         }
       }
+      try {
+        final newCount = await OnyxInviteService.recordInvite();
+        if (newCount >= OnyxInviteService.requiredInvites) {
+          showToast('🎉 Congratulations! Onyx AI is fully unlocked!');
+        } else {
+          showToast('Invite logged ($newCount/${OnyxInviteService.requiredInvites} to unlock Onyx AI)');
+        }
+      } catch (_) {}
+
       if (context.mounted) {
         Navigator.pop(context);
       }
     }
+
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            18,
+            16,
+            (bottomPadding > 0 ? bottomPadding : 16) + 28,
+          ),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.black.withAlpha(140)
@@ -136,7 +153,7 @@ class InviteFriendsSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Text(
                 'Invite Friends',
                 style: TextStyle(
@@ -151,7 +168,7 @@ class InviteFriendsSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 14, color: subColor),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               Row(
                 children: platforms.map((platform) {
                   final color = platform['color'] as Color;
@@ -195,7 +212,6 @@ class InviteFriendsSheet extends StatelessWidget {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 
 class AiInsight {
   final String title;
@@ -22,11 +23,14 @@ class OnyxAiEngine {
     required List<Wallet> wallets,
   }) {
     final List<AiInsight> insights = [];
+    final now = DateTime.now();
+    final periodExpenses = TransactionTotals.externalTransactions(expenses.where((e) =>
+        e.date.year == now.year && e.date.month == now.month));
 
-    final totalIncome = expenses
+    final totalIncome = periodExpenses
         .where((e) => e.type == 'income')
         .fold(0.0, (sum, item) => sum + item.amount);
-    final totalExpense = expenses
+    final totalExpense = periodExpenses
         .where((e) => e.type == 'expense')
         .fold(0.0, (sum, item) => sum + item.amount);
 
@@ -82,7 +86,7 @@ class OnyxAiEngine {
       );
     }
 
-    final expenseTransactions = expenses
+    final expenseTransactions = periodExpenses
         .where((e) => e.type == 'expense')
         .toList();
     if (expenseTransactions.isNotEmpty && totalExpense > 0) {

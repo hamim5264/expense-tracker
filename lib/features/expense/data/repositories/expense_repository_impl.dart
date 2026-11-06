@@ -159,17 +159,28 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           }
         }
 
-        double initialBal = (w.details['initial_balance'] as num?)?.toDouble() ?? w.balance;
+        final storedInitial = (w.details['initial_balance'] as num?)?.toDouble();
+        double initialBal;
 
-        // Auto-heal legacy wallets corrupted by the old formula (where details['version'] was not set
-        // and initial_balance was erroneously calculated as w.balance - txSum):
-        if (w.details['version'] == null &&
-            txSum != 0.0 &&
-            w.details['initial_balance'] != null &&
-            (initialBal - w.balance).abs() > 0.01 &&
-            (initialBal - (w.balance - txSum)).abs() < 0.01) {
-          initialBal = w.balance;
-          w.details['initial_balance'] = w.balance;
+        if (storedInitial != null) {
+          // If storedInitial + txSum == w.balance, it is mathematically valid:
+          if ((storedInitial + txSum - w.balance).abs() < 0.01) {
+            initialBal = storedInitial;
+          } else if ((storedInitial - w.balance).abs() < 0.01 && txSum != 0.0) {
+            // Corrupted by legacy bug where initial_balance was erroneously saved equal to current balance,
+            // which causes txSum to be deducted a second time. Auto-heal it to the true starting balance:
+            initialBal = w.balance - txSum;
+            w.details['initial_balance'] = initialBal;
+            w.details['version'] = 2;
+          } else {
+            initialBal = storedInitial;
+          }
+        } else {
+          // No initial_balance stored yet.
+          // w.balance represents the current balance, so the initial balance is w.balance - txSum:
+          initialBal = w.balance - txSum;
+          w.details['initial_balance'] = initialBal;
+          w.details['version'] = 2;
         }
 
         final currentBalance = initialBal + txSum;
@@ -282,7 +293,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       detailsMap['version'] = 2;
 
       // The new initial/starting balance specified by the user:
-      final newInitialBalance = (detailsMap['initial_balance'] as num?)?.toDouble() ?? wallet.balance;
+      final newInitialBalance = (detailsMap['initial_balance'] as num?)?.toDouble() ?? (wallet.balance - txSum);
       detailsMap['initial_balance'] = newInitialBalance;
 
       // Resulting current balance = Starting Balance + Net Transactions (income - expense)

@@ -37,14 +37,14 @@ class _OnyxChatViewState extends State<OnyxChatView> {
   bool _isLoading = false;
 
   final List<String> _quickChips = [
-    'Can I afford to spend 15000?',
-    'How much on Food this month?',
-    'Summarize my spending',
-    'What are my subscriptions?',
-    'What is my wallet balance?',
-    'How can I save more?',
-    'What is my biggest expense?',
-    'This week vs last week',
+    'Can I afford 15k?',
+    'Food spend',
+    'Summarize',
+    'Subscriptions',
+    'Wallet balance',
+    'Save more tips',
+    'Top expenses',
+    'Weekly comparison',
   ];
 
   @override

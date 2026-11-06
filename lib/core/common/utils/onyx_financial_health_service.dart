@@ -1,5 +1,6 @@
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 import 'package:flutter/material.dart';
 
 class HealthPillar {
@@ -55,13 +56,9 @@ class OnyxFinancialHealthService {
     required List<Expense> expenses,
     required List<Wallet> wallets,
   }) {
-    final totalIncome = expenses
-        .where((e) => e.type == 'income')
-        .fold(0.0, (sum, item) => sum + item.amount);
-
-    final totalExpense = expenses
-        .where((e) => e.type == 'expense')
-        .fold(0.0, (sum, item) => sum + item.amount);
+    final externalTransactions = TransactionTotals.externalTransactions(expenses);
+    final totalIncome = TransactionTotals.income(externalTransactions);
+    final totalExpense = TransactionTotals.expenses(externalTransactions);
 
     double totalWalletBalance =
         wallets.fold(0.0, (sum, item) => sum + item.balance);
@@ -140,7 +137,7 @@ class OnyxFinancialHealthService {
     // 3. Category Diversification (Max 25 pts)
     double diversificationScore = 22.0;
     String diversificationTip = 'Healthy category distribution.';
-    final expenseList = expenses.where((e) => e.type == 'expense').toList();
+    final expenseList = externalTransactions.where((e) => e.type == 'expense').toList();
     if (expenseList.isNotEmpty && totalExpense > 0) {
       final Map<String, double> categorySums = {};
       for (final e in expenseList) {

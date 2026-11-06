@@ -1,4 +1,5 @@
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:flutter/material.dart';
 
@@ -23,26 +24,16 @@ class HomeSpendingSummaryCard extends StatelessWidget {
       return d.year == now.year && d.month == now.month && d.day == now.day;
     }).toList();
 
-    final todayExpense = todayTransactions
-        .where((e) => e.type == 'expense')
-        .fold<double>(0.0, (sum, e) => sum + e.amount);
-
-    final todayIncome = todayTransactions
-        .where((e) => e.type == 'income')
-        .fold<double>(0.0, (sum, e) => sum + e.amount);
+    final todayExpense = TransactionTotals.expenses(todayTransactions);
+    final todayIncome = TransactionTotals.income(todayTransactions);
 
     final monthTransactions = allExpenses.where((e) {
       final d = e.date.toLocal();
       return d.year == now.year && d.month == now.month;
     }).toList();
 
-    final monthExpense = monthTransactions
-        .where((e) => e.type == 'expense')
-        .fold<double>(0.0, (sum, e) => sum + e.amount);
-
-    final monthIncome = monthTransactions
-        .where((e) => e.type == 'income')
-        .fold<double>(0.0, (sum, e) => sum + e.amount);
+    final monthExpense = TransactionTotals.expenses(monthTransactions);
+    final monthIncome = TransactionTotals.income(monthTransactions);
 
     final bool hasTodayExpense = todayExpense > 0;
     final bool hasTodayIncome = todayIncome > 0;

@@ -27,13 +27,22 @@ class BudgetMasterOverviewCard extends StatelessWidget {
     final isExceeded = totalSpent > totalTarget && totalTarget > 0;
 
     final now = DateTime.now();
+    final isDaily = selectedPeriodFilter == 'daily';
     final isMonthly = selectedPeriodFilter == 'monthly';
-    final totalDaysInPeriod = isMonthly
-        ? DateTime(now.year, now.month + 1, 0).day
-        : (DateTime(now.year + 1, 1, 1).difference(DateTime(now.year, 1, 1)).inDays);
-    final daysElapsed = isMonthly
-        ? now.day
-        : now.difference(DateTime(now.year, 1, 1)).inDays + 1;
+    final periodLabel = selectedPeriodFilter == 'daily'
+        ? 'Daily'
+        : selectedPeriodFilter == 'monthly' ? 'Monthly' : 'Yearly';
+    final totalDaysInPeriod = isDaily
+        ? 1
+        : isMonthly
+            ? DateTime(now.year, now.month + 1, 0).day
+            : DateTime(now.year + 1, 1, 1)
+                .difference(DateTime(now.year, 1, 1)).inDays;
+    final daysElapsed = isDaily
+        ? 1
+        : isMonthly
+            ? now.day
+            : now.difference(DateTime(now.year, 1, 1)).inDays + 1;
     final daysRemaining = (totalDaysInPeriod - daysElapsed).clamp(1, totalDaysInPeriod);
     final dailySafeRunRate = remaining > 0 ? (remaining / daysRemaining) : 0.0;
 
@@ -57,7 +66,7 @@ class BudgetMasterOverviewCard extends StatelessWidget {
     final borderColor = isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
@@ -73,57 +82,57 @@ class BudgetMasterOverviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
+          // Header Row: Single-line Title & Status Badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        CupertinoIcons.chart_pie_fill,
-                        color: primaryColor,
-                        size: 16,
-                      ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        '${selectedPeriodFilter == 'monthly' ? 'Monthly' : 'Yearly'} Budget Pool',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
+                    child: Icon(
+                      CupertinoIcons.chart_pie_fill,
+                      color: primaryColor,
+                      size: 16,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$periodLabel Budget',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: statusColor.withOpacity(0.3),
-                    width: 1,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: statusColor.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+                  child: Text(
+                    statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 import 'package:flutter/material.dart';
 
 class OnyxAffordabilityResult {
@@ -90,6 +91,26 @@ class OnyxNlpChatEngine {
     // 4. Affordability Check
     if (_isAffordabilityQuery(lower)) {
       return _handleAffordability(lower, expenses, wallets, currencySymbol);
+    }
+
+    // 4b. Month-specific Spending Query (e.g. "October expenses", "how much did I spend in October")
+    final detectedMonth = _detectMonth(lower);
+    if (detectedMonth != null &&
+        (lower.contains('spend') ||
+            lower.contains('expense') ||
+            lower.contains('cost') ||
+            lower.contains('total') ||
+            lower.contains('report') ||
+            lower.contains('how much') ||
+            lower.contains('summary') ||
+            lower.contains('in ') ||
+            lower.split(' ').length <= 3)) {
+      return _handleMonthSpecificSpending(
+        detectedMonth,
+        lower,
+        expenses,
+        currencySymbol,
+      );
     }
 
     // 5. Category Spending Query (Whole-word matching)
@@ -363,13 +384,12 @@ class OnyxNlpChatEngine {
     final totalWalletBalance =
         wallets.fold(0.0, (sum, item) => sum + item.balance);
 
-    final totalIncome = expenses
-        .where((e) => e.type == 'income')
-        .fold(0.0, (sum, item) => sum + item.amount);
-
-    final totalExpense = expenses
-        .where((e) => e.type == 'expense')
-        .fold(0.0, (sum, item) => sum + item.amount);
+    final now = DateTime.now();
+    final monthTransactions = TransactionTotals.externalTransactions(
+      expenses.where((e) => e.date.year == now.year && e.date.month == now.month),
+    );
+    final totalIncome = TransactionTotals.income(monthTransactions);
+    final totalExpense = TransactionTotals.expenses(monthTransactions);
 
     final currentSavings = totalIncome - totalExpense;
     final currentSavingsRate =
@@ -697,6 +717,114 @@ class OnyxNlpChatEngine {
     );
   }
 
+  // --- Month Detection & Month-Specific Spending Handler ---
+
+  static const Map<String, int> _monthNames = {
+    'january': 1, 'jan': 1,
+    'february': 2, 'feb': 2,
+    'march': 3, 'mar': 3,
+    'april': 4, 'apr': 4,
+    'may': 5,
+    'june': 6, 'jun': 6,
+    'july': 7, 'jul': 7,
+    'august': 8, 'aug': 8,
+    'september': 9, 'sep': 9, 'sept': 9,
+    'october': 10, 'oct': 10,
+    'november': 11, 'nov': 11,
+    'december': 12, 'dec': 12,
+  };
+
+  static int? _detectMonth(String lower) {
+    if (lower.contains('last month') ||
+        lower.contains('previous month') ||
+        lower.contains('past month')) {
+      final now = DateTime.now();
+      return now.month == 1 ? 12 : now.month - 1;
+    }
+    if (lower.contains('this month') || lower.contains('current month')) {
+      return DateTime.now().month;
+    }
+    for (final entry in _monthNames.entries) {
+      final reg = RegExp('\\b${entry.key}\\b');
+      if (reg.hasMatch(lower)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static OnyxChatMessage _handleMonthSpecificSpending(
+    int targetMonth,
+    String lower,
+    List<Expense> expenses,
+    String currencySymbol,
+  ) {
+    final now = DateTime.now();
+    int targetYear = now.year;
+    final yearMatch = RegExp(r'\b(20\d\d)\b').firstMatch(lower);
+    if (yearMatch != null) {
+      targetYear = int.tryParse(yearMatch.group(1)!) ?? now.year;
+    }
+
+    final monthEntry = _monthNames.entries.firstWhere(
+      (e) => e.value == targetMonth && e.key.length > 3,
+      orElse: () => MapEntry('Month $targetMonth', targetMonth),
+    );
+    final monthName = monthEntry.key.replaceFirstMapped(
+      RegExp(r'^[a-z]'),
+      (m) => m[0]!.toUpperCase(),
+    );
+
+    final periodTxs = TransactionTotals.externalTransactions(expenses.where(
+      (e) => e.date.year == targetYear && e.date.month == targetMonth,
+    ));
+
+    final totalIncome = TransactionTotals.income(periodTxs);
+    final totalExpense = TransactionTotals.expenses(periodTxs);
+    final netSavings = totalIncome - totalExpense;
+
+    final expenseList =
+        periodTxs.where((e) => e.type.toLowerCase() == 'expense').toList();
+    final Map<String, double> categorySums = {};
+    for (final tx in expenseList) {
+      categorySums[tx.category] = (categorySums[tx.category] ?? 0) + tx.amount;
+    }
+    final sortedCategories = categorySums.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topCategoryBreakdown = sortedCategories.take(4).map((e) {
+      final pct = totalExpense > 0
+          ? ((e.value / totalExpense) * 100).toStringAsFixed(0)
+          : '0';
+      return "  • ${e.key}: $currencySymbol${e.value.toStringAsFixed(2)} ($pct%)";
+    }).join("\n");
+
+    final responseText = StringBuffer();
+    responseText.writeln("📅 Detailed Breakdown for $monthName $targetYear:\n");
+    responseText.writeln(
+        "• Total Expenses: $currencySymbol${totalExpense.toStringAsFixed(2)} (${expenseList.length} transactions)");
+    responseText.writeln(
+        "• Total Income: $currencySymbol${totalIncome.toStringAsFixed(2)}");
+    responseText.writeln(
+        "• Net Balance: $currencySymbol${netSavings.toStringAsFixed(2)}");
+
+    if (sortedCategories.isNotEmpty) {
+      responseText.writeln("\nTop Spending Categories:");
+      responseText.writeln(topCategoryBreakdown);
+    } else {
+      responseText.writeln(
+          "\nNo recorded expense transactions found for this period.");
+    }
+
+    return OnyxChatMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: responseText.toString().trim(),
+      isUser: false,
+      timestamp: DateTime.now(),
+      type: 'summary',
+    );
+  }
+
   // --- Monthly Summary Handler ---
 
   static OnyxChatMessage _handleMonthlySummary(
@@ -704,13 +832,11 @@ class OnyxNlpChatEngine {
     List<Wallet> wallets,
     String currencySymbol,
   ) {
-    final totalIncome = expenses
-        .where((e) => e.type == 'income')
-        .fold(0.0, (sum, item) => sum + item.amount);
-
-    final totalExpense = expenses
-        .where((e) => e.type == 'expense')
-        .fold(0.0, (sum, item) => sum + item.amount);
+    final now = DateTime.now();
+    final monthTransactions = TransactionTotals.externalTransactions(expenses.where((e) =>
+        e.date.year == now.year && e.date.month == now.month));
+    final totalIncome = TransactionTotals.income(monthTransactions);
+    final totalExpense = TransactionTotals.expenses(monthTransactions);
 
     final netSavings = totalIncome - totalExpense;
     final totalBalance =

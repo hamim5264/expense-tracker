@@ -33,7 +33,7 @@ class OnyxHealthScoreCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -41,54 +41,54 @@ class OnyxHealthScoreCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: score.gradeColor.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        CupertinoIcons.heart_fill,
-                        color: score.gradeColor,
-                        size: 16,
-                      ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: score.gradeColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Financial Health',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
+                    child: Icon(
+                      CupertinoIcons.heart_fill,
+                      color: score.gradeColor,
+                      size: 16,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Financial Health',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: score.gradeColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: score.gradeColor.withOpacity(0.3),
-                    width: 1,
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: score.gradeColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: score.gradeColor.withOpacity(0.3),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  score.status,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: score.gradeColor,
+                  child: Text(
+                    score.status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: score.gradeColor,
+                    ),
                   ),
                 ),
               ),

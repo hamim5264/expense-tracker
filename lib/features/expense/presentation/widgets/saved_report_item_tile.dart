@@ -140,7 +140,7 @@ class SavedReportItemTile extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Downloads & Cache • ${report.formattedSize}',
+                              'App Reports • ${report.formattedSize}',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,

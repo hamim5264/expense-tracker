@@ -2,7 +2,7 @@ name: expense_tracker
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 6.0.1+17
+version: 6.0.2+18
 
 environment:
   sdk: ^3.11.1
@@ -42,6 +42,7 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
@@ -58,10 +59,10 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#4f378a"
-  image: "assets/images/logos/Onyx _new_logo_2026.png"
+  image: "assets/images/logos/splash_padded_icon.png"
   android_12:
-    image: "assets/images/logos/Onyx _new_logo_2026.png"
     color: "#4f378a"
+    image: "assets/images/logos/splash_padded_icon.png"
   android_gravity: center
   ios_content_mode: center
   web: false

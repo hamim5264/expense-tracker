@@ -152,7 +152,7 @@ class BudgetGoalCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${plan.category} • ${plan.period == 'monthly' ? 'Monthly' : 'Yearly'}${matchedExpenses.isNotEmpty ? ' • ${matchedExpenses.length} ${matchedExpenses.length == 1 ? 'log' : 'logs'}' : ''}',
+                            '${plan.category} • ${plan.period == 'daily' ? 'Daily' : plan.period == 'monthly' ? 'Monthly' : 'Yearly'}${matchedExpenses.isNotEmpty ? ' • ${matchedExpenses.length} ${matchedExpenses.length == 1 ? 'log' : 'logs'}' : ''}',
                             style: TextStyle(
                               fontSize: 11.5,
                               color: isDark ? Colors.white54 : Colors.grey.shade600,

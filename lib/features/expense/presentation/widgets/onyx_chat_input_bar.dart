@@ -70,8 +70,8 @@ class OnyxChatInputBar extends StatelessWidget {
                 ),
                 decoration: InputDecoration(
                   hintText: isLoading
-                      ? 'Onyx Nova is thinking...'
-                      : 'Ask Onyx Nova about your finances...',
+                      ? 'Thinking...'
+                      : 'Ask Onyx...',
                   hintStyle: TextStyle(
                     fontSize: 13,
                     color: isDark ? Colors.white38 : Colors.grey.shade400,

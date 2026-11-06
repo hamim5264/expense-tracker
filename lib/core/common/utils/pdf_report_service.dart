@@ -4,9 +4,40 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 
 class PdfReportService {
   static Future<void> generateAndSaveReport({
+    required List<Expense> transactions,
+    required String userName,
+    required String currency,
+    required String period,
+    required String type,
+    required double totalAmount,
+    void Function(String filePath)? onSuccess,
+    void Function(String error)? onFailed,
+  }) async {
+    try {
+      await _buildAndSaveReport(
+        transactions: transactions,
+        userName: userName,
+        currency: currency,
+        period: period,
+        type: type,
+        totalAmount: totalAmount,
+        onSuccess: onSuccess,
+        onFailed: onFailed,
+      );
+    } catch (e) {
+      if (onFailed != null) {
+        onFailed(e.toString());
+      } else {
+        Fluttertoast.showToast(msg: 'Error creating PDF: $e');
+      }
+    }
+  }
+
+  static Future<void> _buildAndSaveReport({
     required List<Expense> transactions,
     required String userName,
     required String currency,
@@ -322,12 +353,8 @@ class PdfReportService {
             pw.SizedBox(height: 12),
 
             () {
-              final double totalIncome = transactions
-                  .where((tx) => tx.type == 'income')
-                  .fold(0.0, (s, tx) => s + tx.amount);
-              final double totalExpenses = transactions
-                  .where((tx) => tx.type == 'expense')
-                  .fold(0.0, (s, tx) => s + tx.amount);
+              final double totalIncome = TransactionTotals.income(transactions);
+              final double totalExpenses = TransactionTotals.expenses(transactions);
               final double netBalance = totalIncome - totalExpenses;
               final int txCount = transactions.length;
 
@@ -429,7 +456,7 @@ class PdfReportService {
         onSuccess(savedReport.filePath);
       } else {
         Fluttertoast.showToast(
-          msg: "Report saved to Downloads folder & App Reports!",
+          msg: "Report saved in App Reports!",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
         );

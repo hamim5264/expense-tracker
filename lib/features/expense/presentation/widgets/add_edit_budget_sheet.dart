@@ -411,6 +411,56 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
     final displayName = _subcategory ??
         (activeCat.name == 'All' ? 'All Categories (Pool)' : activeCat.name);
 
+    Widget buildCadencePill(String id, String label, IconData icon) {
+      final isSelected = _period == id;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _period = id),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? widget.primaryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: widget.primaryColor.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 13,
+                  color: isSelected
+                      ? Colors.white
+                      : (widget.isDark ? Colors.white60 : Colors.black87),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    color: isSelected
+                        ? Colors.white
+                        : (widget.isDark ? Colors.white60 : Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.only(
         left: 20,
@@ -439,7 +489,7 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
             // Header: Title & Close
             Row(
@@ -450,7 +500,7 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                       ? 'Edit Budget Target'
                       : 'New Budget Target',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: widget.isDark ? Colors.white : Colors.black87,
                   ),
@@ -460,21 +510,21 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                   constraints: const BoxConstraints(),
                   icon: Icon(
                     CupertinoIcons.xmark_circle_fill,
-                    size: 20,
+                    size: 22,
                     color: widget.isDark ? Colors.white38 : Colors.grey.shade400,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 1. Transparent Monetary Target Amount Input
+            // 1. Target Limit Amount Input
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
+                color: widget.isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderColor),
               ),
               child: Row(
@@ -482,19 +532,19 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                   Text(
                     widget.currencyCode,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: widget.primaryColor,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true),
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: widget.isDark ? Colors.white : Colors.black87,
                       ),
@@ -505,7 +555,7 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                         contentPadding: EdgeInsets.zero,
                         hintText: '0.00',
                         hintStyle: TextStyle(
-                          fontSize: 16,
+                          fontSize: 20,
                           color: widget.isDark
                               ? Colors.white24
                               : Colors.grey.shade400,
@@ -516,32 +566,39 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                       ),
                     ),
                   ),
-                  Text(
-                    'LIMIT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: widget.isDark ? Colors.white30 : Colors.grey.shade500,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: widget.primaryColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'LIMIT',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                        color: widget.primaryColor,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // 2. Transparent Budget Title Input
+            // 2. Budget Title Input
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
+                color: widget.isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderColor),
               ),
               child: TextField(
                 controller: _nameController,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   color: widget.isDark ? Colors.white : Colors.black87,
                 ),
                 decoration: InputDecoration(
@@ -549,9 +606,9 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                   fillColor: Colors.transparent,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
-                  hintText: 'Plan title (e.g. Monthly Food & Grocery Cap)',
+                  hintText: 'e.g. Grocery cap',
                   hintStyle: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: widget.isDark ? Colors.white30 : Colors.grey.shade400,
                   ),
                   border: InputBorder.none,
@@ -560,143 +617,129 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
 
-            // 3. Compact Period Selector & Category Selector Row
-            Row(
-              children: [
-                // Period Toggle (Monthly vs Yearly)
-                Expanded(
-                  flex: 5,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _period = 'monthly'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: _period == 'monthly'
-                                    ? widget.primaryColor
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Monthly',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11.5,
-                                  color: _period == 'monthly'
-                                      ? Colors.white
-                                      : (widget.isDark
-                                          ? Colors.white60
-                                          : Colors.black87),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _period = 'yearly'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: _period == 'yearly'
-                                    ? widget.primaryColor
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Yearly',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11.5,
-                                  color: _period == 'yearly'
-                                      ? Colors.white
-                                      : (widget.isDark
-                                          ? Colors.white60
-                                          : Colors.black87),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            // 3. Cadence Selector (Dedicated Full-Width Row - Never wraps!)
+            Text(
+              'Budget Cadence',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: widget.isDark ? Colors.white70 : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  buildCadencePill('daily', 'Daily', CupertinoIcons.sun_max),
+                  const SizedBox(width: 4),
+                  buildCadencePill('monthly', 'Monthly', CupertinoIcons.calendar),
+                  const SizedBox(width: 4),
+                  buildCadencePill('yearly', 'Yearly', CupertinoIcons.sparkles),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // 4. Category Selector (Dedicated Full-Width Row - Clear and Spacious)
+            Text(
+              'Budget Category',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: widget.isDark ? Colors.white70 : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _openCategoryPicker,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: activeCat.color.withOpacity(widget.isDark ? 0.12 : 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: activeCat.color.withOpacity(0.4),
+                    width: 1.2,
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // Category Selector Tile (Replaces DropdownButtonFormField!)
-                Expanded(
-                  flex: 6,
-                  child: GestureDetector(
-                    onTap: _openCategoryPicker,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 7),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: activeCat.color.withOpacity(widget.isDark ? 0.12 : 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: activeCat.color.withOpacity(0.4),
+                        color: activeCat.color.withOpacity(0.18),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(activeCat.icon, size: 16, color: activeCat.color),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isDark
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: activeCat.color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(activeCat.icon,
-                              size: 15, color: activeCat.color),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: widget.isDark
-                                    ? Colors.white
-                                    : Colors.black87,
-                              ),
+                          Text(
+                            'Change',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: activeCat.color,
                             ),
                           ),
+                          const SizedBox(width: 2),
                           Icon(
-                            CupertinoIcons.chevron_up_chevron_down,
-                            size: 13,
+                            CupertinoIcons.chevron_right,
+                            size: 11,
                             color: activeCat.color,
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
 
             // Save Button
             SizedBox(
               width: double.infinity,
-              height: 42,
+              height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 0,
+                  elevation: 2,
                 ),
                 onPressed: () {
                   final title = _nameController.text.trim();
@@ -711,7 +754,7 @@ class _AddEditBudgetSheetState extends State<AddEditBudgetSheet> {
                       : 'Save Budget Plan',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
+                    fontSize: 14.5,
                   ),
                 ),
               ),

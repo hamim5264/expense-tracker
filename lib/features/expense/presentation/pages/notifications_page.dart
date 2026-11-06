@@ -1,227 +1,175 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/header_painter.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/notification_item_tile.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/empty_notifications_placeholder.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/notifications_header_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/notifications_filter_bar.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/notification_card_widget.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/notifications_empty_widget.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
   static Route route() =>
       MaterialPageRoute(builder: (context) => const NotificationsPage());
 
   const NotificationsPage({super.key});
 
-  String _formatTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
 
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours}h ago';
-    } else if (diff.inDays == 1) {
-      return 'Yesterday';
-    } else {
-      return '${dt.day}/${dt.month}/${dt.year}';
+class _NotificationsPageState extends State<NotificationsPage> {
+  String _selectedFilter = 'All';
+
+  bool _matchesFilter(AppNotification n, String filter) {
+    if (filter == 'All') return true;
+    final t = n.type.toLowerCase();
+    if (filter == 'Updates') return t.contains('update');
+    if (filter == 'Announcements') {
+      return t.contains('announcement') || t.contains('community');
+    }
+    if (filter == 'Features') return t.contains('feature');
+    return true;
+  }
+
+  Future<void> _handleNotificationTap(
+    BuildContext context,
+    NotificationService service,
+    AppNotification item,
+  ) async {
+    if (!item.isRead) {
+      await service.markAsRead(item.id);
+    }
+    if (item.linkUrl != null && item.linkUrl!.trim().isNotEmpty) {
+      final uri = Uri.parse(item.linkUrl!.trim());
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(
+    BuildContext context,
+    NotificationService service,
+    bool isDark,
+  ) async {
+    if (service.notifications.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1B29) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        title: Text(
+          'Delete all notifications?',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : const Color(0xFF201B38),
+          ),
+        ),
+        content: Text(
+          'This action cannot be undone.',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : const Color(0xFF77728E),
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? Colors.white60 : Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text(
+              'Delete all',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await service.clearAll();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLight = theme.primaryColor.computeLuminance() > 0.45;
-    final headerTextColor = isLight ? const Color(0xFF1F2937) : Colors.white;
     final isDark = theme.brightness == Brightness.dark;
     final service = NotificationService();
-
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA);
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final bgColor = isDark ? const Color(0xFF12111A) : const Color(0xFFF9F7FD);
 
     return AnimatedBuilder(
       animation: service,
       builder: (context, _) {
-        final list = service.notifications;
+        final allItems = service.notifications;
+        final filteredList =
+            allItems.where((n) => _matchesFilter(n, _selectedFilter)).toList();
 
         return Scaffold(
           backgroundColor: bgColor,
-          body: Stack(
+          body: Column(
             children: [
-              CustomPaint(
-                size: Size(MediaQuery.of(context).size.width, 220),
-                painter: HeaderPainter(color: theme.primaryColor),
+              // 1. Purple Gradient Header with 3D Bell & Counter
+              NotificationsHeaderWidget(
+                unreadCount: service.unreadCount,
+                totalCount: allItems.length,
+                onBack: () => Navigator.pop(context),
+                onMarkAllRead: () async => await service.markAllAsRead(),
+                onDeleteAll: () =>
+                    _showDeleteConfirmation(context, service, isDark),
               ),
-              Positioned(
-                top: -20,
-                left: -20,
-                child: Opacity(
-                  opacity: 0.80,
-                  child: Image.asset(
-                    'assets/images/components/background_design.png',
-                    width: 250,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              CupertinoIcons.back,
-                              color: headerTextColor,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: Text(
-                                'Notifications',
-                                style: TextStyle(
-                                  color: headerTextColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (list.isNotEmpty) ...[
-                            IconButton(
-                              tooltip: 'Mark all as read',
-                              icon: Icon(
-                                CupertinoIcons.checkmark_seal_fill,
-                                color: headerTextColor,
-                                size: 22,
-                              ),
-                              onPressed: () async {
-                                await service.markAllAsRead();
-                              },
-                            ),
-                            IconButton(
-                              tooltip: 'Clear all',
-                              icon: Icon(
-                                CupertinoIcons.trash,
-                                color: headerTextColor,
-                                size: 20,
-                              ),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    backgroundColor: isDark
-                                        ? const Color(0xFF1E1B29)
-                                        : Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    title: Text(
-                                      'Clear Notifications',
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    content: Text(
-                                      'Are you sure you want to delete all notifications?',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white70
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.redAccent,
-                                        ),
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, true),
-                                        child: const Text('Clear All'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  await service.clearAll();
-                                }
-                              },
-                            ),
-                          ] else
-                            const SizedBox(width: 48),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        color: theme.primaryColor,
-                        onRefresh: () async {
-                          await service.fetchRemoteAnnouncements();
-                        },
-                        child: list.isEmpty
-                            ? EmptyNotificationsPlaceholder(
-                                isDark: isDark,
-                                textColor: textColor,
-                                primaryColor: theme.primaryColor,
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  right: 16,
-                                  top: 100,
-                                  bottom: 16,
-                                ),
-                                physics: const AlwaysScrollableScrollPhysics(
-                                  parent: BouncingScrollPhysics(),
-                                ),
-                                itemCount: list.length,
-                                itemBuilder: (context, index) {
-                                  final item = list[index];
 
-                                  return NotificationItemTile(
-                                    item: item,
-                                    isDark: isDark,
-                                    textColor: textColor,
-                                    formattedTime: _formatTime(item.timestamp),
-                                    onTap: () async {
-                                      if (!item.isRead) {
-                                        await service.markAsRead(item.id);
-                                      }
-                                      if (item.linkUrl != null &&
-                                          item.linkUrl!.trim().isNotEmpty) {
-                                        final uri = Uri.parse(item.linkUrl!.trim());
-                                        try {
-                                          if (await canLaunchUrl(uri)) {
-                                            await launchUrl(
-                                              uri,
-                                              mode: LaunchMode.externalApplication,
-                                            );
-                                          }
-                                        } catch (_) {}
-                                      }
-                                    },
-                                    onDelete: () async {
-                                      await service.deleteNotification(item.id);
-                                    },
-                                  );
-                                },
-                              ),
-                      ),
-                    ),
-                  ],
+              // 2. Horizontal Category Filter Chips Bar
+              NotificationsFilterBar(
+                selectedFilter: _selectedFilter,
+                onFilterSelected: (val) => setState(() => _selectedFilter = val),
+                isDark: isDark,
+              ),
+
+              // 3. Notification Cards List / Empty State
+              Expanded(
+                child: RefreshIndicator(
+                  color: const Color(0xFF8152D5),
+                  onRefresh: () async {
+                    await service.fetchRemoteAnnouncements();
+                  },
+                  child: filteredList.isEmpty
+                      ? NotificationsEmptyWidget(isDark: isDark)
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          itemCount: filteredList.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredList[index];
+                            return NotificationCardWidget(
+                              notification: item,
+                              isDark: isDark,
+                              onTap: () =>
+                                  _handleNotificationTap(context, service, item),
+                              onMarkAsRead: () async =>
+                                  await service.markAsRead(item.id),
+                              onDelete: () async =>
+                                  await service.deleteNotification(item.id),
+                            );
+                          },
+                        ),
                 ),
               ),
             ],

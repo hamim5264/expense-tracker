@@ -10,7 +10,7 @@ import 'package:expense_tracker/features/expense/presentation/widgets/header_pai
 import 'package:expense_tracker/features/expense/presentation/widgets/home_shimmer_loading.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/add_expense_page.dart';
 import 'package:expense_tracker/features/expense/presentation/pages/wallet_page.dart';
-import 'package:expense_tracker/features/expense/presentation/widgets/all_transactions_sheet.dart';
+import 'package:expense_tracker/features/expense/presentation/pages/all_transactions_page.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/sms_detected_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/money_flow_chart.dart';
@@ -552,14 +552,15 @@ class _HomePageState extends State<HomePage> {
                                         const Text('Recent Transactions', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold)),
                                         GestureDetector(
                                           onTap: () {
-                                            showModalBottomSheet(
-                                              context: context,
-                                              backgroundColor: Colors.transparent,
-                                              isScrollControlled: true,
-                                              barrierColor: Colors.black.withAlpha(80),
-                                              builder: (sheetContext) => AllTransactionsSheet(
-                                                transactions: transactionList,
-                                                currencyCode: user.currency,
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => AllTransactionsPage(
+                                                  transactions: transactionList,
+                                                  currencyCode: user.currency,
+                                                  userName: user.username?.isNotEmpty == true
+                                                      ? user.username!
+                                                      : user.name,
+                                                ),
                                               ),
                                             );
                                           },

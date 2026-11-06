@@ -33,6 +33,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/onyx_ai_key_dialog.dart';
 
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
+import 'package:expense_tracker/core/services/daily_notification_scheduler.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback? onBackTap;
@@ -47,6 +48,25 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool _morningEnabled = true;
+  bool _nightEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPreferences();
+  }
+
+  Future<void> _loadNotificationPreferences() async {
+    final morning = await DailyNotificationScheduler.isMorningEnabled();
+    final night = await DailyNotificationScheduler.isNightEnabled();
+    if (mounted) {
+      setState(() {
+        _morningEnabled = morning;
+        _nightEnabled = night;
+      });
+    }
+  }
   String _getThemeModeName(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.dark:
@@ -352,22 +372,84 @@ class _ProfilePageState extends State<ProfilePage> {
                         animation: NotificationService(),
                         builder: (context, _) {
                           final isEnabled = NotificationService().isNotificationsEnabled;
-                          return ProfileOptionTile(
-                            icon: CupertinoIcons.bell_fill,
-                            title: 'Notifications',
-                            subtitle: isEnabled ? 'Enabled' : 'Disabled',
-                            iconColor: Colors.purpleAccent,
-                            showBackgroundBox: true,
-                            trailing: CupertinoSwitch(
-                              value: isEnabled,
-                              activeColor: Theme.of(context).primaryColor,
-                              onChanged: (val) async {
-                                await NotificationService().setNotificationsEnabled(val);
-                              },
-                            ),
-                            onTap: () async {
-                              await NotificationService().setNotificationsEnabled(!isEnabled);
-                            },
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ProfileOptionTile(
+                                icon: CupertinoIcons.bell_fill,
+                                title: 'Push Notifications',
+                                subtitle: isEnabled ? 'Master alerts enabled' : 'All alerts muted',
+                                iconColor: Colors.purpleAccent,
+                                showBackgroundBox: true,
+                                trailing: CupertinoSwitch(
+                                  value: isEnabled,
+                                  activeColor: Theme.of(context).primaryColor,
+                                  onChanged: (val) async {
+                                    await NotificationService().setNotificationsEnabled(val);
+                                    if (val) {
+                                      await DailyNotificationScheduler.syncSchedules();
+                                    }
+                                  },
+                                ),
+                                onTap: () async {
+                                  final newVal = !isEnabled;
+                                  await NotificationService().setNotificationsEnabled(newVal);
+                                  if (newVal) {
+                                    await DailyNotificationScheduler.syncSchedules();
+                                  }
+                                },
+                              ),
+                              if (isEnabled) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Divider(height: 1, color: dividerColor),
+                                ),
+                                ProfileOptionTile(
+                                  icon: CupertinoIcons.sun_max_fill,
+                                  title: 'Morning Plan Routine',
+                                  subtitle: '8:00 AM daily financial wake-up',
+                                  iconColor: Colors.amber,
+                                  showBackgroundBox: true,
+                                  trailing: CupertinoSwitch(
+                                    value: _morningEnabled,
+                                    activeColor: Theme.of(context).primaryColor,
+                                    onChanged: (val) async {
+                                      setState(() => _morningEnabled = val);
+                                      await DailyNotificationScheduler.setMorningEnabled(val);
+                                    },
+                                  ),
+                                  onTap: () async {
+                                    final val = !_morningEnabled;
+                                    setState(() => _morningEnabled = val);
+                                    await DailyNotificationScheduler.setMorningEnabled(val);
+                                  },
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Divider(height: 1, color: dividerColor),
+                                ),
+                                ProfileOptionTile(
+                                  icon: CupertinoIcons.moon_stars_fill,
+                                  title: 'Night Expense Reminder',
+                                  subtitle: '9:00 PM reminder to log spending',
+                                  iconColor: Colors.indigoAccent,
+                                  showBackgroundBox: true,
+                                  trailing: CupertinoSwitch(
+                                    value: _nightEnabled,
+                                    activeColor: Theme.of(context).primaryColor,
+                                    onChanged: (val) async {
+                                      setState(() => _nightEnabled = val);
+                                      await DailyNotificationScheduler.setNightEnabled(val);
+                                    },
+                                  ),
+                                  onTap: () async {
+                                    final val = !_nightEnabled;
+                                    setState(() => _nightEnabled = val);
+                                    await DailyNotificationScheduler.setNightEnabled(val);
+                                  },
+                                ),
+                              ],
+                            ],
                           );
                         },
                       ),

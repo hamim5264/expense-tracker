@@ -6,6 +6,7 @@ import 'package:expense_tracker/app_config.dart';
 import 'package:expense_tracker/core/common/utils/onyx_nlp_chat_engine.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
+import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
 
 class OnyxLlmService {
   static const String _prefApiKey = 'openrouter_api_key';
@@ -209,17 +210,12 @@ class OnyxLlmService {
     final now = DateTime.now();
 
     // Current month filter
-    final currentMonthExpenses = expenses
+    final currentMonthExpenses = TransactionTotals.externalTransactions(expenses
         .where((e) => e.date.year == now.year && e.date.month == now.month)
-        .toList();
+        .toList());
 
-    final totalIncome = currentMonthExpenses
-        .where((e) => e.type.toLowerCase() == 'income')
-        .fold(0.0, (sum, e) => sum + e.amount);
-
-    final totalExpense = currentMonthExpenses
-        .where((e) => e.type.toLowerCase() == 'expense')
-        .fold(0.0, (sum, e) => sum + e.amount);
+    final totalIncome = TransactionTotals.income(currentMonthExpenses);
+    final totalExpense = TransactionTotals.expenses(currentMonthExpenses);
 
     final netSavings = totalIncome - totalExpense;
     final savingsRate = totalIncome > 0 ? ((netSavings / totalIncome) * 100) : 0.0;

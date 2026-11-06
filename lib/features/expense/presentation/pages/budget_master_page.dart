@@ -137,35 +137,40 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.onBackTap != null) {
+                        widget.onBackTap!();
+                      } else if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
                         CupertinoIcons.back,
                         color: isDark ? Colors.white : Colors.black87,
-                        size: 20,
+                        size: 18,
                       ),
-                      onPressed: () {
-                        if (widget.onBackTap != null) {
-                          widget.onBackTap!();
-                        } else if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _selectedMasterTab == 0 ? 'Budget Master' : 'Loan Master',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -174,8 +179,11 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                         ),
                         Text(
                           _selectedMasterTab == 0
-                              ? 'Targets & Spending Caps'
-                              : 'Loans, Debts & EMI Tracking',
+                              ? 'Spending Caps'
+                              : 'Loans & EMI',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark ? Colors.white38 : Colors.grey.shade500,
@@ -184,24 +192,53 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
 
-                  // Single Primary Add Button in Top Bar (Shown for Budgets)
-                  if (_selectedMasterTab == 0)
+                  // Top Filter Button & Single Primary Add Button
+                  if (_selectedMasterTab == 0) ...[
+                    GestureDetector(
+                      onTap: () {
+                        final dailyCount = _budgetPlans.where((b) => b.period == 'daily').length;
+                        final monthlyCount = _budgetPlans.where((b) => b.period == 'monthly').length;
+                        final yearlyCount = _budgetPlans.where((b) => b.period == 'yearly').length;
+                        _showBudgetFilterSheet(
+                          context: context,
+                          isDark: isDark,
+                          primaryColor: primaryColor,
+                          dailyCount: dailyCount,
+                          monthlyCount: monthlyCount,
+                          yearlyCount: yearlyCount,
+                        );
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.slider_horizontal_3,
+                          size: 16,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => _showAddEditBudgetModal(),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
+                          horizontal: 12,
+                          vertical: 7.5,
                         ),
                         decoration: BoxDecoration(
                           color: primaryColor,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
                               color: primaryColor.withOpacity(0.3),
-                              blurRadius: 8,
+                              blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
                           ],
@@ -214,7 +251,7 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                               color: Colors.white,
                               size: 14,
                             ),
-                            SizedBox(width: 5),
+                            SizedBox(width: 4),
                             Text(
                               'Target',
                               style: TextStyle(
@@ -227,6 +264,7 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -371,11 +409,6 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                           .where((b) => b.period == _selectedPeriodFilter)
                           .toList();
 
-                      final monthlyCount =
-                          _budgetPlans.where((b) => b.period == 'monthly').length;
-                      final yearlyCount =
-                          _budgetPlans.where((b) => b.period == 'yearly').length;
-
                       final double totalTarget = filteredBudgets.fold(
                         0.0,
                         (s, b) => s + b.targetAmount,
@@ -423,126 +456,9 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                             MediaQuery.of(context).padding.bottom + 115,
                           ),
                           children: [
-                            // Period Toggle (Monthly vs Yearly)
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.06)
-                                    : Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () => setState(
-                                        () => _selectedPeriodFilter = 'monthly',
-                                      ),
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 9,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _selectedPeriodFilter == 'monthly'
-                                              ? (isDark
-                                                  ? primaryColor
-                                                  : Colors.white)
-                                              : Colors.transparent,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          boxShadow:
-                                              _selectedPeriodFilter == 'monthly' &&
-                                                      !isDark
-                                                  ? [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.06),
-                                                        blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
-                                                      ),
-                                                    ]
-                                                  : null,
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          'Monthly Budgets ($monthlyCount)',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12.5,
-                                            color: _selectedPeriodFilter ==
-                                                    'monthly'
-                                                ? (isDark
-                                                    ? Colors.white
-                                                    : Colors.black87)
-                                                : (isDark
-                                                    ? Colors.white60
-                                                    : Colors.grey.shade600),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () => setState(
-                                        () => _selectedPeriodFilter = 'yearly',
-                                      ),
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 9,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _selectedPeriodFilter == 'yearly'
-                                              ? (isDark
-                                                  ? primaryColor
-                                                  : Colors.white)
-                                              : Colors.transparent,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          boxShadow:
-                                              _selectedPeriodFilter == 'yearly' &&
-                                                      !isDark
-                                                  ? [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.06),
-                                                        blurRadius: 6,
-                                                        offset:
-                                                            const Offset(0, 2),
-                                                      ),
-                                                    ]
-                                                  : null,
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          'Yearly Budgets ($yearlyCount)',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12.5,
-                                            color: _selectedPeriodFilter ==
-                                                    'yearly'
-                                                ? (isDark
-                                                    ? Colors.white
-                                                    : Colors.black87)
-                                                : (isDark
-                                                    ? Colors.white60
-                                                    : Colors.grey.shade600),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+
+
+
 
                             // Master Overview Card
                             BudgetMasterOverviewCard(
@@ -596,6 +512,56 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
                                       ),
                                     ),
                                   ],
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    final dailyCount = _budgetPlans.where((b) => b.period == 'daily').length;
+                                    final monthlyCount = _budgetPlans.where((b) => b.period == 'monthly').length;
+                                    final yearlyCount = _budgetPlans.where((b) => b.period == 'yearly').length;
+                                    _showBudgetFilterSheet(
+                                      context: context,
+                                      isDark: isDark,
+                                      primaryColor: primaryColor,
+                                      dailyCount: dailyCount,
+                                      monthlyCount: monthlyCount,
+                                      yearlyCount: yearlyCount,
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(CupertinoIcons.slider_horizontal_3, size: 12.5, color: primaryColor),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _selectedPeriodFilter == 'daily'
+                                              ? 'Daily'
+                                              : _selectedPeriodFilter == 'monthly'
+                                                  ? 'Monthly'
+                                                  : 'Yearly',
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Icon(
+                                          CupertinoIcons.chevron_down,
+                                          size: 10,
+                                          color: isDark ? Colors.white60 : Colors.grey.shade700,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -716,9 +682,226 @@ class _BudgetMasterPageState extends State<BudgetMasterPage> {
     );
   }
 
+  void _showBudgetFilterSheet({
+    required BuildContext context,
+    required bool isDark,
+    required Color primaryColor,
+    required int dailyCount,
+    required int monthlyCount,
+    required int yearlyCount,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final cardBg = isDark ? const Color(0xFF1E1B29) : Colors.white;
+        final textColor = isDark ? Colors.white : Colors.black87;
+        final subTextColor = isDark ? Colors.white60 : Colors.black54;
+
+        Widget buildOption({
+          required String id,
+          required String title,
+          required String subtitle,
+          required IconData icon,
+          required int count,
+        }) {
+          final isSelected = _selectedPeriodFilter == id;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? primaryColor.withOpacity(isDark ? 0.2 : 0.08)
+                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? primaryColor
+                    : (isDark ? Colors.white10 : Colors.grey.shade200),
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  setState(() => _selectedPeriodFilter = id);
+                  Navigator.pop(sheetContext);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? primaryColor
+                              : (isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          icon,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                    color: textColor,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? primaryColor.withOpacity(0.2)
+                                        : (isDark ? Colors.white10 : Colors.grey.shade200),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$count active',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected ? primaryColor : subTextColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              subtitle,
+                              style: TextStyle(color: subTextColor, fontSize: 11.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(
+                        isSelected
+                            ? CupertinoIcons.checkmark_circle_fill
+                            : CupertinoIcons.circle,
+                        color: isSelected
+                            ? primaryColor
+                            : (isDark ? Colors.white24 : Colors.grey.shade400),
+                        size: 22,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(sheetContext).padding.bottom + 24),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.5 : 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(CupertinoIcons.slider_horizontal_3, color: primaryColor, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Budget Cadence',
+                        style: TextStyle(
+                          fontSize: 17.5,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark_circle_fill, size: 22),
+                    color: isDark ? Colors.white38 : Colors.grey.shade400,
+                    onPressed: () => Navigator.pop(sheetContext),
+                  ),
+                ],
+              ),
+              Text(
+                'Filter budgets and analytics by planning time horizon',
+                style: TextStyle(color: subTextColor, fontSize: 12.5),
+              ),
+              const SizedBox(height: 18),
+              buildOption(
+                id: 'daily',
+                title: 'Daily Budgets',
+                subtitle: 'Day-to-day spending limits & daily run-rates',
+                icon: CupertinoIcons.sun_max_fill,
+                count: dailyCount,
+              ),
+              buildOption(
+                id: 'monthly',
+                title: 'Monthly Budgets',
+                subtitle: 'Calendar month caps & regular monthly plans',
+                icon: CupertinoIcons.calendar,
+                count: monthlyCount,
+              ),
+              buildOption(
+                id: 'yearly',
+                title: 'Yearly Budgets',
+                subtitle: 'Long-term annual targets & large capital budgets',
+                icon: CupertinoIcons.sparkles,
+                count: yearlyCount,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildEmptyBudgetState(bool isDark, Color primaryColor) {
-    final periodName =
-        _selectedPeriodFilter == 'monthly' ? 'Monthly' : 'Yearly';
+                              final periodName = _selectedPeriodFilter == 'daily'
+                                  ? 'Daily'
+                                  : _selectedPeriodFilter == 'monthly'
+                                      ? 'Monthly'
+                                      : 'Yearly';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),

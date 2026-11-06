@@ -5,7 +5,7 @@ class BudgetPlan {
   final String userId;
   final String name;
   final double targetAmount;
-  final String period; // 'monthly' or 'yearly'
+  final String period; // 'daily', 'monthly', or 'yearly'
   final String category; // 'All' or specific category like 'Food', 'Salary'
   final DateTime startDate;
   final String? walletId;
@@ -72,7 +72,13 @@ class BudgetPlan {
 
     // Period filter
     final now = DateTime.now();
-    if (period == 'monthly') {
+    if (period == 'daily') {
+      if (tx.date.year != now.year ||
+          tx.date.month != now.month ||
+          tx.date.day != now.day) {
+        return false;
+      }
+    } else if (period == 'monthly') {
       if (tx.date.year != now.year || tx.date.month != now.month) {
         return false;
       }

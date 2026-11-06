@@ -88,6 +88,7 @@ class NotificationService extends ChangeNotifier {
     _box = await Hive.openBox(_boxName);
     await sanitizeDuplicates();
     await _loadPreferences();
+    await _seedDefaultAnnouncementsIfEmpty();
 
     // Check actual OS permission status
     try {
@@ -219,6 +220,42 @@ class NotificationService extends ChangeNotifier {
     if (keysToRemove.isNotEmpty) {
       await _box!.deleteAll(keysToRemove);
       notifyListeners();
+    }
+  }
+
+  Future<void> _seedDefaultAnnouncementsIfEmpty() async {
+    if (_box == null || _box!.isNotEmpty) return;
+    final seedItems = [
+      AppNotification(
+        id: 'seed-v6',
+        title: '🚀 Major Update v6.0.0: Meet Onyx Lumina AI!',
+        message:
+            'Our biggest update yet! Experience Onyx Lumina AI with real-time Financial Health Score (0–100), predictive forecasts, budget caps, dual dark & light themes, and instant cash flow tracking.',
+        timestamp: DateTime(2026, 9, 7),
+        type: 'Updates',
+        isRead: false,
+      ),
+      AppNotification(
+        id: 'seed-community',
+        title: 'Thank You for Being Part of Onyx! 💜',
+        message:
+            'Onyx keeps getting better because of you. Thank you for your feedback, support, and continued trust. We truly appreciate everyone who has been part of this journey. 🙏✨',
+        timestamp: DateTime(2026, 8, 28),
+        type: 'Announcements',
+        isRead: true,
+      ),
+      AppNotification(
+        id: 'seed-v5',
+        title: '🚀 Major Architecture Update v5.0.0 Released!',
+        message:
+            'A major behind-the-scenes upgrade for better performance, stability, and a smoother experience across all devices.',
+        timestamp: DateTime(2026, 8, 28),
+        type: 'Features',
+        isRead: true,
+      ),
+    ];
+    for (final item in seedItems) {
+      await _box!.put(item.id, item.toJson());
     }
   }
 

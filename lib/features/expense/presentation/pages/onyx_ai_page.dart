@@ -13,6 +13,8 @@ import 'package:expense_tracker/features/expense/presentation/widgets/onyx_avata
 import 'package:expense_tracker/features/expense/presentation/widgets/onyx_chat_view.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/onyx_health_score_card.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/onyx_run_rate_card.dart';
+import 'package:expense_tracker/core/services/onyx_invite_service.dart';
+import 'package:expense_tracker/features/expense/presentation/widgets/onyx_ai_locked_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -97,6 +99,7 @@ class _OnyxAiPageState extends State<OnyxAiPage>
   @override
   void initState() {
     super.initState();
+    OnyxInviteService.initialize();
     context.read<ExpenseBloc>().add(ExpenseFetchAll());
     _pulseController = AnimationController(
       vsync: this,
@@ -164,9 +167,42 @@ class _OnyxAiPageState extends State<OnyxAiPage>
     final cardBg = isDark ? const Color(0xFF1E1E2C) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: Column(
+    return ValueListenableBuilder<bool>(
+      valueListenable: OnyxInviteService.isUnlockedNotifier,
+      builder: (context, isUnlocked, _) {
+        if (!isUnlocked) {
+          return Scaffold(
+            backgroundColor: bgColor,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(
+                  CupertinoIcons.back,
+                  color: textColor,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                'Onyx Nova AI',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: OnyxAiLockedView(
+              isDark: isDark,
+              primaryColor: primaryColor,
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: bgColor,
+          body: Column(
         children: [
           // Top Header Container (AppBar + Sliding Tabs enclosed cleanly)
           Container(
@@ -641,7 +677,9 @@ class _OnyxAiPageState extends State<OnyxAiPage>
         ],
       ),
     );
-  }
+  },
+);
+}
 
   void _showWhatsNewDialog(BuildContext context) {
     final theme = Theme.of(context);
