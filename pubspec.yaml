@@ -2,7 +2,7 @@ name: expense_tracker
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 6.0.2+18
+version: 6.0.3+19
 
 environment:
   sdk: ^3.11.1
@@ -43,6 +43,8 @@ dependencies:
   firebase_messaging: ^16.7.0
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.1
+  google_mobile_ads: ^9.2.0
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:

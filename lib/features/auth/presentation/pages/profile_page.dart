@@ -663,12 +663,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       ProfileOptionTile(
                         icon: CupertinoIcons.compass,
                         title: 'Visit Onyx Website',
-                        subtitle: 'hamim5264.github.io/onyx-policy',
+                        subtitle: 'onyx.devenginehq.com',
                         iconColor: iconColor,
                         showBackgroundBox: true,
                         showTrailingArrow: true,
                         onTap: () async {
-                          final uri = Uri.parse('https://hamim5264.github.io/onyx-policy/index.html');
+                          final uri = Uri.parse('https://onyx.devenginehq.com');
                           try {
                             final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
                             if (!ok) {

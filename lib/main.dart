@@ -5,6 +5,7 @@ import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/expense/presentation/bloc/expense_bloc.dart';
 import 'package:expense_tracker/core/services/firebase_notification_service.dart';
 import 'package:expense_tracker/core/services/daily_notification_scheduler.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
 import 'package:expense_tracker/init_dependencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseNotificationService.instance.initialize();
   await DailyNotificationScheduler.initialize();
+  AdService.initialize();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

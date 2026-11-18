@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -28,11 +29,32 @@ class DailyNotificationScheduler {
     enableVibration: true,
   );
 
+  /// Without this, `tz.local` defaults to UTC and reminders fire at the wrong
+  /// hour (e.g. 8:00 AM UTC = 2:00 PM in Bangladesh).
+  static Future<void> _configureLocalTimeZone() async {
+    try {
+      final info = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(info.identifier));
+      debugPrint('🕒 Local timezone set to ${info.identifier}');
+    } catch (e) {
+      debugPrint('⚠️ Timezone detection failed ($e). Using offset fallback.');
+      final offset = DateTime.now().timeZoneOffset;
+      final now = DateTime.now().toUtc();
+      for (final loc in tz.timeZoneDatabase.locations.values) {
+        if (tz.TZDateTime.from(now, loc).timeZoneOffset == offset) {
+          tz.setLocalLocation(loc);
+          return;
+        }
+      }
+    }
+  }
+
   static Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       tz.initializeTimeZones();
+      await _configureLocalTimeZone();
 
       const androidInit =
           AndroidInitializationSettings('@drawable/ic_notification');
@@ -58,6 +80,11 @@ class DailyNotificationScheduler {
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
       await androidPlugin?.createNotificationChannel(_reminderChannel);
+      try {
+        await androidPlugin?.requestNotificationsPermission();
+      } catch (e) {
+        debugPrint('⚠️ Notification permission request failed: $e');
+      }
 
       _isInitialized = true;
       debugPrint('🔔 DailyNotificationScheduler initialized.');

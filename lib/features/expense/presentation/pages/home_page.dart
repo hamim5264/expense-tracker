@@ -33,6 +33,7 @@ import 'package:expense_tracker/features/expense/presentation/pages/budget_maste
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/core/common/utils/rate_us_service.dart';
+import 'package:expense_tracker/core/widgets/ads/onyx_banner_ad.dart';
 
 class HomePage extends StatefulWidget {
   static Route route() =>
@@ -608,6 +609,8 @@ class _HomePageState extends State<HomePage> {
                                       currencyCode: user.currency,
                                       isDark: isDark,
                                     ),
+                                    const SizedBox(height: 18),
+                                    const OnyxBannerAd(),
                                   ],
                                 ),
                               ),
