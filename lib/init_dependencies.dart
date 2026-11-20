@@ -42,6 +42,7 @@ import 'package:expense_tracker/core/common/utils/theme_service.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/core/common/utils/sms_import_tracker.dart';
 import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
+import 'package:expense_tracker/core/services/onyx_ai_credits_service.dart';
 
 final serviceLocator = GetIt.instance;
 
@@ -52,6 +53,7 @@ Future<void> initDependencies() async {
   await NotificationService().init();
   await SmsImportTracker.init();
   await ReportStorageService.init();
+  await OnyxAiCreditsService.init();
 
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,

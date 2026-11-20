@@ -1,6 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:expense_tracker/core/common/utils/onyx_nlp_chat_engine.dart';
 import 'package:expense_tracker/core/common/utils/sound_service.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
+import 'package:expense_tracker/core/services/onyx_ai_credits_service.dart';
 import 'package:expense_tracker/core/services/onyx_llm_service.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/domain/entities/wallet.dart';
@@ -84,6 +88,18 @@ class _OnyxChatViewState extends State<OnyxChatView> {
     final query = text.trim();
     if (query.isEmpty || _isLoading) return;
 
+    // Check if user has AI chat credits
+    if (!OnyxAiCreditsService.hasCredits) {
+      _showUnlockMessagesSheet(pendingText: query);
+      return;
+    }
+
+    // Deduct 1 credit for sending this message
+    await OnyxAiCreditsService.consumeCredit();
+    await _executeSend(query);
+  }
+
+  Future<void> _executeSend(String query) async {
     final userMsg = OnyxChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       text: query,
@@ -140,10 +156,125 @@ class _OnyxChatViewState extends State<OnyxChatView> {
     }
   }
 
+  void _showUnlockMessagesSheet({String? pendingText}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetCtx) {
+        return _OnyxAdUnlockSheet(
+          isDark: widget.isDark,
+          primaryColor: widget.primaryColor,
+          onAdSuccess: () async {
+            Navigator.pop(bottomSheetCtx);
+            await OnyxAiCreditsService.addCredits(3);
+            if (pendingText != null && pendingText.isNotEmpty) {
+              await OnyxAiCreditsService.consumeCredit();
+              _executeSend(pendingText);
+              Fluttertoast.showToast(
+                msg: '🎉 +3 Messages unlocked! (${OnyxAiCreditsService.credits} remaining)',
+                toastLength: Toast.LENGTH_LONG,
+              );
+            } else {
+              Fluttertoast.showToast(
+                msg: '🎉 +3 AI chat messages added!',
+                toastLength: Toast.LENGTH_LONG,
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCreditsBadge(int credits) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: credits > 0
+              ? widget.primaryColor.withOpacity(widget.isDark ? 0.16 : 0.08)
+              : const Color(0xFFF59E0B).withOpacity(widget.isDark ? 0.18 : 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: credits > 0
+                ? widget.primaryColor.withOpacity(0.3)
+                : const Color(0xFFF59E0B).withOpacity(0.4),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              credits > 0 ? CupertinoIcons.bolt_fill : CupertinoIcons.play_circle_fill,
+              size: 15,
+              color: credits > 0 ? widget.primaryColor : const Color(0xFFF59E0B),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                credits > 0
+                    ? '$credits AI Message${credits == 1 ? '' : 's'} Remaining'
+                    : '0 Credits • Watch video to chat',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: credits > 0
+                      ? (widget.isDark ? Colors.white : Colors.black87)
+                      : const Color(0xFFF59E0B),
+                ),
+              ),
+            ),
+            InkWell(
+              onTap: () => _showUnlockMessagesSheet(),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.primaryColor,
+                      widget.primaryColor.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(CupertinoIcons.play_arrow_solid, size: 10, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text(
+                      '+3 Free',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // AI Credits Status Bar
+        ValueListenableBuilder<int>(
+          valueListenable: OnyxAiCreditsService.creditsNotifier,
+          builder: (context, credits, _) {
+            return _buildCreditsBadge(credits);
+          },
+        ),
+
         // Quick Action Chips Widget
         OnyxQuickChips(
           chips: _quickChips,
@@ -192,6 +323,196 @@ class _OnyxChatViewState extends State<OnyxChatView> {
           },
         ),
       ],
+    );
+  }
+}
+
+class _OnyxAdUnlockSheet extends StatefulWidget {
+  final bool isDark;
+  final Color primaryColor;
+  final VoidCallback onAdSuccess;
+
+  const _OnyxAdUnlockSheet({
+    required this.isDark,
+    required this.primaryColor,
+    required this.onAdSuccess,
+  });
+
+  @override
+  State<_OnyxAdUnlockSheet> createState() => _OnyxAdUnlockSheetState();
+}
+
+class _OnyxAdUnlockSheetState extends State<_OnyxAdUnlockSheet> {
+  bool _isLoading = false;
+
+  Future<void> _watchAd() async {
+    setState(() => _isLoading = true);
+    await AdService.showRewardedAdWithDialog(
+      context: context,
+      loadingMessage: 'Loading video ad...',
+      onUserEarnedReward: () {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          widget.onAdSuccess();
+        }
+      },
+      onFailedOrDismissed: () {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sheetBg = widget.isDark ? const Color(0xFF1E1A2C) : Colors.white;
+    final textColor = widget.isDark ? Colors.white : const Color(0xFF211B38);
+    final subtitleColor =
+        widget.isDark ? const Color(0xFFA69EB8) : const Color(0xFF756F86);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        14,
+        24,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: widget.isDark ? Colors.white24 : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Glowing Icon
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  widget.primaryColor,
+                  widget.primaryColor.withOpacity(0.6),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.primaryColor.withOpacity(0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(
+              CupertinoIcons.play_circle_fill,
+              color: Colors.white,
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Text(
+            'Unlock AI Chat Messages',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+              letterSpacing: -0.3,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            'Watch a short video ad to unlock 3 interactive AI messages with Onyx Nova Advisor.',
+            style: TextStyle(
+              fontSize: 14,
+              color: subtitleColor,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+
+          // Watch Ad Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _watchAd,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(CupertinoIcons.play_arrow_solid, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Watch Video (+3 Messages)',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Maybe later button
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Maybe Later',
+              style: TextStyle(
+                color: subtitleColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

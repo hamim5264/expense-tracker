@@ -19,9 +19,11 @@ class DailyNotificationScheduler {
 
   static bool _isInitialized = false;
 
+  static const String channelId = 'onyx_daily_reminders_v2';
+
   static const AndroidNotificationChannel _reminderChannel =
       AndroidNotificationChannel(
-    'onyx_daily_reminders',
+    channelId,
     'Daily Reminders & Alerts',
     description: 'Daily morning plans, night expense reminders, and budget alerts',
     importance: Importance.max,
@@ -82,6 +84,7 @@ class DailyNotificationScheduler {
       await androidPlugin?.createNotificationChannel(_reminderChannel);
       try {
         await androidPlugin?.requestNotificationsPermission();
+        await androidPlugin?.requestExactAlarmsPermission();
       } catch (e) {
         debugPrint('⚠️ Notification permission request failed: $e');
       }
@@ -158,9 +161,18 @@ class DailyNotificationScheduler {
         0,
       );
 
-      if (scheduledDate.isBefore(now)) {
+      if (!scheduledDate.isAfter(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
+
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final canExact =
+          await androidPlugin?.canScheduleExactNotifications() ?? false;
+      final scheduleMode = canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
 
       await _localNotifications.zonedSchedule(
         morningNotificationId,
@@ -169,7 +181,7 @@ class DailyNotificationScheduler {
         scheduledDate,
         const NotificationDetails(
           android: AndroidNotificationDetails(
-            'onyx_daily_reminders',
+            channelId,
             'Daily Reminders & Alerts',
             channelDescription:
                 'Daily morning plans, night expense reminders, and budget alerts',
@@ -187,7 +199,7 @@ class DailyNotificationScheduler {
             presentSound: true,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
@@ -212,9 +224,18 @@ class DailyNotificationScheduler {
         0,
       );
 
-      if (scheduledDate.isBefore(now)) {
+      if (!scheduledDate.isAfter(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
+
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final canExact =
+          await androidPlugin?.canScheduleExactNotifications() ?? false;
+      final scheduleMode = canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
 
       await _localNotifications.zonedSchedule(
         nightNotificationId,
@@ -223,7 +244,7 @@ class DailyNotificationScheduler {
         scheduledDate,
         const NotificationDetails(
           android: AndroidNotificationDetails(
-            'onyx_daily_reminders',
+            channelId,
             'Daily Reminders & Alerts',
             channelDescription:
                 'Daily morning plans, night expense reminders, and budget alerts',
@@ -241,7 +262,7 @@ class DailyNotificationScheduler {
             presentSound: true,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
@@ -265,7 +286,7 @@ class DailyNotificationScheduler {
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'onyx_daily_reminders',
+        channelId,
         'Daily Reminders & Alerts',
         channelDescription:
             'Daily morning plans, night expense reminders, and budget alerts',
@@ -313,7 +334,7 @@ class DailyNotificationScheduler {
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'onyx_daily_reminders',
+        channelId,
         'Daily Reminders & Alerts',
         channelDescription: 'Daily morning plans, night expense reminders, and budget alerts',
         importance: Importance.max,
@@ -357,7 +378,7 @@ class DailyNotificationScheduler {
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'onyx_daily_reminders',
+        channelId,
         'Daily Reminders & Alerts',
         channelDescription: 'Daily morning plans, night expense reminders, and budget alerts',
         importance: Importance.max,

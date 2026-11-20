@@ -1,4 +1,6 @@
 import 'package:expense_tracker/core/services/onyx_invite_service.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
+import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/features/auth/presentation/widgets/invite_friends_sheet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -241,6 +243,47 @@ class OnyxAiLockedView extends StatelessWidget {
                         backgroundColor: Colors.transparent,
                         isScrollControlled: true,
                         builder: (_) => const InviteFriendsSheet(),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Secondary CTA: Watch video ad to earn credit towards unlocking AI
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      side: BorderSide(color: primaryColor.withOpacity(0.5), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(CupertinoIcons.play_circle_fill, size: 20),
+                    label: const Text(
+                      'Watch Video to Earn +1 Credit',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      AdService.showRewardedAd(
+                        onUserEarnedReward: (reward) async {
+                          final newCount = await OnyxInviteService.recordInvite();
+                          if (context.mounted) {
+                            if (newCount >= OnyxInviteService.requiredInvites) {
+                              showToast('🎉 Congratulations! Onyx AI is fully unlocked!');
+                            } else {
+                              showToast('🎉 You earned +1 AI Credit ($newCount/${OnyxInviteService.requiredInvites})!');
+                            }
+                          }
+                        },
+                        onAdNotReady: () {
+                          showToast('Ad is loading, please try again in a moment!');
+                        },
                       );
                     },
                   ),

@@ -33,6 +33,7 @@ import 'package:expense_tracker/features/expense/presentation/pages/budget_maste
 import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/notification_service.dart';
 import 'package:expense_tracker/core/common/utils/rate_us_service.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
 import 'package:expense_tracker/core/widgets/ads/onyx_banner_ad.dart';
 
 class HomePage extends StatefulWidget {
@@ -311,6 +312,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onTabSelected(int index) {
+    if (_selectedIndex != index) {
+      AdService.showNavigationInterstitialIfAllowed();
+    }
     setState(() => _selectedIndex = index);
     if (index == 0) {
       _checkForSmsExpenses();
@@ -459,7 +463,7 @@ class _HomePageState extends State<HomePage> {
                               child: SingleChildScrollView(
                                 controller: _scrollController,
                                 physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 100),
+                                padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 120),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -611,6 +615,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     const SizedBox(height: 18),
                                     const OnyxBannerAd(),
+                                    const SizedBox(height: 70),
                                   ],
                                 ),
                               ),

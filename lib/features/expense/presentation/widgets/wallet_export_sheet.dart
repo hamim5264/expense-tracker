@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/services/ad_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
@@ -81,31 +82,37 @@ class WalletExportSheet extends StatelessWidget {
 
     final totalBalance = wallets.fold(0.0, (sum, w) => sum + w.balance);
 
-    showExportProgressDialog(context);
+    AdService.showRewardedAdWithDialog(
+      context: context,
+      loadingMessage: 'Loading video ad to export report...',
+      onUserEarnedReward: () {
+        showExportProgressDialog(context);
 
-    Future.microtask(() async {
-      await PdfReportService.generateAndSaveReport(
-        transactions: filteredExpenses,
-        userName: userName,
-        currency: currency,
-        period: period,
-        type: 'all',
-        totalAmount: totalBalance,
-        onSuccess: (_) {
-          if (!context.mounted) return;
-          Navigator.of(context, rootNavigator: true).pop();
-          AnimationHelper.showSuccess(
-            context,
-            'Report saved in App Reports.',
+        Future.microtask(() async {
+          await PdfReportService.generateAndSaveReport(
+            transactions: filteredExpenses,
+            userName: userName,
+            currency: currency,
+            period: period,
+            type: 'all',
+            totalAmount: totalBalance,
+            onSuccess: (_) {
+              if (!context.mounted) return;
+              Navigator.of(context, rootNavigator: true).pop();
+              AnimationHelper.showSuccess(
+                context,
+                'Report saved in App Reports.',
+              );
+            },
+            onFailed: (err) {
+              if (!context.mounted) return;
+              Navigator.of(context, rootNavigator: true).pop();
+              AnimationHelper.showFailed(context, 'Export failed: ');
+            },
           );
-        },
-        onFailed: (err) {
-          if (!context.mounted) return;
-          Navigator.of(context, rootNavigator: true).pop();
-          AnimationHelper.showFailed(context, 'Export failed: $err');
-        },
-      );
-    });
+        });
+      },
+    );
   }
 
   @override

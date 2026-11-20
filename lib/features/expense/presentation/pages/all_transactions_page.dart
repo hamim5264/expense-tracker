@@ -2,6 +2,7 @@ import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 import 'package:expense_tracker/core/common/utils/currency_service.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
 import 'package:expense_tracker/features/expense/presentation/widgets/transaction_item_tile.dart';
 import 'package:flutter/cupertino.dart';
@@ -49,28 +50,35 @@ class _AllTransactionsPageState extends State<AllTransactionsPage> {
       );
       return;
     }
-    showDialog<void>(
+
+    await AdService.showRewardedAdWithDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    await PdfReportService.generateAndSaveReport(
-      transactions: transactions,
-      userName: widget.userName,
-      currency: widget.currencyCode,
-      period: _period,
-      type: 'all',
-      totalAmount: TransactionTotals.income(transactions) -
-          TransactionTotals.expenses(transactions),
-      onSuccess: (_) {
-        if (!mounted) return;
-        Navigator.of(context, rootNavigator: true).pop();
-        AnimationHelper.showSuccess(context, 'PDF saved in App Reports.');
-      },
-      onFailed: (error) {
-        if (!mounted) return;
-        Navigator.of(context, rootNavigator: true).pop();
-        AnimationHelper.showFailed(context, 'PDF export failed: $error');
+      loadingMessage: 'Loading video ad to export report...',
+      onUserEarnedReward: () async {
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+        await PdfReportService.generateAndSaveReport(
+          transactions: transactions,
+          userName: widget.userName,
+          currency: widget.currencyCode,
+          period: _period,
+          type: 'all',
+          totalAmount: TransactionTotals.income(transactions) -
+              TransactionTotals.expenses(transactions),
+          onSuccess: (_) {
+            if (!mounted) return;
+            Navigator.of(context, rootNavigator: true).pop();
+            AnimationHelper.showSuccess(context, 'PDF saved in App Reports.');
+          },
+          onFailed: (error) {
+            if (!mounted) return;
+            Navigator.of(context, rootNavigator: true).pop();
+            AnimationHelper.showFailed(context, 'PDF export failed: $error');
+          },
+        );
       },
     );
   }

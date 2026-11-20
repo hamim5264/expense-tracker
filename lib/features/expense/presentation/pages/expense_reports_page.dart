@@ -8,6 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:expense_tracker/core/common/utils/report_storage_service.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:expense_tracker/features/auth/presentation/bloc/auth_state.dart';
 import 'package:expense_tracker/features/expense/domain/entities/expense.dart';
@@ -57,22 +58,34 @@ class _ExpenseReportsPageState extends State<ExpenseReportsPage> {
   }
 
   void _openPdf(SavedReport report) {
-    Navigator.push(context, PdfViewerPage.route(report));
+    AdService.showRewardedAdWithDialog(
+      context: context,
+      loadingMessage: 'Loading video ad to view report...',
+      onUserEarnedReward: () {
+        Navigator.push(context, PdfViewerPage.route(report));
+      },
+    );
   }
 
   Future<void> _downloadAndOpenPdf(SavedReport report) async {
-    var path = report.filePath;
-    var file = File(path);
-    if (!await file.exists()) {
-      path = report.downloadsPath;
-      file = File(path);
-    }
-    if (!await file.exists()) {
-      Fluttertoast.showToast(msg: 'File not found on device.');
-      return;
-    }
-    Fluttertoast.showToast(msg: 'Opening in external viewer...');
-    await OpenFilex.open(path);
+    await AdService.showRewardedAdWithDialog(
+      context: context,
+      loadingMessage: 'Loading video ad to download report...',
+      onUserEarnedReward: () async {
+        var path = report.filePath;
+        var file = File(path);
+        if (!await file.exists()) {
+          path = report.downloadsPath;
+          file = File(path);
+        }
+        if (!await file.exists()) {
+          Fluttertoast.showToast(msg: 'File not found on device.');
+          return;
+        }
+        Fluttertoast.showToast(msg: 'Opening in external viewer...');
+        await OpenFilex.open(path);
+      },
+    );
   }
 
   Future<void> _deleteReport(SavedReport report) async {
@@ -224,34 +237,41 @@ class _ExpenseReportsPageState extends State<ExpenseReportsPage> {
       currency = authState.user.currency;
     }
 
-    // Show loading indicator
-    showDialog(
+    // Require watching a rewarded video ad before generating the report
+    await AdService.showRewardedAdWithDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF563294)),
-      ),
-    );
+      loadingMessage: 'Loading video ad to generate report...',
+      onUserEarnedReward: () async {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF563294)),
+          ),
+        );
 
-    await PdfReportService.generateAndSaveReport(
-      transactions: targetTransactions,
-      userName: userName,
-      currency: currency,
-      period: periodLabel,
-      type: reportType,
-      totalAmount: totalAmount,
-      onSuccess: (_) {
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
-          _loadReports();
-          Fluttertoast.showToast(msg: 'Report generated successfully!');
-        }
-      },
-      onFailed: (err) {
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
-          Fluttertoast.showToast(msg: 'Failed to generate report: $err');
-        }
+        await PdfReportService.generateAndSaveReport(
+          transactions: targetTransactions,
+          userName: userName,
+          currency: currency,
+          period: periodLabel,
+          type: reportType,
+          totalAmount: totalAmount,
+          onSuccess: (_) {
+            if (mounted) {
+              Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+              _loadReports();
+              Fluttertoast.showToast(msg: 'Report generated successfully!');
+            }
+          },
+          onFailed: (err) {
+            if (mounted) {
+              Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+              Fluttertoast.showToast(msg: 'Failed to generate report: $err');
+            }
+          },
+        );
       },
     );
   }

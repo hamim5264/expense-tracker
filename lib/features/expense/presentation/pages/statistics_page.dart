@@ -15,6 +15,7 @@ import 'package:expense_tracker/core/common/utils/show_snackbar.dart';
 import 'package:expense_tracker/core/common/utils/pdf_report_service.dart';
 import 'package:expense_tracker/core/common/utils/animation_helper.dart';
 import 'package:expense_tracker/core/common/utils/transaction_totals.dart';
+import 'package:expense_tracker/core/services/ad_service.dart';
 
 class StatisticsPage extends StatefulWidget {
   final VoidCallback? onBackTap;
@@ -168,38 +169,44 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                     TextButton(
                                       onPressed: () {
                                         Navigator.pop(ctx);
-                                        showExportProgressDialog(context);
+                                        AdService.showRewardedAdWithDialog(
+                                          context: context,
+                                          loadingMessage: 'Loading video ad to download report...',
+                                          onUserEarnedReward: () {
+                                            showExportProgressDialog(context);
 
-                                        Future.microtask(() async {
-                                          await PdfReportService.generateAndSaveReport(
-                                            transactions: allPeriodTransactions,
-                                            userName: user.username?.isNotEmpty == true
-                                                ? user.username!
-                                                : user.name,
-                                            currency: user.currency,
-                                            period: _selectedPeriod,
-                                            type: 'all',
-                                            totalAmount: totalIncome - totalExpenses,
-                                            onSuccess: (_) {
-                                              if (context.mounted) {
-                                                Navigator.of(context, rootNavigator: true).pop();
-                                                AnimationHelper.showSuccess(
-                                                  context,
-                                                  'Report saved in App Reports.',
-                                                );
-                                              }
-                                            },
-                                            onFailed: (err) {
-                                              if (context.mounted) {
-                                                Navigator.of(context, rootNavigator: true).pop();
-                                                AnimationHelper.showFailed(
-                                                  context,
-                                                  'Export failed: $err',
-                                                );
-                                              }
-                                            },
-                                          );
-                                        });
+                                            Future.microtask(() async {
+                                              await PdfReportService.generateAndSaveReport(
+                                                transactions: allPeriodTransactions,
+                                                userName: user.username?.isNotEmpty == true
+                                                    ? user.username!
+                                                    : user.name,
+                                                currency: user.currency,
+                                                period: _selectedPeriod,
+                                                type: 'all',
+                                                totalAmount: totalIncome - totalExpenses,
+                                                onSuccess: (_) {
+                                                  if (context.mounted) {
+                                                    Navigator.of(context, rootNavigator: true).pop();
+                                                    AnimationHelper.showSuccess(
+                                                      context,
+                                                      'Report saved in App Reports.',
+                                                    );
+                                                  }
+                                                },
+                                                onFailed: (err) {
+                                                  if (context.mounted) {
+                                                    Navigator.of(context, rootNavigator: true).pop();
+                                                    AnimationHelper.showFailed(
+                                                      context,
+                                                      'Export failed: $err',
+                                                    );
+                                                  }
+                                                },
+                                              );
+                                            });
+                                          },
+                                        );
                                       },
                                       child: const Text('Download'),
                                     ),
